@@ -57,16 +57,45 @@ export interface FactInput {
   sourceRef: string;
 }
 
+/**
+ * One vendor-reported usage counter that is NOT spend (Claude Code
+ * sessions/commits/PRs/tool acceptances, ...). Kept out of spend_facts so
+ * the ledger never double counts; rates are computed at display time from
+ * the raw counters. (vendor, sourceRef, metric) is the upsert key.
+ */
+export interface MetricInput {
+  /** UTC day, YYYY-MM-DD. */
+  day: string;
+  /** The identity this counter belongs to; omitted = unattributed. */
+  identity?: { externalId: string; kind: IdentityInput["kind"] };
+  metric: string;
+  /** Raw integer counter as the vendor reports it. */
+  value: number;
+  /** Points at the vendor record behind this counter (same rule as facts). */
+  sourceRef: string;
+}
+
 /** One page of a sync. nextPageToken null = the window is complete. */
 export interface ConnectorPage {
   identities: IdentityInput[];
   facts: FactInput[];
+  /** Non-spend usage counters (optional - most connectors have none). */
+  metrics?: MetricInput[];
   nextPageToken: string | null;
 }
 
 export interface ScopeCheck {
   /** Scopes the vendor reports for the token. Stored on the connectors row. */
   scopes: string[];
+}
+
+/** A credential field the connect screen collects (stored encrypted). */
+export interface ConfigField {
+  /** Key in the connector config object, e.g. "adminKey". */
+  key: string;
+  label: string;
+  /** Render as a password input. */
+  secret?: boolean;
 }
 
 export interface Connector {
@@ -79,6 +108,13 @@ export interface Connector {
    * shows it.
    */
   historyLimitDays: number;
+  /**
+   * Vendor limits stated on the connect screen, verbatim (spec 5 "Vendor
+   * limits, stated on each connect screen").
+   */
+  connectNotes?: string[];
+  /** Credential fields the connect screen collects for this vendor. */
+  configFields?: ConfigField[];
   /**
    * Validate the token's scopes on connect. Throw to reject the connect -
    * the error message is shown to the user verbatim.

@@ -1,0 +1,16 @@
+[
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.anthropic.com/v1/organizations/me"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "id": "8f0e2a1c-3a44-4b7d-9c52-1d2e3f4a5b6c",
+        "type": "organization",
+        "name": "Acme Inc"
+      }
+    }
+  }
+]

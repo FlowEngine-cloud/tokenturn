@@ -47,6 +47,7 @@ describe.runIf(TEST_DATABASE_URL)("core schema", () => {
       "settings",
       "spend_facts",
       "sync_runs",
+      "usage_metrics",
       "users",
       "webauthn_credentials",
     ]);

@@ -9,6 +9,7 @@ import type {
   ConnectorPage,
   FactInput,
   IdentityInput,
+  MetricInput,
   SyncCursor,
   SyncWindow,
 } from "./types";
@@ -125,6 +126,25 @@ function validateFact(fact: FactInput): void {
   }
 }
 
+function validateMetric(metric: MetricInput): void {
+  if (!DAY_RE.test(metric.day)) {
+    throw new Error(
+      `connector emitted a bad metric day ${JSON.stringify(metric.day)}; want YYYY-MM-DD`,
+    );
+  }
+  if (!metric.metric) {
+    throw new Error("connector emitted a metric without a name");
+  }
+  if (!Number.isInteger(metric.value)) {
+    throw new Error(
+      `connector emitted a non-integer value for metric ${metric.metric} (${metric.sourceRef})`,
+    );
+  }
+  if (!metric.sourceRef) {
+    throw new Error("connector emitted a metric without a sourceRef");
+  }
+}
+
 function identityMapKey(externalId: string, kind: string): string {
   return `${kind}:${externalId}`;
 }
@@ -185,7 +205,7 @@ async function ensureIdentity(
   return { id: rows[0].id, personId: rows[0].person_id };
 }
 
-/** Upsert one page and advance the cursor, atomically. Returns facts written. */
+/** Upsert one page and advance the cursor, atomically. Returns rows (facts + metrics) written. */
 async function commitPage(
   db: PoolClient,
   runId: number,
@@ -242,14 +262,47 @@ async function commitPage(
       );
     }
 
+    // Non-spend usage counters (Claude Code analytics, ...). Same identity
+    // resolution and idempotent-upsert rules as facts, separate table so the
+    // spend ledger never double counts.
+    const metrics = page.metrics ?? [];
+    for (const metric of metrics) {
+      validateMetric(metric);
+      let resolved: { id: string; personId: string | null } | null = null;
+      if (metric.identity) {
+        const key = identityMapKey(metric.identity.externalId, metric.identity.kind);
+        resolved = idMap.get(key) ?? (await ensureIdentity(db, vendor, metric.identity));
+        idMap.set(key, resolved);
+      }
+      await db.query(
+        `INSERT INTO usage_metrics (day, vendor, metric, value, person_id, identity_id, source_ref)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         ON CONFLICT (vendor, source_ref, metric) DO UPDATE SET
+           day = EXCLUDED.day,
+           value = EXCLUDED.value,
+           person_id = EXCLUDED.person_id,
+           identity_id = EXCLUDED.identity_id`,
+        [
+          metric.day,
+          vendor,
+          metric.metric,
+          metric.value,
+          resolved?.personId ?? null,
+          resolved?.id ?? null,
+          metric.sourceRef,
+        ],
+      );
+    }
+
+    const rowCount = page.facts.length + metrics.length;
     await db.query(
       `UPDATE sync_runs
        SET cursor = $2, rows_synced = COALESCE(rows_synced, 0) + $3
        WHERE id = $1`,
-      [runId, JSON.stringify(cursor), page.facts.length],
+      [runId, JSON.stringify(cursor), rowCount],
     );
     await db.query("COMMIT");
-    return page.facts.length;
+    return rowCount;
   } catch (err) {
     await db.query("ROLLBACK").catch(() => {});
     throw err;

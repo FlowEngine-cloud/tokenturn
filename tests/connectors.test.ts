@@ -327,7 +327,7 @@ describe.runIf(TEST_DATABASE_URL)("connector framework", () => {
         connected: true,
         historyLimitDays: 31,
         scopes: ["usage:read", "members:read"],
-        rowCounts: { spendFacts: 6, identities: 4 },
+        rowCounts: { spendFacts: 6, identities: 4, metrics: 0 },
         silent: false,
       });
       expect(healthy!.lastRun!.status).toBe("success");
@@ -336,7 +336,7 @@ describe.runIf(TEST_DATABASE_URL)("connector framework", () => {
       const broken = await connectorHealth("acme_drift", pool, new Date());
       expect(broken!.lastRun!.status).toBe("error");
       expect(broken!.lastRun!.error).toMatch(/no recorded response for GET/);
-      expect(broken!.rowCounts).toEqual({ spendFacts: 0, identities: 0 });
+      expect(broken!.rowCounts).toEqual({ spendFacts: 0, identities: 0, metrics: 0 });
     });
 
     it("an errored run exposes its in-flight window (backfill progress)", async () => {

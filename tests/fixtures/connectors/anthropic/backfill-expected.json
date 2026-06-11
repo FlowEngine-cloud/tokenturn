@@ -1,0 +1,150 @@
+{
+  "facts": [
+    {
+      "sourceRef": "cost:2026-06-09:default:Code Execution Usage",
+      "day": "2026-06-09",
+      "model": null,
+      "tokens": 0,
+      "amountCents": 1200,
+      "currency": "USD",
+      "costBasis": "invoiced",
+      "identityExternalId": null,
+      "personEmail": null
+    },
+    {
+      "sourceRef": "cost:2026-06-09:wrkspc_01ENG:Web Search Usage",
+      "day": "2026-06-09",
+      "model": null,
+      "tokens": 0,
+      "amountCents": 351,
+      "currency": "USD",
+      "costBasis": "invoiced",
+      "identityExternalId": null,
+      "personEmail": null
+    },
+    {
+      "sourceRef": "usage:2026-06-08:apikey_01DANA:wrkspc_01ENG:claude-opus-4-6",
+      "day": "2026-06-08",
+      "model": "claude-opus-4-6",
+      "tokens": 370000,
+      "amountCents": 141,
+      "currency": "USD",
+      "costBasis": "estimated",
+      "identityExternalId": "apikey_01DANA",
+      "personEmail": "dana@acme.com"
+    },
+    {
+      "sourceRef": "usage:2026-06-08:apikey_01OMAR:wrkspc_01ENG:claude-sonnet-4-6",
+      "day": "2026-06-08",
+      "model": "claude-sonnet-4-6",
+      "tokens": 450000,
+      "amountCents": 195,
+      "currency": "USD",
+      "costBasis": "estimated",
+      "identityExternalId": "apikey_01OMAR",
+      "personEmail": "omar@acme.com"
+    },
+    {
+      "sourceRef": "usage:2026-06-09:apikey_01BATCH:default:claude-3-5-haiku-20241022",
+      "day": "2026-06-09",
+      "model": "claude-3-5-haiku-20241022",
+      "tokens": 1100000,
+      "amountCents": 120,
+      "currency": "USD",
+      "costBasis": "estimated",
+      "identityExternalId": "apikey_01BATCH",
+      "personEmail": "dana@acme.com"
+    },
+    {
+      "sourceRef": "usage:2026-06-09:apikey_01DANA:wrkspc_01ENG:claude-opus-4-6",
+      "day": "2026-06-09",
+      "model": "claude-opus-4-6",
+      "tokens": 310000,
+      "amountCents": 225,
+      "currency": "USD",
+      "costBasis": "estimated",
+      "identityExternalId": "apikey_01DANA",
+      "personEmail": "dana@acme.com"
+    },
+    {
+      "sourceRef": "usage:2026-06-09:none:wrkspc_01ENG:claude-sonnet-4-6",
+      "day": "2026-06-09",
+      "model": "claude-sonnet-4-6",
+      "tokens": 12000,
+      "amountCents": 6,
+      "currency": "USD",
+      "costBasis": "estimated",
+      "identityExternalId": null,
+      "personEmail": null
+    },
+    {
+      "sourceRef": "usage:2026-06-10:apikey_01DANA:wrkspc_01ENG:claude-opus-4-6",
+      "day": "2026-06-10",
+      "model": "claude-opus-4-6",
+      "tokens": 55000,
+      "amountCents": 38,
+      "currency": "USD",
+      "costBasis": "estimated",
+      "identityExternalId": "apikey_01DANA",
+      "personEmail": "dana@acme.com"
+    }
+  ],
+  "identities": [
+    {
+      "externalId": "apikey_01BATCH",
+      "kind": "api_key",
+      "email": "dana@acme.com",
+      "displayName": "batch-processing",
+      "tags": ["batch-processing"],
+      "personEmail": "dana@acme.com"
+    },
+    {
+      "externalId": "apikey_01DANA",
+      "kind": "api_key",
+      "email": "dana@acme.com",
+      "displayName": "dana-laptop",
+      "tags": ["dana-laptop"],
+      "personEmail": "dana@acme.com"
+    },
+    {
+      "externalId": "apikey_01OMAR",
+      "kind": "api_key",
+      "email": "omar@acme.com",
+      "displayName": "omar-laptop",
+      "tags": ["omar-laptop"],
+      "personEmail": "omar@acme.com"
+    },
+    {
+      "externalId": "ghost@acme.com",
+      "kind": "user",
+      "email": "ghost@acme.com",
+      "displayName": null,
+      "tags": [],
+      "personEmail": null
+    },
+    {
+      "externalId": "user_01DANA",
+      "kind": "user",
+      "email": "dana@acme.com",
+      "displayName": "Dana",
+      "tags": [],
+      "personEmail": "dana@acme.com"
+    },
+    {
+      "externalId": "user_01LEE",
+      "kind": "user",
+      "email": "lee@acme.com",
+      "displayName": "Lee",
+      "tags": [],
+      "personEmail": "lee@acme.com"
+    },
+    {
+      "externalId": "user_01OMAR",
+      "kind": "user",
+      "email": "omar@acme.com",
+      "displayName": "Omar",
+      "tags": [],
+      "personEmail": "omar@acme.com"
+    }
+  ]
+}

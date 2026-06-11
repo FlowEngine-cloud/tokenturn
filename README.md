@@ -30,6 +30,8 @@ prints a one-time reset link (valid 30 minutes, single use) to open on your inst
 
 Vendor connectors sync hourly with a stored cursor: full backfill to the vendor's history limit on first connect, resume at the exact failed page after an error, a trailing 7-day re-pull every sync (vendors restate data), and idempotent upserts - a vendor record is never duplicated. Token scopes are validated on connect; credentials are stored encrypted, never plaintext. `GET /api/connectors` is the health surface: last sync, row counts, and the vendor's error verbatim. A connector silent for 24 hours fires an alert event. Connectors are tested against recorded vendor responses (`tests/fixtures/connectors/`), so a vendor format change breaks CI instead of production.
 
+**Anthropic** connects with an Admin API key (`sk-ant-admin...`) and pulls org users and API keys (keys auto-map to the person who created them - Anthropic has no key-creation API, so each person mints their own key and the next sync picks it up), per-key/workspace daily usage priced from a pinned model price table (marked `estimated` - Anthropic never reports raw API dollars per user), non-token charges from the cost report (web search, code execution, session usage; `invoiced`, unassigned), and per-user daily Claude Code analytics (sessions, commits, PRs, accept rates, tokens, cost) stored as metrics rather than spend so the ledger never double counts.
+
 ## Development
 
 ```bash

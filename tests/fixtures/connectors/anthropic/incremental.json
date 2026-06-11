@@ -1,0 +1,797 @@
+[
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.anthropic.com/v1/organizations/users?limit=1000"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "data": [
+          {
+            "id": "user_01DANA",
+            "added_at": "2025-11-02T10:00:00.000000Z",
+            "email": "dana@acme.com",
+            "name": "Dana",
+            "role": "admin",
+            "type": "user"
+          },
+          {
+            "id": "user_01OMAR",
+            "added_at": "2025-11-02T10:00:00.000000Z",
+            "email": "omar@acme.com",
+            "name": "Omar",
+            "role": "developer",
+            "type": "user"
+          },
+          {
+            "id": "user_01LEE",
+            "added_at": "2025-11-02T10:00:00.000000Z",
+            "email": "lee@acme.com",
+            "name": "Lee",
+            "role": "claude_code_user",
+            "type": "user"
+          }
+        ],
+        "first_id": "user_01DANA",
+        "has_more": false,
+        "last_id": "user_01LEE"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.anthropic.com/v1/organizations/api_keys?limit=1000"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "data": [
+          {
+            "id": "apikey_01DANA",
+            "created_at": "2026-01-15T09:30:00.000000Z",
+            "created_by": {
+              "id": "user_01DANA",
+              "type": "user"
+            },
+            "expires_at": null,
+            "name": "dana-laptop",
+            "partial_key_hint": "sk-ant-api03-Da3...kAA",
+            "status": "active",
+            "type": "api_key",
+            "workspace_id": "wrkspc_01ENG"
+          },
+          {
+            "id": "apikey_01OMAR",
+            "created_at": "2026-01-15T09:30:00.000000Z",
+            "created_by": {
+              "id": "user_01OMAR",
+              "type": "user"
+            },
+            "expires_at": null,
+            "name": "omar-mbp",
+            "partial_key_hint": "sk-ant-api03-Om1...xQA",
+            "status": "active",
+            "type": "api_key",
+            "workspace_id": "wrkspc_01ENG"
+          },
+          {
+            "id": "apikey_01BATCH",
+            "created_at": "2026-01-15T09:30:00.000000Z",
+            "created_by": {
+              "id": "user_01DANA",
+              "type": "user"
+            },
+            "expires_at": null,
+            "name": "batch-processing",
+            "partial_key_hint": "sk-ant-api03-Ba9...p2A",
+            "status": "active",
+            "type": "api_key",
+            "workspace_id": null
+          }
+        ],
+        "first_id": "apikey_01DANA",
+        "has_more": false,
+        "last_id": "apikey_01BATCH"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.anthropic.com/v1/organizations/usage_report/messages?starting_at=2026-06-05T00:00:00Z&ending_at=2026-06-13T00:00:00Z&bucket_width=1d&group_by[]=api_key_id&group_by[]=workspace_id&group_by[]=model&limit=31"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "data": [
+          {
+            "starting_at": "2026-06-05T00:00:00Z",
+            "ending_at": "2026-06-06T00:00:00Z",
+            "results": []
+          },
+          {
+            "starting_at": "2026-06-06T00:00:00Z",
+            "ending_at": "2026-06-07T00:00:00Z",
+            "results": []
+          },
+          {
+            "starting_at": "2026-06-07T00:00:00Z",
+            "ending_at": "2026-06-08T00:00:00Z",
+            "results": []
+          },
+          {
+            "starting_at": "2026-06-08T00:00:00Z",
+            "ending_at": "2026-06-09T00:00:00Z",
+            "results": [
+              {
+                "account_id": null,
+                "api_key_id": "apikey_01DANA",
+                "cache_creation": {
+                  "ephemeral_1h_input_tokens": 0,
+                  "ephemeral_5m_input_tokens": 50000
+                },
+                "cache_read_input_tokens": 200000,
+                "context_window": null,
+                "inference_geo": null,
+                "model": "claude-opus-4-6",
+                "output_tokens": 20000,
+                "server_tool_use": {
+                  "web_search_requests": 0
+                },
+                "service_account_id": null,
+                "service_tier": null,
+                "uncached_input_tokens": 100000,
+                "workspace_id": "wrkspc_01ENG"
+              },
+              {
+                "account_id": null,
+                "api_key_id": "apikey_01OMAR",
+                "cache_creation": {
+                  "ephemeral_1h_input_tokens": 0,
+                  "ephemeral_5m_input_tokens": 0
+                },
+                "cache_read_input_tokens": 0,
+                "context_window": null,
+                "inference_geo": null,
+                "model": "claude-sonnet-4-6",
+                "output_tokens": 50000,
+                "server_tool_use": {
+                  "web_search_requests": 0
+                },
+                "service_account_id": null,
+                "service_tier": null,
+                "uncached_input_tokens": 400000,
+                "workspace_id": "wrkspc_01ENG"
+              }
+            ]
+          },
+          {
+            "starting_at": "2026-06-09T00:00:00Z",
+            "ending_at": "2026-06-10T00:00:00Z",
+            "results": [
+              {
+                "account_id": null,
+                "api_key_id": "apikey_01DANA",
+                "cache_creation": {
+                  "ephemeral_1h_input_tokens": 100000,
+                  "ephemeral_5m_input_tokens": 0
+                },
+                "cache_read_input_tokens": 0,
+                "context_window": null,
+                "inference_geo": null,
+                "model": "claude-opus-4-6",
+                "output_tokens": 10000,
+                "server_tool_use": {
+                  "web_search_requests": 0
+                },
+                "service_account_id": null,
+                "service_tier": null,
+                "uncached_input_tokens": 200000,
+                "workspace_id": "wrkspc_01ENG"
+              },
+              {
+                "account_id": null,
+                "api_key_id": "apikey_01BATCH",
+                "cache_creation": {
+                  "ephemeral_1h_input_tokens": 0,
+                  "ephemeral_5m_input_tokens": 0
+                },
+                "cache_read_input_tokens": 0,
+                "context_window": null,
+                "inference_geo": null,
+                "model": "claude-3-5-haiku-20241022",
+                "output_tokens": 100000,
+                "server_tool_use": {
+                  "web_search_requests": 0
+                },
+                "service_account_id": null,
+                "service_tier": null,
+                "uncached_input_tokens": 1000000,
+                "workspace_id": null
+              },
+              {
+                "account_id": null,
+                "api_key_id": null,
+                "cache_creation": {
+                  "ephemeral_1h_input_tokens": 0,
+                  "ephemeral_5m_input_tokens": 0
+                },
+                "cache_read_input_tokens": 0,
+                "context_window": null,
+                "inference_geo": null,
+                "model": "claude-sonnet-4-6",
+                "output_tokens": 2000,
+                "server_tool_use": {
+                  "web_search_requests": 0
+                },
+                "service_account_id": null,
+                "service_tier": null,
+                "uncached_input_tokens": 10000,
+                "workspace_id": "wrkspc_01ENG"
+              }
+            ]
+          },
+          {
+            "starting_at": "2026-06-10T00:00:00Z",
+            "ending_at": "2026-06-11T00:00:00Z",
+            "results": [
+              {
+                "account_id": null,
+                "api_key_id": "apikey_01DANA",
+                "cache_creation": {
+                  "ephemeral_1h_input_tokens": 0,
+                  "ephemeral_5m_input_tokens": 0
+                },
+                "cache_read_input_tokens": 0,
+                "context_window": null,
+                "inference_geo": null,
+                "model": "claude-opus-4-6",
+                "output_tokens": 8000,
+                "server_tool_use": {
+                  "web_search_requests": 0
+                },
+                "service_account_id": null,
+                "service_tier": null,
+                "uncached_input_tokens": 80000,
+                "workspace_id": "wrkspc_01ENG"
+              }
+            ]
+          },
+          {
+            "starting_at": "2026-06-11T00:00:00Z",
+            "ending_at": "2026-06-12T00:00:00Z",
+            "results": [
+              {
+                "account_id": null,
+                "api_key_id": "apikey_01OMAR",
+                "cache_creation": {
+                  "ephemeral_1h_input_tokens": 0,
+                  "ephemeral_5m_input_tokens": 0
+                },
+                "cache_read_input_tokens": 0,
+                "context_window": null,
+                "inference_geo": null,
+                "model": "claude-sonnet-4-6",
+                "output_tokens": 10000,
+                "server_tool_use": {
+                  "web_search_requests": 0
+                },
+                "service_account_id": null,
+                "service_tier": null,
+                "uncached_input_tokens": 100000,
+                "workspace_id": "wrkspc_01ENG"
+              }
+            ]
+          },
+          {
+            "starting_at": "2026-06-12T00:00:00Z",
+            "ending_at": "2026-06-13T00:00:00Z",
+            "results": []
+          }
+        ],
+        "has_more": false,
+        "next_page": null
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.anthropic.com/v1/organizations/cost_report?starting_at=2026-06-05T00:00:00Z&ending_at=2026-06-13T00:00:00Z&bucket_width=1d&group_by[]=workspace_id&group_by[]=description&limit=31"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "data": [
+          {
+            "starting_at": "2026-06-05T00:00:00Z",
+            "ending_at": "2026-06-06T00:00:00Z",
+            "results": []
+          },
+          {
+            "starting_at": "2026-06-06T00:00:00Z",
+            "ending_at": "2026-06-07T00:00:00Z",
+            "results": []
+          },
+          {
+            "starting_at": "2026-06-07T00:00:00Z",
+            "ending_at": "2026-06-08T00:00:00Z",
+            "results": []
+          },
+          {
+            "starting_at": "2026-06-08T00:00:00Z",
+            "ending_at": "2026-06-09T00:00:00Z",
+            "results": []
+          },
+          {
+            "starting_at": "2026-06-09T00:00:00Z",
+            "ending_at": "2026-06-10T00:00:00Z",
+            "results": [
+              {
+                "amount": "350.5",
+                "context_window": null,
+                "cost_type": "web_search",
+                "currency": "USD",
+                "description": "Web Search Usage",
+                "inference_geo": null,
+                "model": null,
+                "service_tier": null,
+                "token_type": null,
+                "workspace_id": "wrkspc_01ENG"
+              },
+              {
+                "amount": "1200",
+                "context_window": null,
+                "cost_type": "code_execution",
+                "currency": "USD",
+                "description": "Code Execution Usage",
+                "inference_geo": null,
+                "model": null,
+                "service_tier": null,
+                "token_type": null,
+                "workspace_id": null
+              },
+              {
+                "amount": "100",
+                "context_window": "0-200k",
+                "cost_type": "tokens",
+                "currency": "USD",
+                "description": "Claude Opus 4.6 Usage - Input Tokens",
+                "inference_geo": null,
+                "model": "claude-opus-4-6",
+                "service_tier": "standard",
+                "token_type": "uncached_input_tokens",
+                "workspace_id": "wrkspc_01ENG"
+              }
+            ]
+          },
+          {
+            "starting_at": "2026-06-10T00:00:00Z",
+            "ending_at": "2026-06-11T00:00:00Z",
+            "results": []
+          },
+          {
+            "starting_at": "2026-06-11T00:00:00Z",
+            "ending_at": "2026-06-12T00:00:00Z",
+            "results": []
+          },
+          {
+            "starting_at": "2026-06-12T00:00:00Z",
+            "ending_at": "2026-06-13T00:00:00Z",
+            "results": []
+          }
+        ],
+        "has_more": false,
+        "next_page": null
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.anthropic.com/v1/organizations/usage_report/claude_code?starting_at=2026-06-05&limit=1000"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "data": [],
+        "has_more": false,
+        "next_page": null
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.anthropic.com/v1/organizations/usage_report/claude_code?starting_at=2026-06-06&limit=1000"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "data": [],
+        "has_more": false,
+        "next_page": null
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.anthropic.com/v1/organizations/usage_report/claude_code?starting_at=2026-06-07&limit=1000"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "data": [],
+        "has_more": false,
+        "next_page": null
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.anthropic.com/v1/organizations/usage_report/claude_code?starting_at=2026-06-08&limit=1000"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "data": [
+          {
+            "actor": {
+              "email_address": "dana@acme.com",
+              "type": "user_actor"
+            },
+            "core_metrics": {
+              "commits_by_claude_code": 3,
+              "lines_of_code": {
+                "added": 320,
+                "removed": 40
+              },
+              "num_sessions": 5,
+              "pull_requests_by_claude_code": 1
+            },
+            "customer_type": "api",
+            "date": "2026-06-08",
+            "model_breakdown": [
+              {
+                "estimated_cost": {
+                  "amount": 130,
+                  "currency": "USD"
+                },
+                "model": "claude-opus-4-6",
+                "tokens": {
+                  "cache_creation": 40000,
+                  "cache_read": 150000,
+                  "input": 90000,
+                  "output": 18000
+                }
+              }
+            ],
+            "organization_id": "8f0e2a1c-3a44-4b7d-9c52-1d2e3f4a5b6c",
+            "terminal_type": "iTerm.app",
+            "tool_actions": {
+              "edit_tool": {
+                "accepted": 18,
+                "rejected": 2
+              },
+              "write_tool": {
+                "accepted": 4,
+                "rejected": 0
+              }
+            },
+            "subscription_type": null
+          },
+          {
+            "actor": {
+              "email_address": "lee@acme.com",
+              "type": "user_actor"
+            },
+            "core_metrics": {
+              "commits_by_claude_code": 1,
+              "lines_of_code": {
+                "added": 50,
+                "removed": 10
+              },
+              "num_sessions": 2,
+              "pull_requests_by_claude_code": 0
+            },
+            "customer_type": "subscription",
+            "date": "2026-06-08T00:00:00Z",
+            "model_breakdown": [
+              {
+                "estimated_cost": {
+                  "amount": 60,
+                  "currency": "USD"
+                },
+                "model": "claude-sonnet-4-6",
+                "tokens": {
+                  "cache_creation": 0,
+                  "cache_read": 0,
+                  "input": 30000,
+                  "output": 6000
+                }
+              }
+            ],
+            "organization_id": "8f0e2a1c-3a44-4b7d-9c52-1d2e3f4a5b6c",
+            "terminal_type": "vscode",
+            "tool_actions": {
+              "edit_tool": {
+                "accepted": 5,
+                "rejected": 1
+              }
+            },
+            "subscription_type": "enterprise"
+          }
+        ],
+        "has_more": false,
+        "next_page": null
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.anthropic.com/v1/organizations/usage_report/claude_code?starting_at=2026-06-09&limit=1000"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "data": [
+          {
+            "actor": {
+              "email_address": "dana@acme.com",
+              "type": "user_actor"
+            },
+            "core_metrics": {
+              "commits_by_claude_code": 2,
+              "lines_of_code": {
+                "added": 150,
+                "removed": 30
+              },
+              "num_sessions": 4,
+              "pull_requests_by_claude_code": 1
+            },
+            "customer_type": "api",
+            "date": "2026-06-09",
+            "model_breakdown": [
+              {
+                "estimated_cost": {
+                  "amount": 220,
+                  "currency": "USD"
+                },
+                "model": "claude-opus-4-6",
+                "tokens": {
+                  "cache_creation": 80000,
+                  "cache_read": 500000,
+                  "input": 200000,
+                  "output": 30000
+                }
+              }
+            ],
+            "organization_id": "8f0e2a1c-3a44-4b7d-9c52-1d2e3f4a5b6c",
+            "terminal_type": "iTerm.app",
+            "tool_actions": {
+              "edit_tool": {
+                "accepted": 10,
+                "rejected": 3
+              }
+            },
+            "subscription_type": null
+          },
+          {
+            "actor": {
+              "email_address": "omar@acme.com",
+              "type": "user_actor"
+            },
+            "core_metrics": {
+              "commits_by_claude_code": 1,
+              "lines_of_code": {
+                "added": 90,
+                "removed": 5
+              },
+              "num_sessions": 3,
+              "pull_requests_by_claude_code": 0
+            },
+            "customer_type": "api",
+            "date": "2026-06-09",
+            "model_breakdown": [
+              {
+                "estimated_cost": {
+                  "amount": 95,
+                  "currency": "USD"
+                },
+                "model": "claude-sonnet-4-6",
+                "tokens": {
+                  "cache_creation": 10000,
+                  "cache_read": 200000,
+                  "input": 120000,
+                  "output": 25000
+                }
+              }
+            ],
+            "organization_id": "8f0e2a1c-3a44-4b7d-9c52-1d2e3f4a5b6c",
+            "terminal_type": "vscode",
+            "tool_actions": {
+              "edit_tool": {
+                "accepted": 7,
+                "rejected": 1
+              },
+              "multi_edit_tool": {
+                "accepted": 2,
+                "rejected": 1
+              }
+            },
+            "subscription_type": null
+          }
+        ],
+        "has_more": false,
+        "next_page": null
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.anthropic.com/v1/organizations/usage_report/claude_code?starting_at=2026-06-10&limit=1000"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "data": [
+          {
+            "actor": {
+              "api_key_name": "batch-processing",
+              "type": "api_actor"
+            },
+            "core_metrics": {
+              "commits_by_claude_code": 0,
+              "lines_of_code": {
+                "added": 0,
+                "removed": 0
+              },
+              "num_sessions": 12,
+              "pull_requests_by_claude_code": 0
+            },
+            "customer_type": "api",
+            "date": "2026-06-10",
+            "model_breakdown": [
+              {
+                "estimated_cost": {
+                  "amount": 40,
+                  "currency": "USD"
+                },
+                "model": "claude-3-5-haiku-20241022",
+                "tokens": {
+                  "cache_creation": 0,
+                  "cache_read": 0,
+                  "input": 500000,
+                  "output": 50000
+                }
+              }
+            ],
+            "organization_id": "8f0e2a1c-3a44-4b7d-9c52-1d2e3f4a5b6c",
+            "terminal_type": "headless",
+            "tool_actions": {},
+            "subscription_type": null
+          },
+          {
+            "actor": {
+              "email_address": "ghost@acme.com",
+              "type": "user_actor"
+            },
+            "core_metrics": {
+              "commits_by_claude_code": 0,
+              "lines_of_code": {
+                "added": 10,
+                "removed": 2
+              },
+              "num_sessions": 1,
+              "pull_requests_by_claude_code": 0
+            },
+            "customer_type": "api",
+            "date": "2026-06-10",
+            "model_breakdown": [
+              {
+                "estimated_cost": {
+                  "amount": 3,
+                  "currency": "USD"
+                },
+                "model": "claude-opus-4-6",
+                "tokens": {
+                  "cache_creation": 0,
+                  "cache_read": 0,
+                  "input": 5000,
+                  "output": 1000
+                }
+              }
+            ],
+            "organization_id": "8f0e2a1c-3a44-4b7d-9c52-1d2e3f4a5b6c",
+            "terminal_type": "iTerm.app",
+            "tool_actions": {
+              "edit_tool": {
+                "accepted": 1,
+                "rejected": 0
+              }
+            },
+            "subscription_type": null
+          }
+        ],
+        "has_more": false,
+        "next_page": null
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.anthropic.com/v1/organizations/usage_report/claude_code?starting_at=2026-06-11&limit=1000"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "data": [
+          {
+            "actor": {
+              "email_address": "omar@acme.com",
+              "type": "user_actor"
+            },
+            "core_metrics": {
+              "commits_by_claude_code": 1,
+              "lines_of_code": {
+                "added": 40,
+                "removed": 4
+              },
+              "num_sessions": 2,
+              "pull_requests_by_claude_code": 1
+            },
+            "customer_type": "api",
+            "date": "2026-06-11",
+            "model_breakdown": [
+              {
+                "estimated_cost": {
+                  "amount": 50,
+                  "currency": "USD"
+                },
+                "model": "claude-sonnet-4-6",
+                "tokens": {
+                  "cache_creation": 5000,
+                  "cache_read": 20000,
+                  "input": 80000,
+                  "output": 15000
+                }
+              }
+            ],
+            "organization_id": "8f0e2a1c-3a44-4b7d-9c52-1d2e3f4a5b6c",
+            "terminal_type": "vscode",
+            "tool_actions": {
+              "edit_tool": {
+                "accepted": 5,
+                "rejected": 0
+              }
+            },
+            "subscription_type": null
+          }
+        ],
+        "has_more": false,
+        "next_page": null
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.anthropic.com/v1/organizations/usage_report/claude_code?starting_at=2026-06-12&limit=1000"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "data": [],
+        "has_more": false,
+        "next_page": null
+      }
+    }
+  }
+]

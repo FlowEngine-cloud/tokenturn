@@ -8,6 +8,9 @@
  * populates the registry.
  */
 
+import { anthropicConnector } from "./anthropic";
+import { registerConnector } from "./registry";
+
 export {
   clearConnectors,
   getConnector,
@@ -34,14 +37,17 @@ export {
   type ConnectorHealth,
 } from "./health";
 export type {
+  ConfigField,
   Connector,
   ConnectorContext,
   ConnectorPage,
   FactInput,
   IdentityInput,
+  MetricInput,
   ScopeCheck,
   SyncCursor,
   SyncWindow,
 } from "./types";
+export { anthropicConnector } from "./anthropic";
 
-// No vendor connectors registered yet - the framework ships first.
+registerConnector(anthropicConnector);

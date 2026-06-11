@@ -1,0 +1,91 @@
+[
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.anthropic.com/v1/organizations/usage_report/messages?starting_at=2026-05-10T00:00:00Z&ending_at=2026-06-11T00:00:00Z&bucket_width=1d&group_by[]=api_key_id&group_by[]=workspace_id&group_by[]=model&limit=31"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "data": [],
+        "has_more": false,
+        "next_page": null
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.anthropic.com/v1/organizations/cost_report?starting_at=2026-05-10T00:00:00Z&ending_at=2026-06-11T00:00:00Z&bucket_width=1d&group_by[]=workspace_id&group_by[]=description&limit=31"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "data": [],
+        "has_more": false,
+        "next_page": null
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.anthropic.com/v1/organizations/usage_report/claude_code?starting_at=2026-05-10&limit=1000"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "data": [
+          {
+            "actor": {
+              "email_address": "dana@acme.com",
+              "type": "user_actor"
+            },
+            "core_metrics": {
+              "commits_by_claude_code": 3,
+              "lines_of_code": {
+                "added": 320,
+                "removed": 40
+              },
+              "num_sessions": 5,
+              "pull_requests_by_claude_code": 1
+            },
+            "customer_type": "api",
+            "date": "2026-05-10",
+            "model_breakdown": [
+              {
+                "estimated_cost": {
+                  "amount": 130,
+                  "currency": "USD"
+                },
+                "model": "claude-opus-4-6",
+                "tokens": {
+                  "cache_creation": 40000,
+                  "cache_read": 150000,
+                  "input": 90000,
+                  "output": 18000
+                }
+              }
+            ],
+            "organization_id": "8f0e2a1c-3a44-4b7d-9c52-1d2e3f4a5b6c",
+            "terminal_type": "iTerm.app",
+            "tool_actions": {
+              "edit_tool": {
+                "accepted": 18,
+                "rejected": 2
+              },
+              "write_tool": {
+                "accepted": 4,
+                "rejected": 0
+              }
+            },
+            "subscription_type": null,
+            "speed_index": 42
+          }
+        ],
+        "has_more": false,
+        "next_page": null
+      }
+    }
+  }
+]

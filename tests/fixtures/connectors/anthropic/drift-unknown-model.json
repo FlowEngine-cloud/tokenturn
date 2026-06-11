@@ -1,0 +1,97 @@
+[
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.anthropic.com/v1/organizations/users?limit=1000"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "data": [
+          {
+            "id": "user_01DANA",
+            "added_at": "2025-11-02T10:00:00.000000Z",
+            "email": "dana@acme.com",
+            "name": "Dana",
+            "role": "admin",
+            "type": "user"
+          }
+        ],
+        "first_id": "user_01DANA",
+        "has_more": false,
+        "last_id": "user_01DANA"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.anthropic.com/v1/organizations/api_keys?limit=1000"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "data": [
+          {
+            "id": "apikey_01DANA",
+            "created_at": "2026-01-15T09:30:00.000000Z",
+            "created_by": {
+              "id": "user_01DANA",
+              "type": "user"
+            },
+            "expires_at": null,
+            "name": "dana-laptop",
+            "partial_key_hint": "sk-ant-api03-Da3...kAA",
+            "status": "active",
+            "type": "api_key",
+            "workspace_id": "wrkspc_01ENG"
+          }
+        ],
+        "first_id": "apikey_01DANA",
+        "has_more": false,
+        "last_id": "apikey_01DANA"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.anthropic.com/v1/organizations/usage_report/messages?starting_at=2026-05-10T00:00:00Z&ending_at=2026-06-11T00:00:00Z&bucket_width=1d&group_by[]=api_key_id&group_by[]=workspace_id&group_by[]=model&limit=31"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "data": [
+          {
+            "starting_at": "2026-05-10T00:00:00Z",
+            "ending_at": "2026-05-11T00:00:00Z",
+            "results": [
+              {
+                "account_id": null,
+                "api_key_id": "apikey_01DANA",
+                "cache_creation": {
+                  "ephemeral_1h_input_tokens": 0,
+                  "ephemeral_5m_input_tokens": 0
+                },
+                "cache_read_input_tokens": 0,
+                "context_window": null,
+                "inference_geo": null,
+                "model": "claude-zeta-9",
+                "output_tokens": 100,
+                "server_tool_use": {
+                  "web_search_requests": 0
+                },
+                "service_account_id": null,
+                "service_tier": null,
+                "uncached_input_tokens": 1000,
+                "workspace_id": "wrkspc_01ENG"
+              }
+            ]
+          }
+        ],
+        "has_more": false,
+        "next_page": null
+      }
+    }
+  }
+]
