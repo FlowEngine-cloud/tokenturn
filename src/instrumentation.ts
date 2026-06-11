@@ -11,6 +11,9 @@ export async function register(): Promise<void> {
   const { logger } = await import("./lib/logger");
   loadOrCreateSecretKey();
   logger.info("secrets key ready", { file: secretKeyPath() });
+  // The Slack sink listens before the scheduler can emit anything.
+  const { registerAlertSink } = await import("./lib/alerts");
+  registerAlertSink();
   const { startScheduler } = await import("./lib/connectors");
   startScheduler();
 }

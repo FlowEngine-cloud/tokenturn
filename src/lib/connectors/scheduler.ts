@@ -2,6 +2,7 @@ import type { Pool } from "pg";
 import { getPool } from "../db";
 import { emitEvent } from "../events";
 import { fxTick } from "../fx";
+import { checkBurnAlerts, type BurnCheckResult } from "../limits";
 import { logger } from "../logger";
 import { getSetting } from "../settings";
 import { listConnectedRows } from "./connect";
@@ -19,6 +20,9 @@ import { runSync, utcDay, type SyncResult } from "./sync";
  *    sync in connector_silent_alert_hours (default 24) - at most once per
  *    connector per UTC day, deduped through alert_state. The alerts
  *    feature subscribes to the event and fans out to Slack.
+ * 3. Runs the spec-9 burn checks (limit thresholds + daily anomalies)
+ *    after the syncs, so alerts fire on the data that just landed. Both
+ *    dedupe through alert_state, so the 5-minute tick cadence is safe.
  */
 
 export const SYNC_INTERVAL_MS = 60 * 60 * 1000;
@@ -35,6 +39,7 @@ export interface SchedulerTickOpts {
 export interface SchedulerTickResult {
   synced: SyncResult[];
   silentEmitted: string[];
+  burn: BurnCheckResult;
 }
 
 async function dueVendors(pool: Pool, now: Date): Promise<string[]> {
@@ -119,7 +124,8 @@ export async function schedulerTick(
   }
 
   const silentEmitted = await checkSilentConnectors({ ...opts, now });
-  return { synced, silentEmitted };
+  const burn = await checkBurnAlerts({ pool, now });
+  return { synced, silentEmitted, burn };
 }
 
 let ticker: NodeJS.Timeout | null = null;

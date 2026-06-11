@@ -133,15 +133,18 @@ const INITIAL_CURSOR: CursorCursor = {
 // ---------------------------------------------------------------------------
 // HTTP
 
+function basicAuth(ctx: ConnectorContext): string {
+  return `Basic ${Buffer.from(`${ctx.config.apiKey ?? ""}:`).toString("base64")}`;
+}
+
 async function cursorJson(
   ctx: ConnectorContext,
   req: CursorRequest,
 ): Promise<Record<string, unknown>> {
-  const auth = Buffer.from(`${ctx.config.apiKey ?? ""}:`).toString("base64");
   const res = await ctx.fetch(req.url, {
     method: req.method,
     headers: {
-      authorization: `Basic ${auth}`,
+      authorization: basicAuth(ctx),
       ...(req.body !== undefined ? { "content-type": "application/json" } : {}),
     },
     ...(req.body !== undefined ? { body: JSON.stringify(req.body) } : {}),
@@ -202,6 +205,56 @@ export function usageEventsRequest(chunk: SyncWindow, page: number): CursorReque
       pageSize: EVENTS_PAGE_SIZE,
     },
   };
+}
+
+/**
+ * Per-user spend-limit write (spec 9) - the one vendor-side limit we can
+ * actually set, and only on Cursor's Enterprise plan. NOT part of sync
+ * (the connector itself only ever reads); it lives here because it shares
+ * the vendor auth, base URL, and error convention.
+ */
+export function setUserSpendLimitRequest(
+  userEmail: string,
+  spendLimitDollars: number,
+): CursorRequest {
+  return {
+    method: "POST",
+    url: `${CURSOR_BASE}/teams/user-spend-limit`,
+    body: { userEmail, spendLimitDollars },
+  };
+}
+
+/**
+ * Push a per-user monthly limit to Cursor. On Business (or any rejection)
+ * the vendor's error is thrown verbatim - never pretend the hard stop
+ * happened. A 2xx of any body shape is success: the write endpoint's
+ * response body is undocumented, and nothing from it is stored.
+ */
+export async function setCursorUserSpendLimit(
+  ctx: ConnectorContext,
+  userEmail: string,
+  spendLimitDollars: number,
+): Promise<void> {
+  const req = setUserSpendLimitRequest(userEmail, spendLimitDollars);
+  const res = await ctx.fetch(req.url, {
+    method: req.method,
+    headers: {
+      authorization: basicAuth(ctx),
+      "content-type": "application/json",
+    },
+    body: JSON.stringify(req.body),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    let message = `cursor returned HTTP ${res.status}`;
+    try {
+      const body = JSON.parse(text) as Record<string, unknown>;
+      if (typeof body.error === "string") message = body.error;
+    } catch {
+      if (text.trim() !== "") message = text.trim();
+    }
+    throw new Error(message);
+  }
 }
 
 export function usageEventsProbeRequest(): CursorRequest {

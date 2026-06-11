@@ -16,6 +16,39 @@ export interface AppEvents {
     /** The threshold that tripped, hours (connector_silent_alert_hours). */
     thresholdHours: number;
   };
+  /**
+   * A person's calendar-month (UTC) spend crossed a limit threshold
+   * (spec 9). Deduped upstream: one per threshold per person per month.
+   */
+  "limit.threshold": {
+    personId: string;
+    email: string;
+    name: string | null;
+    /** UTC calendar month being measured, YYYY-MM. */
+    month: string;
+    /** The threshold that tripped (limit_alert_thresholds_pct entry). */
+    thresholdPct: number;
+    limitUsdCents: number;
+    monthSpendUsdCents: number;
+  };
+  /**
+   * Anomalous daily burn (spec 9): today's spend >= multiplier x the
+   * person's trailing 30-day average AND >= the floor. Deduped upstream:
+   * max one per person per UTC day.
+   */
+  "burn.anomaly": {
+    personId: string;
+    email: string;
+    name: string | null;
+    /** UTC day being measured, YYYY-MM-DD. */
+    day: string;
+    dayUsdCents: number;
+    /** Trailing 30-day average (sum of the 30 prior days / 30), rounded. */
+    trailingAvgUsdCents: number;
+    /** The settings in force when it fired. */
+    multiplier: number;
+    minDayUsdCents: number;
+  };
 }
 
 export type AppEventName = keyof AppEvents;

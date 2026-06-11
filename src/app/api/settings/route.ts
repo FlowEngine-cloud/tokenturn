@@ -3,21 +3,33 @@ import { getPool } from "@/lib/db";
 import { unknownCurrencies } from "@/lib/fx";
 import { logger } from "@/lib/logger";
 import {
+  deleteSetting,
   getAllSettings,
+  SECRET_SETTING_KEYS,
+  secretSettingsPresence,
+  setSecretSetting,
   setSetting,
   SETTING_DEFAULTS,
+  type SecretSettingKey,
   type SettingKey,
   type SettingValues,
 } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 
-/** All typed settings, DB values merged over the plan's defaults. */
+/**
+ * All typed settings (DB values merged over the plan's defaults) plus,
+ * for each secret setting (the Slack webhook), whether one is configured -
+ * never the value.
+ */
 export async function GET(req: Request) {
   const db = getPool();
   const user = await requireUser(req, db);
   if (user instanceof Response) return user;
-  return Response.json({ settings: await getAllSettings(db) });
+  return Response.json({
+    settings: await getAllSettings(db),
+    secrets: await secretSettingsPresence(db),
+  });
 }
 
 const posInt = (min: number) => (v: unknown) =>
@@ -51,10 +63,24 @@ function isSettingKey(key: string): key is SettingKey {
   return key in SETTING_DEFAULTS;
 }
 
+function isSecretSettingKey(key: string): key is SecretSettingKey {
+  return (SECRET_SETTING_KEYS as readonly string[]).includes(key);
+}
+
+function isHttpsUrl(value: string): boolean {
+  try {
+    return new URL(value).protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Update settings (admin). Body = a partial object of typed keys; every key
  * is validated, and the display currency must be one we can actually convert
- * to - no fake numbers from a currency with no FX rates.
+ * to - no fake numbers from a currency with no FX rates. Secret keys (the
+ * Slack webhook, spec 9) take a string to set (encrypted at rest, never
+ * echoed back) or null to clear.
  */
 export async function PATCH(req: Request) {
   const db = getPool();
@@ -66,6 +92,12 @@ export async function PATCH(req: Request) {
     return badRequest("pass at least one setting to change");
   }
   for (const [key, value] of Object.entries(body)) {
+    if (isSecretSettingKey(key)) {
+      if (value !== null && !(typeof value === "string" && isHttpsUrl(value))) {
+        return badRequest(`${key} must be an https:// URL, or null to clear it`);
+      }
+      continue;
+    }
     if (!isSettingKey(key)) return badRequest(`unknown setting ${key}`);
     if (!VALIDATORS[key](value)) {
       return badRequest(`${key} must be ${EXPECTATIONS[key]}`);
@@ -81,8 +113,16 @@ export async function PATCH(req: Request) {
   }
 
   for (const [key, value] of Object.entries(body)) {
-    await setSetting(key as SettingKey, value as SettingValues[SettingKey], db);
+    if (isSecretSettingKey(key)) {
+      if (value === null) await deleteSetting(key, db);
+      else await setSecretSetting(key, value as string, db);
+    } else {
+      await setSetting(key as SettingKey, value as SettingValues[SettingKey], db);
+    }
   }
   logger.info("settings updated", { keys: Object.keys(body) });
-  return Response.json({ settings: await getAllSettings(db) });
+  return Response.json({
+    settings: await getAllSettings(db),
+    secrets: await secretSettingsPresence(db),
+  });
 }

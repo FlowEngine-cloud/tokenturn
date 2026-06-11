@@ -94,6 +94,27 @@ export async function getAllSettings(db: Db = getPool()): Promise<SettingValues>
 }
 
 /**
+ * Secret settings the Settings API can set or clear by key (vendor
+ * connector configs go through the connect flow instead). Write-only:
+ * the API only ever reports whether one is configured, never the value.
+ */
+export const SECRET_SETTING_KEYS = ["slack_webhook_url"] as const;
+export type SecretSettingKey = (typeof SECRET_SETTING_KEYS)[number];
+
+export async function secretSettingsPresence(
+  db: Db = getPool(),
+): Promise<Record<SecretSettingKey, boolean>> {
+  const { rows } = await db.query(
+    "SELECT key FROM settings WHERE key = ANY($1) AND secret = true",
+    [[...SECRET_SETTING_KEYS]],
+  );
+  const present = new Set(rows.map((r) => r.key as string));
+  return Object.fromEntries(
+    SECRET_SETTING_KEYS.map((key) => [key, present.has(key)]),
+  ) as Record<SecretSettingKey, boolean>;
+}
+
+/**
  * Store a secret (vendor token, Slack webhook, email provider key).
  * Encrypted with the data-volume key before it touches the DB - the
  * plaintext is never stored anywhere.
