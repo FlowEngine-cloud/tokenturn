@@ -211,9 +211,13 @@ function SetupScreen({
         caption={connected > 0 ? `${formatCount(connected)} connected` : null}
       >
         <div className="space-y-3">
-          {connectors.map((c) => (
-            <ConnectorCard key={c.vendor} c={c} isAdmin onChanged={onChanged} />
-          ))}
+          {/* Spend vendors only: the success integrations (Jira, Linear)
+              write no spend, so they connect later in Settings. */}
+          {connectors
+            .filter((c) => !c.successOnly)
+            .map((c) => (
+              <ConnectorCard key={c.vendor} c={c} isAdmin onChanged={onChanged} />
+            ))}
         </div>
       </Step>
 

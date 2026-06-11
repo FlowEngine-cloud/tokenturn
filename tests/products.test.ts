@@ -162,7 +162,7 @@ describe.runIf(TEST_DATABASE_URL)("products (spec 7)", () => {
     for (const [body, error] of [
       [{ attribution: "key" }, "name required (1-80 characters)"],
       [{ name: "X", attribution: "proxy" }, "attribution must be one of connector, key, sdk, manual"],
-      [{ name: "X", attribution: "key", outcomeKind: "vibes" }, "outcomeKind must be one of none, github_pr, sdk_event, manual"],
+      [{ name: "X", attribution: "key", outcomeKind: "vibes" }, "outcomeKind must be one of none, github_pr, jira_issue, linear_issue, sdk_event, manual"],
       [{ name: "X", attribution: "key", defaultValueCents: 450 }, "defaultValueCurrency must be a 3-letter code (e.g. USD)"],
       [{ name: "X", attribution: "key", defaultValueCents: -1, defaultValueCurrency: "USD" }, "defaultValueCents must be a non-negative integer"],
       [{ name: "X", attribution: "key", defaultValueCents: 4.5, defaultValueCurrency: "USD" }, "defaultValueCents must be a non-negative integer"],

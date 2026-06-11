@@ -1,0 +1,21 @@
+[
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://acme.atlassian.net/rest/api/3/myself"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "self": "https://acme.atlassian.net/rest/api/3/user?accountId=712020:ops",
+        "accountId": "712020:ops",
+        "accountType": "atlassian",
+        "emailAddress": "ops@acme.com",
+        "displayName": "Ops",
+        "active": true,
+        "timeZone": "UTC",
+        "locale": "en_US"
+      }
+    }
+  }
+]

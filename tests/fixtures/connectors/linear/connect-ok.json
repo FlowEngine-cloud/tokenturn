@@ -1,0 +1,13 @@
+[
+  {
+    "request": {
+      "method": "POST",
+      "url": "https://api.linear.app/graphql",
+      "body": { "query": "{ viewer { id email } }" }
+    },
+    "response": {
+      "status": 200,
+      "body": { "data": { "viewer": { "id": "usr_ops", "email": "ops@acme.com" } } }
+    }
+  }
+]

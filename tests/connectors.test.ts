@@ -336,7 +336,12 @@ describe.runIf(TEST_DATABASE_URL)("connector framework", () => {
       const broken = await connectorHealth("acme_drift", pool, new Date());
       expect(broken!.lastRun!.status).toBe("error");
       expect(broken!.lastRun!.error).toMatch(/no recorded response for GET/);
-      expect(broken!.rowCounts).toEqual({ spendFacts: 0, identities: 0, metrics: 0 });
+      expect(broken!.rowCounts).toEqual({
+        spendFacts: 0,
+        identities: 0,
+        metrics: 0,
+        outcomes: 0,
+      });
     });
 
     it("an errored run exposes its in-flight window (backfill progress)", async () => {

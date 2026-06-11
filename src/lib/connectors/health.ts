@@ -24,6 +24,8 @@ export interface SyncRunSummary {
 export interface ConnectorHealth {
   vendor: string;
   displayName: string;
+  /** Success integration (spec 7): writes outcomes only, never spend. */
+  successOnly: boolean;
   connected: boolean;
   connectedAt: string | null;
   /** How far back history goes - the connect screen shows this (spec 5). */
@@ -37,7 +39,7 @@ export interface ConnectorHealth {
   lastSuccessAt: string | null;
   /** Backfill/resume window currently in flight, when a run is mid-window. */
   inProgress: { since: string; until: string } | null;
-  rowCounts: { spendFacts: number; identities: number; metrics: number };
+  rowCounts: { spendFacts: number; identities: number; metrics: number; outcomes: number };
   /** No successful sync for connector_silent_alert_hours (default 24). */
   silent: boolean;
 }
@@ -71,8 +73,9 @@ async function healthFor(
     `SELECT
        (SELECT count(*) FROM spend_facts WHERE vendor = $1) AS facts,
        (SELECT count(*) FROM identities WHERE vendor = $1) AS identities,
-       (SELECT count(*) FROM usage_metrics WHERE vendor = $1) AS metrics`,
-    [vendor],
+       (SELECT count(*) FROM usage_metrics WHERE vendor = $1) AS metrics,
+       (SELECT count(*) FROM outcomes WHERE kind = ANY($2)) AS outcomes`,
+    [vendor, connector.outcomeKinds ?? []],
   );
 
   const lastRun = runs[0] ?? null;
@@ -102,6 +105,7 @@ async function healthFor(
   return {
     vendor,
     displayName: connector.displayName,
+    successOnly: connector.successOnly === true,
     connected: connectedRowOrNull !== null,
     connectedAt: connectedRowOrNull ? iso(connectedRowOrNull.connected_at) : null,
     historyLimitDays:
@@ -125,6 +129,7 @@ async function healthFor(
       spendFacts: Number(counts[0].facts),
       identities: Number(counts[0].identities),
       metrics: Number(counts[0].metrics),
+      outcomes: Number(counts[0].outcomes),
     },
     silent,
   };

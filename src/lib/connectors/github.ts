@@ -800,6 +800,7 @@ function afterDay(state: GithubCursor, days: string[]): GithubCursor {
 export const githubConnector: Connector = {
   vendor: "github",
   displayName: "GitHub",
+  outcomeKinds: ["github_pr"],
   historyLimitDays: GITHUB_HISTORY_LIMIT_DAYS,
   connectNotes: [
     "Needs a classic PAT from an org owner: read:org and manage_billing:copilot for the Copilot roster, repo for merged pull requests on private repositories, and billing access for AI-credit dollars.",

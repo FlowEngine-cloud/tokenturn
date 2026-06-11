@@ -1,0 +1,59 @@
+[
+  {
+    "request": {
+      "method": "POST",
+      "url": "https://acme.atlassian.net/rest/api/3/search/jql",
+      "body": {
+        "jql": "updated >= \"2026-06-06\" AND updated < \"2026-06-14\" ORDER BY updated ASC",
+        "maxResults": 100,
+        "fields": ["creator", "status", "resolutiondate", "statuscategorychangedate"]
+      }
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "issues": [
+          {
+            "id": "10001",
+            "self": "https://acme.atlassian.net/rest/api/3/issue/10001",
+            "key": "SUP-1",
+            "fields": {
+              "creator": {
+                "accountId": "5b10dana",
+                "accountType": "atlassian",
+                "emailAddress": "dana@acme.com",
+                "displayName": "Dana"
+              },
+              "status": {
+                "name": "Reopened",
+                "statusCategory": { "id": 2, "key": "new", "name": "To Do" }
+              },
+              "resolutiondate": null,
+              "statuscategorychangedate": "2026-06-12T08:00:00.000+0000"
+            }
+          },
+          {
+            "id": "10005",
+            "self": "https://acme.atlassian.net/rest/api/3/issue/10005",
+            "key": "SUP-5",
+            "fields": {
+              "creator": {
+                "accountId": "5b10omar",
+                "accountType": "atlassian",
+                "emailAddress": "omar@acme.com",
+                "displayName": "Omar"
+              },
+              "status": {
+                "name": "Done",
+                "statusCategory": { "id": 3, "key": "done", "name": "Done" }
+              },
+              "resolutiondate": "2026-06-12T12:00:00.000+0000",
+              "statuscategorychangedate": "2026-06-12T12:00:00.000+0000"
+            }
+          }
+        ],
+        "isLast": true
+      }
+    }
+  }
+]

@@ -1,0 +1,39 @@
+[
+  {
+    "request": {
+      "method": "POST",
+      "url": "https://acme.atlassian.net/rest/api/3/search/jql",
+      "body": {
+        "jql": "updated >= \"2025-06-11\" AND updated < \"2026-06-12\" ORDER BY updated ASC",
+        "maxResults": 100,
+        "fields": ["creator", "status", "resolutiondate", "statuscategorychangedate"]
+      }
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "issues": [
+          {
+            "id": "10009",
+            "self": "https://acme.atlassian.net/rest/api/3/issue/10009",
+            "key": "SUP-9",
+            "fields": {
+              "creator": {
+                "accountId": "5b10dana",
+                "accountType": "atlassian",
+                "emailAddress": "dana@acme.com",
+                "displayName": "Dana"
+              },
+              "status": {
+                "name": "Done",
+                "statusCategory": { "id": 3, "key": "done", "name": "Done" }
+              },
+              "resolutiondate": "2026-06-09T10:15:00.000+0000"
+            }
+          }
+        ],
+        "isLast": true
+      }
+    }
+  }
+]

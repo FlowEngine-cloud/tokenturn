@@ -1,0 +1,15 @@
+[
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://acme.atlassian.net/rest/api/3/myself"
+    },
+    "response": {
+      "status": 401,
+      "body": {
+        "errorMessages": ["Client must be authenticated to access this resource."],
+        "errors": {}
+      }
+    }
+  }
+]

@@ -1,0 +1,36 @@
+[
+  {
+    "request": {
+      "method": "POST",
+      "url": "https://api.linear.app/graphql",
+      "body": {
+        "query": "query Issues($from: DateTimeOrDuration!, $to: DateTimeOrDuration!, $after: String) { issues(first: 100, after: $after, filter: { updatedAt: { gte: $from, lt: $to } }) { nodes { identifier updatedAt completedAt state { type } creator { id displayName email } } pageInfo { hasNextPage endCursor } } }",
+        "variables": {
+          "from": "2025-06-11T00:00:00.000Z",
+          "to": "2026-06-12T00:00:00.000Z",
+          "after": null
+        }
+      }
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "data": {
+          "issues": {
+            "nodes": [
+              {
+                "identifier": "ENG-9",
+                "updatedAt": "2026-06-09T10:15:00.000Z",
+                "completedAt": "2026-06-09T10:15:00.000Z",
+                "state": { "type": "completed" },
+                "creator": { "id": "u_dana", "displayName": "Dana", "email": "dana@acme.com" },
+                "priority": 2
+              }
+            ],
+            "pageInfo": { "hasNextPage": false, "endCursor": null }
+          }
+        }
+      }
+    }
+  }
+]

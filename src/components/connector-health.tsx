@@ -51,7 +51,9 @@ export function ConnectorHealthList({ connectors }: { connectors: ConnectorHealt
                       ? `synced ${timeAgo(c.lastSuccessAt)}`
                       : "never synced"}
                     {" · "}
-                    {formatCount(c.rowCounts.spendFacts)} facts
+                    {c.successOnly
+                      ? `${formatCount(c.rowCounts.outcomes)} successes`
+                      : `${formatCount(c.rowCounts.spendFacts)} facts`}
                   </span>
                 )}
               </span>

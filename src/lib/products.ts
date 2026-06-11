@@ -31,7 +31,14 @@ import { effectiveTagsSql } from "./tag-sql";
  */
 
 export const ATTRIBUTIONS = ["connector", "key", "sdk", "manual"] as const;
-export const OUTCOME_KINDS = ["none", "github_pr", "sdk_event", "manual"] as const;
+export const OUTCOME_KINDS = [
+  "none",
+  "github_pr",
+  "jira_issue",
+  "linear_issue",
+  "sdk_event",
+  "manual",
+] as const;
 export type Attribution = (typeof ATTRIBUTIONS)[number];
 export type OutcomeKind = (typeof OUTCOME_KINDS)[number];
 

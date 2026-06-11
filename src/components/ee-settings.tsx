@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Copy, Download, Loader2 } from "lucide-react";
+import { Building2, Check, Copy, Download, KeyRound, Loader2, type LucideIcon } from "lucide-react";
+import { PlugCard } from "@/components/connector-card";
 import {
   ConfirmButton,
   ErrorLine,
@@ -19,10 +20,11 @@ import { useFetch } from "@/lib/use-fetch";
 import { cn } from "@/lib/utils";
 
 /**
- * The enterprise surfaces on Settings (spec 11): the license box and one
- * section per ee/ feature. A feature the license does not grant shows
- * exactly one line (EE_LOCKED_COPY); expiry locks the features again while
- * everything recorded stays readable.
+ * The enterprise surfaces (spec 11). Okta and Google Workspace plug in, so
+ * they live as Connections cards - visible without a license, locked to
+ * exactly one line (EE_LOCKED_COPY), never hidden. License, scheduled
+ * reports, and the audit log stay on the License tab; expiry locks the
+ * features again while everything recorded stays readable.
  */
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -50,17 +52,10 @@ export function StatusDot({ on }: { on: boolean }) {
   );
 }
 
-function RunLine({ run }: { run: DirectoryRun | null }) {
-  if (run === null) {
-    return <span className="text-sm text-muted-foreground">never synced</span>;
-  }
-  return (
-    <span className="text-sm text-muted-foreground">
-      {run.status === "success"
-        ? `synced ${timeAgo(run.finishedAt ?? run.startedAt)} · ${run.rowsSynced ?? 0} users`
-        : `failed ${timeAgo(run.finishedAt ?? run.startedAt)}`}
-    </span>
-  );
+function runText(run: DirectoryRun | null): string {
+  if (run === null) return "never synced";
+  const at = timeAgo(run.finishedAt ?? run.startedAt);
+  return run.status === "success" ? `synced ${at}` : `failed ${at}`;
 }
 
 function CopyButton({ value }: { value: string }) {
@@ -169,81 +164,100 @@ export function LicenseSection({
   );
 }
 
-// ---- Okta sync (spec 11: auto-invite on hire, auto-offboard on leave) ------
+// ---- Directory cards (spec 11: Okta sync, Google Workspace roster) ---------
+//
+// Connections cards on the one PlugCard shape. Without the licensed feature
+// the card is visible and locked to exactly the one line; with it, admins
+// get the connect/sync/disconnect panel (the status APIs are admin-only, so
+// viewers see the licensed state and nothing else).
 
-function OktaBody({ onChanged }: { onChanged: () => void }) {
-  const [version, setVersion] = useState(0);
-  const status = useLatest(
-    useFetch<{
-      connected: boolean;
-      domain: string | null;
-      hookSecret: string | null;
-      lastRun: DirectoryRun | null;
-    }>(`/api/ee/okta?v=${version}`).data,
+function EeStaticCard({
+  icon,
+  name,
+  locked,
+  children,
+}: {
+  icon: LucideIcon;
+  name: string;
+  /** No license: the action slot shows the lock; the body is the one line. */
+  locked?: boolean;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <PlugCard
+      icon={icon}
+      name={name}
+      dot="bg-muted-foreground/40"
+      locked={locked}
+      open={open}
+      onToggle={() => setOpen((v) => !v)}
+    >
+      {children}
+    </PlugCard>
   );
+}
+
+interface OktaStatus {
+  connected: boolean;
+  domain: string | null;
+  hookSecret: string | null;
+  lastRun: DirectoryRun | null;
+}
+
+function OktaBody({ status, reload }: { status: OktaStatus; reload: () => void }) {
   const [domain, setDomain] = useState("");
   const [token, setToken] = useState("");
   const [busy, setBusy] = useState(false);
   const [syncBusy, setSyncBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const reload = () => {
-    setVersion((v) => v + 1);
-    onChanged();
-  };
 
-  if (!status) return <p className="text-sm text-muted-foreground">Loading…</p>;
   const hookUrl =
     typeof window === "undefined" ? "" : `${window.location.origin}/api/ee/okta/events`;
 
   return (
     <>
-      <div className="flex flex-wrap items-center gap-2">
-        <StatusDot on={status.connected} />
-        <span className="text-sm">
-          {status.connected ? status.domain : "not connected"}
-        </span>
-        {status.connected && <RunLine run={status.lastRun} />}
-        {status.connected && (
-          <>
-            <span className="flex-1" />
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={syncBusy}
-              onClick={async () => {
-                setSyncBusy(true);
-                setError(null);
-                setNotice(null);
-                const { error: failure, data } = await send("/api/ee/okta/sync", "POST");
-                setSyncBusy(false);
+      {status.connected && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-sm">{status.domain}</span>
+          <span className="flex-1" />
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={syncBusy}
+            onClick={async () => {
+              setSyncBusy(true);
+              setError(null);
+              setNotice(null);
+              const { error: failure, data } = await send("/api/ee/okta/sync", "POST");
+              setSyncBusy(false);
+              if (failure) setError(failure);
+              else if (data?.error) setError(String(data.error));
+              else
+                setNotice(
+                  `synced - ${String(data?.created)} new, ${String(data?.updated)} updated, ${
+                    (data?.leavers as unknown[])?.length ?? 0
+                  } leavers swept`,
+                );
+              reload();
+            }}
+          >
+            {syncBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Sync now"}
+          </Button>
+          <ConfirmButton
+            label="Disconnect"
+            confirmLabel="Confirm disconnect"
+            disabled={busy}
+            onConfirm={() => {
+              void send("/api/ee/okta", "DELETE").then(({ error: failure }) => {
                 if (failure) setError(failure);
-                else if (data?.error) setError(String(data.error));
-                else
-                  setNotice(
-                    `synced - ${String(data?.created)} new, ${String(data?.updated)} updated, ${
-                      (data?.leavers as unknown[])?.length ?? 0
-                    } leavers swept`,
-                  );
-                reload();
-              }}
-            >
-              {syncBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Sync now"}
-            </Button>
-            <ConfirmButton
-              label="Disconnect"
-              confirmLabel="Confirm disconnect"
-              disabled={busy}
-              onConfirm={() => {
-                void send("/api/ee/okta", "DELETE").then(({ error: failure }) => {
-                  if (failure) setError(failure);
-                  else reload();
-                });
-              }}
-            />
-          </>
-        )}
-      </div>
+                else reload();
+              });
+            }}
+          />
+        </div>
+      )}
       {status.connected && status.lastRun?.error && (
         <p className="text-sm text-destructive">{status.lastRun.error}</p>
       )}
@@ -323,79 +337,63 @@ function OktaBody({ onChanged }: { onChanged: () => void }) {
   );
 }
 
-// ---- Google Workspace roster sync ------------------------------------------
+interface GoogleStatus {
+  connected: boolean;
+  clientEmail: string | null;
+  adminEmail: string | null;
+  lastRun: DirectoryRun | null;
+}
 
-function GoogleBody({ onChanged }: { onChanged: () => void }) {
-  const [version, setVersion] = useState(0);
-  const status = useLatest(
-    useFetch<{
-      connected: boolean;
-      clientEmail: string | null;
-      adminEmail: string | null;
-      lastRun: DirectoryRun | null;
-    }>(`/api/ee/google?v=${version}`).data,
-  );
+function GoogleBody({ status, reload }: { status: GoogleStatus; reload: () => void }) {
   const [json, setJson] = useState("");
   const [adminEmail, setAdminEmail] = useState("");
   const [busy, setBusy] = useState(false);
   const [syncBusy, setSyncBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const reload = () => {
-    setVersion((v) => v + 1);
-    onChanged();
-  };
-
-  if (!status) return <p className="text-sm text-muted-foreground">Loading…</p>;
 
   return (
     <>
-      <div className="flex flex-wrap items-center gap-2">
-        <StatusDot on={status.connected} />
-        <span className="text-sm">
-          {status.connected
-            ? `${status.clientEmail} as ${status.adminEmail}`
-            : "not connected"}
-        </span>
-        {status.connected && <RunLine run={status.lastRun} />}
-        {status.connected && (
-          <>
-            <span className="flex-1" />
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={syncBusy}
-              onClick={async () => {
-                setSyncBusy(true);
-                setError(null);
-                setNotice(null);
-                const { error: failure, data } = await send("/api/ee/google/sync", "POST");
-                setSyncBusy(false);
+      {status.connected && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-sm">
+            {status.clientEmail} as {status.adminEmail}
+          </span>
+          <span className="flex-1" />
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={syncBusy}
+            onClick={async () => {
+              setSyncBusy(true);
+              setError(null);
+              setNotice(null);
+              const { error: failure, data } = await send("/api/ee/google/sync", "POST");
+              setSyncBusy(false);
+              if (failure) setError(failure);
+              else if (data?.error) setError(String(data.error));
+              else
+                setNotice(
+                  `synced - ${String(data?.created)} new, ${String(data?.updated)} updated`,
+                );
+              reload();
+            }}
+          >
+            {syncBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Sync now"}
+          </Button>
+          <ConfirmButton
+            label="Disconnect"
+            confirmLabel="Confirm disconnect"
+            disabled={busy}
+            onConfirm={() => {
+              void send("/api/ee/google", "DELETE").then(({ error: failure }) => {
                 if (failure) setError(failure);
-                else if (data?.error) setError(String(data.error));
-                else
-                  setNotice(
-                    `synced - ${String(data?.created)} new, ${String(data?.updated)} updated`,
-                  );
-                reload();
-              }}
-            >
-              {syncBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Sync now"}
-            </Button>
-            <ConfirmButton
-              label="Disconnect"
-              confirmLabel="Confirm disconnect"
-              disabled={busy}
-              onConfirm={() => {
-                void send("/api/ee/google", "DELETE").then(({ error: failure }) => {
-                  if (failure) setError(failure);
-                  else reload();
-                });
-              }}
-            />
-          </>
-        )}
-      </div>
+                else reload();
+              });
+            }}
+          />
+        </div>
+      )}
       {status.connected && status.lastRun?.error && (
         <p className="text-sm text-destructive">{status.lastRun.error}</p>
       )}
@@ -458,6 +456,114 @@ function GoogleBody({ onChanged }: { onChanged: () => void }) {
   );
 }
 
+function DirectoryAdminCard<T extends { connected: boolean; lastRun: DirectoryRun | null }>({
+  icon,
+  name,
+  path,
+  onChanged,
+  body,
+}: {
+  icon: LucideIcon;
+  name: string;
+  path: string;
+  onChanged: () => void;
+  body: (status: T, reload: () => void) => React.ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  const [version, setVersion] = useState(0);
+  const status = useLatest(useFetch<T>(`${path}?v=${version}`).data);
+  const reload = () => {
+    setVersion((v) => v + 1);
+    onChanged();
+  };
+
+  return (
+    <PlugCard
+      icon={icon}
+      name={name}
+      dot={status?.connected ? "bg-green-600" : "bg-muted-foreground/40"}
+      status={status?.connected ? runText(status.lastRun) : null}
+      action={status !== null && !status.connected ? "Connect" : null}
+      open={open}
+      onToggle={() => setOpen((v) => !v)}
+    >
+      {status === null ? (
+        <p className="text-sm text-muted-foreground">Loading…</p>
+      ) : (
+        body(status, reload)
+      )}
+    </PlugCard>
+  );
+}
+
+export function OktaConnectionCard({
+  licensed,
+  isAdmin,
+  onChanged,
+}: {
+  licensed: boolean;
+  isAdmin: boolean;
+  onChanged: () => void;
+}) {
+  if (!licensed) {
+    return (
+      <EeStaticCard icon={KeyRound} name="Okta" locked>
+        <LockedLine />
+      </EeStaticCard>
+    );
+  }
+  if (!isAdmin) {
+    return (
+      <EeStaticCard icon={KeyRound} name="Okta">
+        <p className="text-sm text-muted-foreground">Licensed - admins configure it here.</p>
+      </EeStaticCard>
+    );
+  }
+  return (
+    <DirectoryAdminCard<OktaStatus>
+      icon={KeyRound}
+      name="Okta"
+      path="/api/ee/okta"
+      onChanged={onChanged}
+      body={(status, reload) => <OktaBody status={status} reload={reload} />}
+    />
+  );
+}
+
+export function GoogleConnectionCard({
+  licensed,
+  isAdmin,
+  onChanged,
+}: {
+  licensed: boolean;
+  isAdmin: boolean;
+  onChanged: () => void;
+}) {
+  if (!licensed) {
+    return (
+      <EeStaticCard icon={Building2} name="Google Workspace" locked>
+        <LockedLine />
+      </EeStaticCard>
+    );
+  }
+  if (!isAdmin) {
+    return (
+      <EeStaticCard icon={Building2} name="Google Workspace">
+        <p className="text-sm text-muted-foreground">Licensed - admins configure it here.</p>
+      </EeStaticCard>
+    );
+  }
+  return (
+    <DirectoryAdminCard<GoogleStatus>
+      icon={Building2}
+      name="Google Workspace"
+      path="/api/ee/google"
+      onChanged={onChanged}
+      body={(status, reload) => <GoogleBody status={status} reload={reload} />}
+    />
+  );
+}
+
 // ---- Scheduled reports (spec 11: monthly PDF email) ------------------------
 
 export function ScheduledReportsSection({
@@ -502,7 +608,7 @@ export function ScheduledReportsSection({
         </span>
         {!emailConfigured && (
           <span className="text-sm text-amber-700">
-            needs the email provider above
+            needs the email connection in Connections
           </span>
         )}
       </div>
@@ -646,7 +752,9 @@ function AuditBody() {
   );
 }
 
-// ---- The enterprise block ---------------------------------------------------
+// ---- The License-tab enterprise block ---------------------------------------
+//
+// Okta + Google live in Connections (they plug in); these two do not.
 
 export function EnterpriseSections({
   features,
@@ -661,28 +769,8 @@ export function EnterpriseSections({
   emailConfigured: boolean;
   onChanged: () => void;
 }) {
-  // Directory + audit surfaces are admin API calls; viewers see the cards
-  // only as locked/unlocked state, never the configs.
   return (
     <>
-      <Section title="Okta sync">
-        {!features.includes("okta_sync") ? (
-          <LockedLine />
-        ) : isAdmin ? (
-          <OktaBody onChanged={onChanged} />
-        ) : (
-          <p className="text-sm text-muted-foreground">Licensed - admins configure it here.</p>
-        )}
-      </Section>
-      <Section title="Google Workspace">
-        {!features.includes("google_workspace") ? (
-          <LockedLine />
-        ) : isAdmin ? (
-          <GoogleBody onChanged={onChanged} />
-        ) : (
-          <p className="text-sm text-muted-foreground">Licensed - admins configure it here.</p>
-        )}
-      </Section>
       <ScheduledReportsSection
         licensed={features.includes("scheduled_reports")}
         config={scheduledReports}

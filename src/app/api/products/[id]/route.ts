@@ -92,7 +92,7 @@ export async function PATCH(
   }
   if (body.outcomeKind !== undefined) {
     if (!isOutcomeKind(body.outcomeKind)) {
-      return badRequest("outcomeKind must be one of none, github_pr, sdk_event, manual");
+      return badRequest("outcomeKind must be one of none, github_pr, jira_issue, linear_issue, sdk_event, manual");
     }
     update.outcomeKind = body.outcomeKind;
   }

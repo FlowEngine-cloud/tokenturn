@@ -11,6 +11,8 @@
 import { anthropicConnector } from "./anthropic";
 import { cursorConnector } from "./cursor";
 import { githubConnector } from "./github";
+import { jiraConnector } from "./jira";
+import { linearConnector } from "./linear";
 import { openaiConnector } from "./openai";
 import { registerConnector } from "./registry";
 
@@ -56,9 +58,13 @@ export type {
 export { anthropicConnector } from "./anthropic";
 export { cursorConnector } from "./cursor";
 export { githubConnector } from "./github";
+export { jiraConnector } from "./jira";
+export { linearConnector } from "./linear";
 export { openaiConnector } from "./openai";
 
 registerConnector(anthropicConnector);
 registerConnector(cursorConnector);
 registerConnector(githubConnector);
+registerConnector(jiraConnector);
+registerConnector(linearConnector);
 registerConnector(openaiConnector);

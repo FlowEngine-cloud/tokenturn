@@ -154,6 +154,13 @@ export interface Connector {
   vendor: string;
   displayName: string;
   /**
+   * Success integrations (spec 7: Jira, Linear) write outcomes only - never
+   * spend. The Connections card says so.
+   */
+  successOnly?: boolean;
+  /** Outcome kinds this connector writes - health counts its outcomes by them. */
+  outcomeKinds?: string[];
+  /**
    * How far back the vendor lets us page (most cap report windows at ~31
    * days). First connect backfills exactly this far; the connect screen
    * shows it.

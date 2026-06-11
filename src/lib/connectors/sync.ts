@@ -218,6 +218,8 @@ function validateRevert(revert: RevertInput): void {
  */
 const DEFAULT_OUTCOME_PRODUCTS: Record<string, string> = {
   github_pr: "Coding",
+  jira_issue: "Jira issues",
+  linear_issue: "Linear issues",
 };
 
 /** Resolve the product an outcome kind routes to (oldest live match wins). */

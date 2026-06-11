@@ -1,0 +1,20 @@
+[
+  {
+    "request": {
+      "method": "POST",
+      "url": "https://api.linear.app/graphql",
+      "body": { "query": "{ viewer { id email } }" }
+    },
+    "response": {
+      "status": 400,
+      "body": {
+        "errors": [
+          {
+            "message": "Authentication required, not authenticated",
+            "extensions": { "type": "authentication error", "code": "AUTHENTICATION_ERROR" }
+          }
+        ]
+      }
+    }
+  }
+]

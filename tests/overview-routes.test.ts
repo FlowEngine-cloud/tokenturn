@@ -79,7 +79,7 @@ describe.runIf(TEST_DATABASE_URL)("overview/facts/runs/search routes", () => {
     // All registered connectors report health, connected or not, with the
     // last error verbatim.
     const vendors = body.connectors.map((c: { vendor: string }) => c.vendor).sort();
-    expect(vendors).toEqual(["anthropic", "cursor", "github", "openai"]);
+    expect(vendors).toEqual(["anthropic", "cursor", "github", "jira", "linear", "openai"]);
     const anthropic = body.connectors.find(
       (c: { vendor: string }) => c.vendor === "anthropic",
     );

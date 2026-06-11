@@ -1,0 +1,117 @@
+[
+  {
+    "request": {
+      "method": "POST",
+      "url": "https://acme.atlassian.net/rest/api/3/search/jql",
+      "body": {
+        "jql": "updated >= \"2025-06-11\" AND updated < \"2026-06-12\" ORDER BY updated ASC",
+        "maxResults": 100,
+        "fields": ["creator", "status", "resolutiondate", "statuscategorychangedate"]
+      }
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "issues": [
+          {
+            "id": "10001",
+            "self": "https://acme.atlassian.net/rest/api/3/issue/10001",
+            "key": "SUP-1",
+            "fields": {
+              "creator": {
+                "accountId": "5b10dana",
+                "accountType": "atlassian",
+                "emailAddress": "dana@acme.com",
+                "displayName": "Dana"
+              },
+              "status": {
+                "name": "Done",
+                "statusCategory": { "id": 3, "key": "done", "name": "Done" }
+              },
+              "resolutiondate": "2026-06-09T10:15:00.000+0000",
+              "statuscategorychangedate": "2026-06-09T10:15:00.000+0000"
+            }
+          },
+          {
+            "id": "10002",
+            "self": "https://acme.atlassian.net/rest/api/3/issue/10002",
+            "key": "SUP-2",
+            "fields": {
+              "creator": {
+                "accountId": "5b10omar",
+                "accountType": "atlassian",
+                "emailAddress": "omar@acme.com",
+                "displayName": "Omar"
+              },
+              "status": {
+                "name": "In Progress",
+                "statusCategory": { "id": 4, "key": "indeterminate", "name": "In Progress" }
+              },
+              "resolutiondate": null,
+              "statuscategorychangedate": "2026-06-10T09:00:00.000+0000"
+            }
+          },
+          {
+            "id": "10003",
+            "self": "https://acme.atlassian.net/rest/api/3/issue/10003",
+            "key": "SUP-3",
+            "fields": {
+              "creator": {
+                "accountId": "appbot-1",
+                "accountType": "app",
+                "displayName": "Deploy Agent"
+              },
+              "status": {
+                "name": "Done",
+                "statusCategory": { "id": 3, "key": "done", "name": "Done" }
+              },
+              "resolutiondate": "2026-06-08T20:00:00.000+0000",
+              "statuscategorychangedate": "2026-06-08T20:00:00.000+0000"
+            }
+          }
+        ],
+        "nextPageToken": "p2",
+        "isLast": false
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "POST",
+      "url": "https://acme.atlassian.net/rest/api/3/search/jql",
+      "body": {
+        "jql": "updated >= \"2025-06-11\" AND updated < \"2026-06-12\" ORDER BY updated ASC",
+        "maxResults": 100,
+        "fields": ["creator", "status", "resolutiondate", "statuscategorychangedate"],
+        "nextPageToken": "p2"
+      }
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "issues": [
+          {
+            "id": "10004",
+            "self": "https://acme.atlassian.net/rest/api/3/issue/10004",
+            "key": "SUP-4",
+            "fields": {
+              "creator": {
+                "accountId": "5b10dana",
+                "accountType": "atlassian",
+                "emailAddress": "dana@acme.com",
+                "displayName": "Dana"
+              },
+              "status": {
+                "name": "Done",
+                "statusCategory": { "id": 3, "key": "done", "name": "Done" }
+              },
+              "resolutiondate": "2026-06-10T18:30:00.000+0000",
+              "statuscategorychangedate": "2026-06-10T18:30:00.000+0000"
+            }
+          }
+        ],
+        "isLast": true
+      }
+    }
+  }
+]

@@ -3,7 +3,7 @@ import path from "node:path";
 import { promisify } from "node:util";
 import { Pool } from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { DELETE as deleteUser } from "../src/app/api/users/[id]/route";
+import { DELETE as deleteUser, PATCH as patchUser } from "../src/app/api/users/[id]/route";
 import { GET as listUsers, POST as createUser } from "../src/app/api/users/route";
 import { POST as loginPassword } from "../src/app/api/auth/login/password/route";
 import { POST as logout } from "../src/app/api/auth/logout/route";
@@ -13,11 +13,13 @@ import { POST as setupPassword } from "../src/app/api/auth/setup/password/route"
 import { GET as authState } from "../src/app/api/auth/state/route";
 import { createSession, getSessionUser, hashToken } from "../src/lib/auth";
 import { closePool } from "../src/lib/db";
+import { clearLicenseFile } from "../src/lib/license";
 import { hashPassword, verifyPassword } from "../src/lib/password";
 import { resetRateLimits } from "../src/lib/rate-limit";
 import { runMigrations } from "../scripts/migrate.mjs";
 import { mintResetToken } from "../scripts/reset-admin.mjs";
-import { getJson, postJson, sessionCookieOf } from "./helpers/http";
+import { getJson, patchJson, postJson, sessionCookieOf } from "./helpers/http";
+import { licenseInstance, unpinTestLicenseKey } from "./helpers/license";
 import { TEST_DATABASE_URL, createScratchDb, dropScratchDb } from "./helpers/pg";
 
 const execFileAsync = promisify(execFile);
@@ -179,6 +181,42 @@ describe.runIf(TEST_DATABASE_URL)("auth flows", () => {
     expect(
       (await createUser(postJson("/api/users", { name: "X", password: "xxxxxxxx" }))).status,
     ).toBe(401);
+  });
+
+  it("role changes: Admin is always offered, picking it is licensed (spec 11)", async () => {
+    const patch = (id: string, role: string, cookie?: string) =>
+      patchUser(patchJson(`/api/users/${id}`, { role }, cookie), {
+        params: Promise.resolve({ id }),
+      });
+    const { rows } = await pool.query("SELECT id FROM users WHERE role = 'admin'");
+    const adminId = rows[0].id as string;
+
+    // Your own role never changes here (the last admin can't demote out).
+    expect((await patch(adminId, "viewer", adminCookie)).status).toBe(403);
+    // Viewers cannot change roles at all.
+    expect((await patch(viewerId, "admin", viewerCookie)).status).toBe(403);
+
+    // Unlicensed promote: the locked-feature line, verbatim - the wall the
+    // always-visible Admin option hits.
+    const locked = await patch(viewerId, "admin", adminCookie);
+    expect(locked.status).toBe(403);
+    expect((await locked.json()).error).toBe(
+      "Enterprise feature - contact hi@flowengine.cloud",
+    );
+
+    // Licensed: it works, both directions.
+    await licenseInstance(pool, ["more_admins"]);
+    try {
+      const promoted = await patch(viewerId, "admin", adminCookie);
+      expect(promoted.status).toBe(200);
+      expect((await promoted.json()).user.role).toBe("admin");
+      const demoted = await patch(viewerId, "viewer", adminCookie);
+      expect(demoted.status).toBe(200);
+      expect((await demoted.json()).user.role).toBe("viewer");
+    } finally {
+      await clearLicenseFile(pool);
+      unpinTestLicenseKey();
+    }
   });
 
   it("the admin cannot be deleted", async () => {
