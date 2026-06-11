@@ -200,7 +200,20 @@ const INITIAL_CURSOR: GithubCursor = { phase: "seats", page: 1, chunk: 0, users:
 
 type GhConfig = Record<string, string>;
 
-async function ghJson(
+/** A GitHub error carrying its HTTP status, so callers (the survival job)
+ * can tell gone-forever (404) from try-again-later. Message stays the
+ * vendor's, verbatim (spec 5). */
+export class GhHttpError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
+    super(message);
+    this.name = "GhHttpError";
+  }
+}
+
+export async function ghJson(
   ctx: ConnectorContext,
   url: string,
   init?: { method: "POST" | "DELETE"; body?: Record<string, unknown> },
@@ -222,9 +235,29 @@ async function ghJson(
       isObj(body) && typeof (body as Record<string, unknown>).message === "string"
         ? ((body as Record<string, unknown>).message as string)
         : `github returned HTTP ${res.status}`;
-    throw new Error(message);
+    throw new GhHttpError(message, res.status);
   }
   return body;
+}
+
+/** A file's raw text at a ref; null when it no longer exists there (404 -
+ * for survival that means the lines are dead, not an error). */
+export async function ghFileTextOrNull(
+  ctx: ConnectorContext,
+  url: string,
+): Promise<string | null> {
+  const res = await ctx.fetch(url, {
+    headers: {
+      authorization: `Bearer ${ctx.config.token ?? ""}`,
+      accept: "application/vnd.github.raw+json",
+      "x-github-api-version": GITHUB_API_VERSION,
+    },
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) {
+    throw new GhHttpError(`github contents returned HTTP ${res.status}`, res.status);
+  }
+  return res.text();
 }
 
 /** Report blobs are presigned URLs - fetched without auth, as raw NDJSON. */
@@ -291,6 +324,32 @@ export function prRequest(ref: string): string {
 export function prCommitsRequest(ref: string, page: number): string {
   const { owner, repo, number } = refParts(ref);
   return `${GITHUB_API}/repos/${owner}/${repo}/pulls/${number}/commits?per_page=${COMMITS_PAGE_SIZE}&page=${page}`;
+}
+
+// Survival-job requests (src/lib/survival.ts) - kept here with the other
+// URL builders so the fixture harness pins them the same way.
+
+export const FILES_PAGE_SIZE = 100;
+
+export function prFilesRequest(ref: string, page: number): string {
+  const { owner, repo, number } = refParts(ref);
+  return `${GITHUB_API}/repos/${owner}/${repo}/pulls/${number}/files?per_page=${FILES_PAGE_SIZE}&page=${page}`;
+}
+
+/** The last commit on a branch at or before an instant - the repo as it
+ * stood at the survival horizon. */
+export function commitAtRequest(ref: string, branch: string, until: string): string {
+  const { owner, repo } = refParts(ref);
+  return (
+    `${GITHUB_API}/repos/${owner}/${repo}/commits` +
+    `?sha=${encodeURIComponent(branch)}&until=${encodeURIComponent(until)}&per_page=1`
+  );
+}
+
+export function contentsRequest(ref: string, filePath: string, sha: string): string {
+  const { owner, repo } = refParts(ref);
+  const encoded = filePath.split("/").map(encodeURIComponent).join("/");
+  return `${GITHUB_API}/repos/${owner}/${repo}/contents/${encoded}?ref=${sha}`;
 }
 
 function refParts(ref: string): PrRef {

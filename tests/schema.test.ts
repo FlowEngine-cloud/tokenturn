@@ -52,6 +52,7 @@ describe.runIf(TEST_DATABASE_URL)("core schema", () => {
       "sessions",
       "settings",
       "spend_facts",
+      "survival_checks",
       "sync_runs",
       "tag_settings",
       "usage_metrics",

@@ -14,8 +14,9 @@ const MIGRATIONS_DIR = path.resolve(__dirname, "..", "migrations");
  * coding-tool rows (merged PRs, accept/revert rates, tokens from the
  * vendors' own counters) sit next to the user-defined rows, all with the
  * same columns: spend, tokens, successes, $ and tokens per success, value,
- * ROI multiple - and survival stays null until the engine exists, never
- * invented. Every row carries tags and vendors for the filter bar.
+ * ROI multiple - and survival stays null until the survival job has
+ * checked a PR, never invented. Every row carries tags and vendors for
+ * the filter bar.
  *
  * Fixture (USD display), June range 06-01..06-04:
  *   claude_code (built-in, metric-sourced): 1,500c vendor estimate,
@@ -182,8 +183,10 @@ describe.runIf(TEST_DATABASE_URL)("the one ROI list (spec 7)", () => {
     );
     const spends = view.rows.map((r) => r.spendCents ?? -1);
     expect(spends).toEqual([...spends].sort((a, b) => b - a));
-    // Survival has no engine yet: a dash on every row, never a number.
+    // No survival checks recorded: a dash on every row, never a number
+    // (the survival job's own coverage lives in survival.test.ts).
     expect(view.rows.every((r) => r.survivalPct === null)).toBe(true);
+    expect(view.rows.every((r) => r.costPer1kSurvivingCents === null)).toBe(true);
   });
 
   it("a metric-sourced coding row: vendor estimate, vendor tokens, $ and tokens per merge", async () => {

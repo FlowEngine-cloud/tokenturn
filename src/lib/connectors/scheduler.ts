@@ -6,6 +6,7 @@ import { checkBurnAlerts, type BurnCheckResult } from "../limits";
 import { logger } from "../logger";
 import { retentionTick } from "../retention";
 import { getSetting } from "../settings";
+import { survivalTick, type SurvivalTickResult } from "../survival";
 import { listConnectedRows } from "./connect";
 import { getConnector } from "./registry";
 import { runSync, utcDay, type SyncResult } from "./sync";
@@ -24,6 +25,9 @@ import { runSync, utcDay, type SyncResult } from "./sync";
  * 3. Runs the spec-9 burn checks (limit thresholds + daily anomalies)
  *    after the syncs, so alerts fire on the data that just landed. Both
  *    dedupe through alert_state, so the 5-minute tick cadence is safe.
+ * 4. Runs a line-survival pass (spec 5): a bounded batch of AI-authored
+ *    merged PRs past their 30/90-day horizon gets measured against the
+ *    repo's git data. A no-op until GitHub is connected.
  */
 
 export const SYNC_INTERVAL_MS = 60 * 60 * 1000;
@@ -41,6 +45,7 @@ export interface SchedulerTickResult {
   synced: SyncResult[];
   silentEmitted: string[];
   burn: BurnCheckResult;
+  survival: SurvivalTickResult;
 }
 
 async function dueVendors(pool: Pool, now: Date): Promise<string[]> {
@@ -126,7 +131,8 @@ export async function schedulerTick(
 
   const silentEmitted = await checkSilentConnectors({ ...opts, now });
   const burn = await checkBurnAlerts({ pool, now });
-  return { synced, silentEmitted, burn };
+  const survival = await survivalTick({ pool, fetch: opts.fetch, now, dataDir: opts.dataDir });
+  return { synced, silentEmitted, burn, survival };
 }
 
 let ticker: NodeJS.Timeout | null = null;

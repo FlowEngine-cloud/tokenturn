@@ -9,8 +9,9 @@ import { toolsData, type ToolSpendSource } from "./tools";
  * a slice of spend ÷ a definition of success. One list holds them all:
  *
  * - built-in coding-tool rows (toolsData): success = merged PRs, with the
- *   vendors' accept rates and the revert rate alongside. Line survival has
- *   no engine yet, so survivalPct is null - shown as a dash, never invented.
+ *   vendors' accept rates, the revert rate, and line survival (the
+ *   background git checks, spec 5) alongside - a dash until a PR has been
+ *   checked, never invented.
  * - user-defined rows (productsView - the products table keeps its name,
  *   only the language changed): success = whatever the row defines, or
  *   none - then it is plain cost, no fake ROI.
@@ -45,8 +46,11 @@ export interface RoiRow {
   /** Coding rows only - from the vendors' own counters. */
   acceptRatePct: number | null;
   revertRatePct: number | null;
-  /** Always null until the line-survival engine exists - shown as a dash. */
+  /** % of AI-written lines still alive 30 days after merge (spec 5);
+   * null until the survival job has checked a PR in range. */
   survivalPct: number | null;
+  /** Spend per 1,000 lines still alive at 30 days. */
+  costPer1kSurvivingCents: number | null;
   /** For the filter bar. Coding rows carry their own tool tag. */
   tags: string[];
   vendors: string[];
@@ -124,7 +128,8 @@ export async function roiView(
       costPerUserCents: null,
       acceptRatePct: t.acceptRatePct,
       revertRatePct: t.revertRatePct,
-      survivalPct: null,
+      survivalPct: t.survivalPct,
+      costPer1kSurvivingCents: t.costPer1kSurvivingCents,
       tags: [
         ...new Set([t.tool, ...(routed ? (tagsByProduct.get(routed.id) ?? []) : [])]),
       ],
@@ -163,6 +168,7 @@ export async function roiView(
       acceptRatePct: null,
       revertRatePct: null,
       survivalPct: null,
+      costPer1kSurvivingCents: null,
       tags: tagsByProduct.get(p.id) ?? [],
       vendors: p.vendors,
       spendSource: null,

@@ -14,17 +14,19 @@ import { useFetch } from "@/lib/use-fetch";
 
 /**
  * One built-in coding-tool ROI (spec 10 page 3 click-through): cost per
- * merged PR per person, accept and revert rates, survival once the engine
- * exists. Every cell links to the raw rows behind it: vendor facts, the
- * vendor's own usage counters, or the routed spend - each labeled for what
- * it is.
+ * merged PR per person, accept and revert rates, and line survival (lines
+ * written, % alive at 30/90 days, cost per 1,000 surviving lines - the
+ * background git checks, spec 5). Every cell links to the raw rows behind
+ * it: vendor facts, the vendor's own usage counters, or the routed spend -
+ * each labeled for what it is.
  */
 
 export function CodingToolSkeleton() {
   return (
     <div className="space-y-4">
       <Skeleton className="h-7 w-40" />
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+        <Skeleton className="h-32" />
         <Skeleton className="h-32" />
         <Skeleton className="h-32" />
         <Skeleton className="h-32" />
@@ -228,7 +230,7 @@ export default function CodingToolClient() {
     <div className="space-y-4">
       <h1 className="text-lg font-semibold">{toolLabel(tool)}</h1>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         <Tile title="Spend" href={spendHref(summary, range) ?? undefined}>
           {summary.spendCents !== null && summary.spendSource !== null ? (
             <>
@@ -288,6 +290,27 @@ export default function CodingToolClient() {
                   {formatCount(summary.reverted)} reverted
                 </p>
               )}
+            </>
+          ) : (
+            <p className="text-3xl font-semibold text-muted-foreground">–</p>
+          )}
+        </Tile>
+        <Tile title="Survival 30d" href={mergesHref(tool, range)}>
+          {summary.survivalPct !== null ? (
+            <>
+              <Link
+                href={mergesHref(tool, range)}
+                className="text-3xl font-semibold tabular-nums"
+              >
+                {formatPct(summary.survivalPct)}
+              </Link>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {formatCount(summary.linesAlive)} of {formatCount(summary.linesWritten)} lines
+                {summary.survival90Pct !== null &&
+                  ` · 90d ${formatPct(summary.survival90Pct)}`}
+                {summary.costPer1kSurvivingCents !== null &&
+                  ` · ${money(summary.costPer1kSurvivingCents)} / 1k lines`}
+              </p>
             </>
           ) : (
             <p className="text-3xl font-semibold text-muted-foreground">–</p>

@@ -20,8 +20,8 @@ import { useFetch } from "@/lib/use-fetch";
 
 /**
  * ROI (spec 7 + 10 page 3): one list of ROI calculations - the built-in
- * coding-tool rows (merged PRs, accept/revert rates; survival shows a dash
- * until the survival engine exists) and the user-defined ones. The filter
+ * coding-tool rows (merged PRs, accept/revert rates, line survival and
+ * cost per 1k surviving lines) and the user-defined ones. The filter
  * bar slices by tag and vendor; "Add ROI" opens the form; a row click goes
  * to its detail (per-person split, daily breakdown, drills).
  */
@@ -334,6 +334,17 @@ export default function RoiClient() {
       align: "right",
       render: (r) => formatPct(r.survivalPct),
       csv: (r) => r.survivalPct,
+    },
+    {
+      key: "costPer1kSurviving",
+      header: "$ / 1k lines",
+      align: "right",
+      render: (r) =>
+        r.costPer1kSurvivingCents === null ? "–" : money(r.costPer1kSurvivingCents),
+      csv: (r) =>
+        r.costPer1kSurvivingCents === null
+          ? null
+          : (r.costPer1kSurvivingCents / 100).toFixed(2),
     },
   ];
 
