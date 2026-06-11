@@ -89,7 +89,7 @@ export default function PeopleClient() {
         ) : r.status === "active" ? (
           "active"
         ) : (
-          <span className="text-yellow-500">{r.status}</span>
+          <span className="text-amber-700">{r.status}</span>
         ),
       csv: (r) => r.status,
     },

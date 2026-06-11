@@ -299,7 +299,7 @@ export default function ToolsClient() {
         r.reverted > 0 ? (
           <Link
             href={mergesHref(r.tool, range, r.personId)}
-            className="tabular-nums text-yellow-500 hover:underline"
+            className="tabular-nums text-amber-700 hover:underline"
           >
             {formatCount(r.reverted)}
           </Link>

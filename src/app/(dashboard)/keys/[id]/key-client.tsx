@@ -122,7 +122,7 @@ export default function KeyClient() {
                 <span className="text-muted-foreground">→ {tag.productName}</span>
               )}
               {!tag.countsPersonal && (
-                <span className="text-yellow-500">excluded from personal</span>
+                <span className="text-amber-700">excluded from personal</span>
               )}
             </span>
           ))}

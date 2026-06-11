@@ -49,7 +49,7 @@ export function Sidebar() {
       : "";
 
   return (
-    <aside className="fixed inset-y-0 left-0 z-30 hidden w-56 flex-col border-r bg-sidebar md:flex">
+    <aside className="fixed inset-y-0 left-0 z-30 hidden w-56 flex-col border-r bg-sidebar md:flex print:hidden">
       <div className="flex h-14 items-center border-b px-5">
         <Link href={`/${rangeQuery}`} className="font-semibold tracking-tight">
           {"AI P&L"}

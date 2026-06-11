@@ -54,6 +54,23 @@ export function monthToDateRange(now: Date = new Date()): DateRange {
   return { from: `${to.slice(0, 7)}-01`, to };
 }
 
+/** The current UTC calendar month, YYYY-MM (the Report's default). */
+export function currentMonth(now: Date = new Date()): string {
+  return now.toISOString().slice(0, 7);
+}
+
+export function addMonths(month: string, delta: number): string {
+  const [y, m] = month.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1 + delta, 1)).toISOString().slice(0, 7);
+}
+
+/** First and last UTC day of a YYYY-MM month, inclusive. */
+export function monthBounds(month: string): DateRange {
+  const [y, m] = month.split("-").map(Number);
+  const lastDay = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  return { from: `${month}-01`, to: `${month}-${String(lastDay).padStart(2, "0")}` };
+}
+
 /** Read ?from/?to; anything missing or malformed falls back to the default
  * trailing window - never a guess at partial input. */
 export function parseRange(

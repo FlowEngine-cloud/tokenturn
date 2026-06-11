@@ -1,15 +1,12 @@
-import { FileText } from "lucide-react";
-import { EmptyState } from "@/components/empty-state";
+import { Suspense } from "react";
+import ReportClient, { ReportSkeleton } from "./report-client";
 
-/** Spec 10 page 6 - built in its own loop. */
+/** Report (spec 10 page 6): one printable CFO page - spend by cost center,
+ * unit costs, ROI where defined, month over month; CSV + FOCUS 1.4 export. */
 export default function ReportPage() {
   return (
-    <EmptyState
-      icon={FileText}
-      title="CFO report"
-      body="One printable page: spend by cost center, unit costs, ROI where defined, month over month - with CSV and FOCUS 1.4 export."
-      actionHref="/"
-      actionLabel="View spend"
-    />
+    <Suspense fallback={<ReportSkeleton />}>
+      <ReportClient />
+    </Suspense>
   );
 }

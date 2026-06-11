@@ -122,7 +122,7 @@ export default function OverviewClient() {
             {data.drift.invoiceCount > 0 && data.drift.cents !== 0 && (
               <Link
                 href={drill("?view=invoices")}
-                className="rounded-full bg-yellow-500/15 px-2 py-0.5 text-xs font-medium text-yellow-500"
+                className="rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-700"
                 title="Invoice totals diverge from synced facts - click for the invoices behind it"
               >
                 {formatCentsSigned(data.drift.cents, ccy)} drift
@@ -131,7 +131,7 @@ export default function OverviewClient() {
             {data.drift.invoiceCount > 0 && data.drift.cents === 0 && (
               <Link
                 href={drill("?view=invoices")}
-                className="rounded-full bg-green-500/15 px-2 py-0.5 text-xs font-medium text-green-500"
+                className="rounded-full bg-green-600/15 px-2 py-0.5 text-xs font-medium text-green-700"
               >
                 invoices reconciled
               </Link>

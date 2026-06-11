@@ -105,7 +105,7 @@ export default function ProductsClient() {
           <span>
             {formatCount(r.outcomeCount)}
             {r.revertedCount > 0 && (
-              <span className="text-yellow-500"> · {formatCount(r.revertedCount)} rev</span>
+              <span className="text-amber-700"> · {formatCount(r.revertedCount)} rev</span>
             )}
           </span>
         ),
@@ -123,7 +123,7 @@ export default function ProductsClient() {
       header: "ROI",
       align: "right",
       render: (r) =>
-        r.roi === null ? "–" : <span className="text-green-500">{r.roi}x</span>,
+        r.roi === null ? "–" : <span className="text-green-700">{r.roi}x</span>,
       csv: (r) => r.roi,
     },
     {

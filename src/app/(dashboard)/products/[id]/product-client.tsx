@@ -180,7 +180,7 @@ export default function ProductClient() {
             ` · ${data.product.outcomeKind} outcomes`}
         </span>
         {data.product.archivedAt !== null && (
-          <span className="rounded-full bg-yellow-500/15 px-2 py-0.5 text-sm font-medium text-yellow-500">
+          <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-sm font-medium text-amber-700">
             archived
           </span>
         )}
@@ -225,7 +225,7 @@ export default function ProductClient() {
               />
             ))}
             {m.revertedOutcomes > 0 && (
-              <p className="px-1 text-yellow-500">
+              <p className="px-1 text-amber-700">
                 {formatCount(m.revertedOutcomes)} reverted
               </p>
             )}
@@ -253,7 +253,7 @@ export default function ProductClient() {
         </Tile>
         <Tile title="ROI" href={outcomesDrill}>
           <p className="text-3xl font-semibold tabular-nums">
-            {m.roi === null ? "–" : <span className="text-green-500">{m.roi}x</span>}
+            {m.roi === null ? "–" : <span className="text-green-700">{m.roi}x</span>}
           </p>
           <p className="mt-1 text-sm text-muted-foreground">
             {m.valueCents === null

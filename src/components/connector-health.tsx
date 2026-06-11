@@ -13,15 +13,15 @@ import { cn } from "@/lib/utils";
  * to its sync runs.
  */
 
-function statusOf(c: ConnectorHealth): { label: string; dot: string } {
+export function statusOf(c: ConnectorHealth): { label: string; dot: string } {
   if (!c.connected) return { label: "not connected", dot: "bg-muted-foreground/40" };
   if (c.lastRun?.status === "running") {
-    return { label: "syncing", dot: "bg-yellow-500 animate-pulse" };
+    return { label: "syncing", dot: "bg-amber-500 animate-pulse" };
   }
-  if (c.silent) return { label: "silent", dot: "bg-yellow-500" };
-  if (c.lastRun?.status === "error") return { label: "error", dot: "bg-red-500" };
-  if (c.lastRun?.status === "success") return { label: "ok", dot: "bg-green-500" };
-  return { label: "connected", dot: "bg-green-500/60" };
+  if (c.silent) return { label: "silent", dot: "bg-amber-500" };
+  if (c.lastRun?.status === "error") return { label: "error", dot: "bg-red-600" };
+  if (c.lastRun?.status === "success") return { label: "ok", dot: "bg-green-600" };
+  return { label: "connected", dot: "bg-green-600/60" };
 }
 
 export function ConnectorHealthList({ connectors }: { connectors: ConnectorHealth[] }) {
@@ -55,7 +55,7 @@ export function ConnectorHealthList({ connectors }: { connectors: ConnectorHealt
               </span>
               {c.connected && c.lastRun?.error && (
                 <span
-                  className="truncate pl-5 text-sm text-red-400"
+                  className="truncate pl-5 text-sm text-red-600"
                   title={c.lastRun.error}
                 >
                   {c.lastRun.error}

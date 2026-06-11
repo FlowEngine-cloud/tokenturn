@@ -293,7 +293,7 @@ function ConflictCard({
   const [error, setError] = useState<string | null>(null);
 
   return (
-    <div className="space-y-2 rounded-lg border border-yellow-500/40 bg-card p-4">
+    <div className="space-y-2 rounded-lg border border-amber-500/40 bg-card p-4">
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <span className="rounded-full border px-2.5 py-0.5 text-sm text-muted-foreground">
           {conflict.vendor} · {conflict.kind}
@@ -301,7 +301,7 @@ function ConflictCard({
         <Link href={keysHref} className="font-mono text-sm hover:underline">
           {conflict.externalId}
         </Link>
-        <span className="text-sm text-yellow-500">
+        <span className="text-sm text-amber-700">
           {formatCount(conflict.candidates.length)} tags claim this key - it stays
           unrouted until one lets go
         </span>

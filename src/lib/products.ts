@@ -735,6 +735,9 @@ export interface ProductViewRow {
   name: string;
   attribution: Attribution;
   outcomeKind: OutcomeKind;
+  /** Only when the caller asked for archived rows (the Report month must
+   * sum to the whole ledger - spec 4: rows leave views, never totals). */
+  archived: boolean;
   spendCents: number;
   factCount: number;
   /** Live outcomes in range; reverted ones never count (spec 5). */
@@ -763,12 +766,15 @@ export interface ProductsViewData {
 /**
  * Per cost center over the range: spend and its own metric in its own unit
  * ($/merge, $/ticket, $/user) - manual products included. Archived products
- * leave this view (spec 4); their history stays in every drill-down. Every
- * number equals listFacts/listOutcomes under the product's drill filter.
+ * leave this view (spec 4); their history stays in every drill-down. The
+ * Report asks for them back (includeArchived) so a month's total never loses
+ * money to an archive click. Every number equals listFacts/listOutcomes
+ * under the product's drill filter.
  */
 export async function productsView(
   range: { from: string; to: string },
   db: Db = getPool(),
+  opts: { includeArchived?: boolean } = {},
 ): Promise<ProductsViewData> {
   assertDay("from", range.from);
   assertDay("to", range.to);
@@ -776,11 +782,13 @@ export async function productsView(
     throw new ResolveError(`from ${range.from} is after to ${range.to}`, 400);
   }
   const displayCurrency = await getSetting("display_currency", db);
-  const params = [displayCurrency, range.from, range.to];
+  const includeArchived = opts.includeArchived ?? false;
+  const params = [displayCurrency, range.from, range.to, includeArchived];
 
   const { rows: roster } = await db.query(
     `SELECT ${PRODUCT_COLUMNS} FROM products p
-     WHERE p.archived_at IS NULL ORDER BY lower(p.name)`,
+     WHERE $1 OR p.archived_at IS NULL ORDER BY lower(p.name)`,
+    [includeArchived],
   );
   const products = roster.map(toProduct);
 
@@ -792,7 +800,7 @@ export async function productsView(
               AS users,
             COALESCE(BOOL_OR(d.cents IS NULL), false) AS fx_missing
      FROM rollup_daily r
-     JOIN products p ON p.id = r.product_id AND p.archived_at IS NULL
+     JOIN products p ON p.id = r.product_id AND ($4 OR p.archived_at IS NULL)
      ${displayLateral("r")}
      WHERE r.day BETWEEN $2::date AND $3::date
      GROUP BY r.product_id`,
@@ -804,7 +812,7 @@ export async function productsView(
     `SELECT r.product_id AS "productId", r.day::text AS day,
             ROUND(SUM(d.cents))::bigint AS cents
      FROM rollup_daily r
-     JOIN products p ON p.id = r.product_id AND p.archived_at IS NULL
+     JOIN products p ON p.id = r.product_id AND ($4 OR p.archived_at IS NULL)
      ${displayLateral("r")}
      WHERE r.day BETWEEN $2::date AND $3::date
      GROUP BY r.product_id, r.day`,
@@ -826,7 +834,7 @@ export async function productsView(
                   AND (${fxExpr("p.default_value_currency", "r.day")}) IS NULL)),
               false) AS fx_missing
      FROM rollup_outcomes_daily r
-     JOIN products p ON p.id = r.product_id AND p.archived_at IS NULL
+     JOIN products p ON p.id = r.product_id AND ($4 OR p.archived_at IS NULL)
      WHERE r.day BETWEEN $2::date AND $3::date
      GROUP BY r.product_id, 2, 3`,
     params,
@@ -886,6 +894,7 @@ export async function productsView(
       name: product.name,
       attribution: product.attribution,
       outcomeKind: product.outcomeKind,
+      archived: product.archivedAt !== null,
       spendCents,
       factCount: spend ? Number(spend.facts) : 0,
       outcomeCount: stats.outcomes,

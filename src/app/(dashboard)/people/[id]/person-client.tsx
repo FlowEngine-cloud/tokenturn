@@ -145,7 +145,7 @@ export default function PersonClient() {
         </h1>
         <span className="text-sm text-muted-foreground">{data.person.email}</span>
         {data.person.status !== "active" && (
-          <span className="rounded-full bg-yellow-500/15 px-2 py-0.5 text-sm font-medium text-yellow-500">
+          <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-sm font-medium text-amber-700">
             {data.person.status}
           </span>
         )}
@@ -183,7 +183,7 @@ export default function PersonClient() {
               />
             ))}
             {data.totals.revertedCount > 0 && (
-              <p className="px-1 text-yellow-500">
+              <p className="px-1 text-amber-700">
                 {formatCount(data.totals.revertedCount)} reverted
               </p>
             )}

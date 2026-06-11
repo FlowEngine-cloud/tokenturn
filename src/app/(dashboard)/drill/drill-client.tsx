@@ -204,7 +204,7 @@ function OutcomesView({ query, chips }: { query: string; chips: string[] }) {
       header: "Status",
       render: (r) =>
         r.revertedAt ? (
-          <span className="text-yellow-500" title={r.revertSourceRef ?? undefined}>
+          <span className="text-amber-700" title={r.revertSourceRef ?? undefined}>
             reverted
           </span>
         ) : (
@@ -363,7 +363,7 @@ function RunsView({ vendor, chips }: { vendor: string | null; chips: string[] })
       header: "Error",
       render: (r) =>
         r.error ? (
-          <span className="block max-w-md truncate text-red-400" title={r.error}>
+          <span className="block max-w-md truncate text-red-600" title={r.error}>
             {r.error}
           </span>
         ) : (
@@ -426,7 +426,7 @@ function InvoicesView({ months, chips }: { months: { from: string; to: string };
         r.driftDisplayCents === 0 ? (
           <span className="text-muted-foreground">0</span>
         ) : (
-          <span className="text-yellow-500">
+          <span className="text-amber-700">
             {formatCentsSigned(r.driftDisplayCents, data.displayCurrency)}
           </span>
         ),

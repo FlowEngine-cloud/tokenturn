@@ -68,7 +68,7 @@ export function DateRangePicker() {
         value={active.from}
         max={active.to}
         onChange={(e) => applyEdge("from", e.target.value)}
-        className="h-8 rounded-md border bg-transparent px-2 text-sm [color-scheme:dark]"
+        className="h-8 rounded-md border bg-transparent px-2 text-sm [color-scheme:light]"
       />
       <span className="text-muted-foreground">–</span>
       <input
@@ -77,7 +77,7 @@ export function DateRangePicker() {
         value={active.to}
         min={active.from}
         onChange={(e) => applyEdge("to", e.target.value)}
-        className="h-8 rounded-md border bg-transparent px-2 text-sm [color-scheme:dark]"
+        className="h-8 rounded-md border bg-transparent px-2 text-sm [color-scheme:light]"
       />
     </div>
   );
