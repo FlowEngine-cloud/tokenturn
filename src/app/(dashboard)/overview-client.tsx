@@ -6,6 +6,8 @@ import { useEffect, useState } from "react";
 import { Plug } from "lucide-react";
 import { ConnectorHealthList } from "@/components/connector-health";
 import { EmptyState } from "@/components/empty-state";
+import { RowLink, Tile } from "@/components/tile";
+import { TrendBars } from "@/components/trend-bars";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ConnectorHealth } from "@/lib/connectors/health";
 import {
@@ -17,7 +19,6 @@ import {
 } from "@/lib/format";
 import type { OverviewData } from "@/lib/overview";
 import { parseRange, withRange } from "@/lib/range";
-import { cn } from "@/lib/utils";
 
 /**
  * Overview (spec 10 page 1). Every tile clicks through to the drill-down
@@ -26,57 +27,6 @@ import { cn } from "@/lib/utils";
  */
 
 type Payload = OverviewData & { connectors: ConnectorHealth[] };
-
-function Tile({
-  title,
-  href,
-  children,
-  className,
-}: {
-  title: string;
-  href?: string;
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <section className={cn("rounded-lg border bg-card p-4", className)}>
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-sm font-medium text-muted-foreground">{title}</h2>
-        {href && (
-          <Link href={href} className="text-sm text-muted-foreground hover:text-foreground">
-            Rows →
-          </Link>
-        )}
-      </div>
-      {children}
-    </section>
-  );
-}
-
-function RowLink({
-  href,
-  label,
-  sub,
-  value,
-}: {
-  href: string;
-  label: string;
-  sub?: string;
-  value: string;
-}) {
-  return (
-    <Link
-      href={href}
-      className="flex items-center justify-between gap-3 rounded px-1 py-1.5 hover:bg-accent/50"
-    >
-      <span className="truncate">{label}</span>
-      <span className="flex shrink-0 items-baseline gap-2">
-        {sub && <span className="text-sm text-muted-foreground">{sub}</span>}
-        <span className="tabular-nums">{value}</span>
-      </span>
-    </Link>
-  );
-}
 
 export function OverviewSkeleton() {
   return (
@@ -225,24 +175,11 @@ export default function OverviewClient() {
       </div>
 
       <Tile title="Trend">
-        <div className="flex h-28 items-end gap-px">
-          {data.trend.map((point) => {
-            const max = Math.max(...data.trend.map((p) => p.cents), 1);
-            return (
-              <Link
-                key={point.day}
-                href={drill(`?day=${point.day}`)}
-                title={`${shortDay(point.day)} · ${money(point.cents)}`}
-                className="group flex h-full min-w-px flex-1 items-end"
-              >
-                <span
-                  className="w-full rounded-t-sm bg-primary/50 group-hover:bg-primary"
-                  style={{ height: `${Math.max((point.cents / max) * 100, point.cents > 0 ? 2 : 0)}%` }}
-                />
-              </Link>
-            );
-          })}
-        </div>
+        <TrendBars
+          points={data.trend}
+          hrefFor={(day) => drill(`?day=${day}`)}
+          titleFor={(point) => `${shortDay(point.day)} · ${money(point.cents)}`}
+        />
         <div className="mt-2 flex justify-between text-sm text-muted-foreground">
           <span>{shortDay(range.from)}</span>
           <span>{shortDay(range.to)}</span>

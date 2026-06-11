@@ -85,7 +85,7 @@ export function CommandMenu() {
           group: "People",
           label: p.name ?? p.email,
           sub: p.name ? p.email : p.status !== "active" ? p.status : undefined,
-          href: withRange(`/drill?person=${p.id}`, range),
+          href: withRange(`/people/${p.id}`, range),
         }),
       ),
       ...results.products.map(

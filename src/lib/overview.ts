@@ -24,7 +24,7 @@ import { getSetting } from "./settings";
 export const VENDOR_RE = /^[a-z0-9][a-z0-9_.-]*$/;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
-function assertDay(name: string, value: string): void {
+export function assertDay(name: string, value: string): void {
   if (!DATE_RE.test(value)) {
     throw new ResolveError(`${name} must be YYYY-MM-DD`, 400);
   }
@@ -32,7 +32,7 @@ function assertDay(name: string, value: string): void {
 
 /** Per-day USD-cents -> display-currency-cents, as a LATERAL alias `d`.
  * $1 must be the display currency in every query that embeds this. */
-function displayLateral(rowAlias: string): string {
+export function displayLateral(rowAlias: string): string {
   return `CROSS JOIN LATERAL (
     SELECT ${rowAlias}.amount_usd_cents::numeric / ${fxExpr("$1::text", `${rowAlias}.day`)} AS cents
   ) d`;
@@ -269,6 +269,10 @@ export interface FactFilters {
   person?: string;
   /** Product uuid, or "none" for product IS NULL. */
   product?: string;
+  /** Identity uuid - the facts a single key/seat produced. */
+  key?: string;
+  /** Exact model name, or "none" for model IS NULL. */
+  model?: string;
   basis?: "estimated" | "invoiced";
   limit?: number;
   offset?: number;
@@ -346,6 +350,12 @@ export async function listFacts(
   } else if (filters.product !== undefined) {
     add("f.product_id = ?::uuid", filters.product);
   }
+  if (filters.key !== undefined) add("f.identity_id = ?::uuid", filters.key);
+  if (filters.model === "none") {
+    where.push("f.model IS NULL");
+  } else if (filters.model !== undefined) {
+    add("f.model = ?", filters.model);
+  }
   if (filters.basis !== undefined) add("f.cost_basis = ?", filters.basis);
 
   const whereSql = where.length > 0 ? `WHERE ${where.join(" AND ")}` : "";
@@ -398,6 +408,128 @@ export async function listFacts(
     totalCount: Number(aggRows[0].count),
     totalDisplayCents: Number(aggRows[0].total),
     totalTokens: Number(aggRows[0].tokens),
+    limit,
+    offset,
+  };
+}
+
+// ---- drill-down: the raw outcomes behind any outcome count ----
+
+export interface OutcomeFilters {
+  from?: string;
+  to?: string;
+  /** Person uuid, or "unassigned" for person IS NULL. */
+  person?: string;
+  /** Product uuid. */
+  product?: string;
+  kind?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export interface OutcomeRow {
+  id: string;
+  ts: string;
+  day: string;
+  kind: string;
+  /** Count-aware: a manual month entry is one row counting N (spec 7). */
+  count: number;
+  /** As recorded - the original value and currency, per outcome. */
+  valueCents: number | null;
+  currency: string | null;
+  /** The real record behind the outcome (PR URL, ticket id, entry id). */
+  sourceRef: string;
+  personId: string | null;
+  personName: string | null;
+  personEmail: string | null;
+  productId: string;
+  productName: string;
+  identityExternalId: string | null;
+  revertedAt: string | null;
+  revertSourceRef: string | null;
+}
+
+export interface OutcomePage {
+  rows: OutcomeRow[];
+  /** Across the WHOLE filter - so the drill provably sums to its tile: */
+  totalCount: number;
+  /** liveCount is the number every "outcomes" tile shows (reverted ones */
+  liveCount: number;
+  /** flip out of it, spec 5) and revertedCount is the rest. */
+  revertedCount: number;
+  limit: number;
+  offset: number;
+}
+
+export async function listOutcomes(
+  filters: OutcomeFilters = {},
+  db: Db = getPool(),
+): Promise<OutcomePage> {
+  const params: unknown[] = [];
+  const where: string[] = [];
+  const add = (clause: string, value: unknown): void => {
+    params.push(value);
+    where.push(clause.replace("?", `$${params.length}`));
+  };
+
+  if (filters.from !== undefined) {
+    assertDay("from", filters.from);
+    add("(o.ts AT TIME ZONE 'UTC')::date >= ?::date", filters.from);
+  }
+  if (filters.to !== undefined) {
+    assertDay("to", filters.to);
+    add("(o.ts AT TIME ZONE 'UTC')::date <= ?::date", filters.to);
+  }
+  if (filters.person === "unassigned") {
+    where.push("o.person_id IS NULL");
+  } else if (filters.person !== undefined) {
+    add("o.person_id = ?::uuid", filters.person);
+  }
+  if (filters.product !== undefined) add("o.product_id = ?::uuid", filters.product);
+  if (filters.kind !== undefined) add("o.kind = ?", filters.kind);
+  const whereSql = where.length > 0 ? `WHERE ${where.join(" AND ")}` : "";
+
+  const { rows: aggRows } = await db.query(
+    `SELECT COALESCE(SUM(o.count), 0)::bigint AS total,
+            COALESCE(SUM(o.count) FILTER (WHERE o.reverted_at IS NULL), 0)::bigint AS live
+     FROM outcomes o ${whereSql}`,
+    params,
+  );
+
+  const limit = Math.min(filters.limit ?? FACT_PAGE_DEFAULT, FACT_PAGE_MAX);
+  const offset = filters.offset ?? 0;
+  const { rows } = await db.query(
+    `SELECT o.id::text AS id, o.ts, (o.ts AT TIME ZONE 'UTC')::date::text AS day,
+            o.kind, o.count::int AS count,
+            o.value_cents::bigint AS "valueCents", o.currency,
+            o.source_ref AS "sourceRef",
+            o.person_id AS "personId", p.name AS "personName", p.email AS "personEmail",
+            o.product_id AS "productId", pr.name AS "productName",
+            i.external_id AS "identityExternalId",
+            o.reverted_at AS "revertedAt", o.revert_source_ref AS "revertSourceRef"
+     FROM outcomes o
+     JOIN products pr ON pr.id = o.product_id
+     LEFT JOIN people p ON p.id = o.person_id
+     LEFT JOIN identities i ON i.id = o.identity_id
+     ${whereSql}
+     ORDER BY o.ts DESC, o.id DESC
+     LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+    [...params, limit, offset],
+  );
+
+  const totalCount = Number(aggRows[0].total);
+  const liveCount = Number(aggRows[0].live);
+  return {
+    rows: rows.map((row) => ({
+      ...(row as unknown as OutcomeRow),
+      ts: new Date(row.ts).toISOString(),
+      count: Number(row.count),
+      valueCents: row.valueCents === null ? null : Number(row.valueCents),
+      revertedAt: row.revertedAt ? new Date(row.revertedAt).toISOString() : null,
+    })),
+    totalCount,
+    liveCount,
+    revertedCount: totalCount - liveCount,
     limit,
     offset,
   };

@@ -1,12 +1,12 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
 import { DataTable, type Column } from "@/components/data-table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCents, formatCentsSigned, formatCount } from "@/lib/format";
-import type { FactPage, FactRow, SyncRunRow } from "@/lib/overview";
+import type { FactPage, FactRow, OutcomePage, OutcomeRow, SyncRunRow } from "@/lib/overview";
 import { parseRange } from "@/lib/range";
+import { useFetch } from "@/lib/use-fetch";
 
 /**
  * The drill-down page every tile clicks through to (spec 3: every number
@@ -35,37 +35,6 @@ function Chip({ label }: { label: string }) {
       {label}
     </span>
   );
-}
-
-function useFetch<T>(url: string): { data: T | null; error: string | null } {
-  // Keyed by URL so a filter change shows the skeleton, never stale rows.
-  const [state, setState] = useState<{
-    url: string;
-    data: T | null;
-    error: string | null;
-  }>({ url: "", data: null, error: null });
-  useEffect(() => {
-    let cancelled = false;
-    fetch(url)
-      .then(async (res) => {
-        const body = await res.json();
-        if (cancelled) return;
-        if (!res.ok) {
-          setState({ url, data: null, error: body.error ?? `request failed (${res.status})` });
-        } else {
-          setState({ url, data: body, error: null });
-        }
-      })
-      .catch((err: unknown) => {
-        if (!cancelled) {
-          setState({ url, data: null, error: err instanceof Error ? err.message : String(err) });
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [url]);
-  return state.url === url ? state : { data: null, error: null };
 }
 
 function DrillSkeletonBlock() {
@@ -168,6 +137,94 @@ function FactsView({ query, chips }: { query: string; chips: string[] }) {
         note={
           data.rows.length < data.totalCount
             ? `first ${formatCount(data.rows.length)} of ${formatCount(data.totalCount)} - narrow the filter for the rest`
+            : undefined
+        }
+      />
+    </div>
+  );
+}
+
+function OutcomesView({ query, chips }: { query: string; chips: string[] }) {
+  const { data, error } = useFetch<OutcomePage>(`/api/outcomes?${query}&limit=1000`);
+  if (error) return <ErrorBox message={error} />;
+  if (!data) return <DrillSkeletonBlock />;
+
+  const columns: Column<OutcomeRow>[] = [
+    { key: "day", header: "Day", render: (r) => r.day, csv: (r) => r.day },
+    { key: "kind", header: "Kind", render: (r) => r.kind, csv: (r) => r.kind },
+    {
+      key: "count",
+      header: "Count",
+      align: "right",
+      render: (r) => formatCount(r.count),
+      csv: (r) => r.count,
+    },
+    {
+      key: "product",
+      header: "Product",
+      render: (r) => r.productName,
+      csv: (r) => r.productName,
+    },
+    {
+      key: "person",
+      header: "Person",
+      render: (r) =>
+        r.personId ? (
+          (r.personName ?? r.personEmail)
+        ) : (
+          <span className="text-muted-foreground">–</span>
+        ),
+      csv: (r) => r.personEmail,
+    },
+    {
+      key: "value",
+      header: "Value",
+      align: "right",
+      render: (r) =>
+        r.valueCents === null ? "–" : formatCents(r.valueCents, r.currency ?? "USD"),
+      csv: (r) => (r.valueCents === null ? null : (r.valueCents / 100).toFixed(2)),
+    },
+    {
+      key: "status",
+      header: "Status",
+      render: (r) =>
+        r.revertedAt ? (
+          <span className="text-yellow-500" title={r.revertSourceRef ?? undefined}>
+            reverted
+          </span>
+        ) : (
+          "live"
+        ),
+      csv: (r) => (r.revertedAt ? `reverted: ${r.revertSourceRef ?? ""}` : "live"),
+    },
+    {
+      key: "ref",
+      header: "Source ref",
+      render: (r) => (
+        <span className="block max-w-56 truncate font-mono text-sm" title={r.sourceRef}>
+          {r.sourceRef}
+        </span>
+      ),
+      csv: (r) => r.sourceRef,
+    },
+  ];
+
+  return (
+    <div className="space-y-3">
+      <Header
+        chips={chips}
+        summary={`${formatCount(data.liveCount)} live outcomes${
+          data.revertedCount > 0 ? ` · ${formatCount(data.revertedCount)} reverted` : ""
+        }`}
+      />
+      <DataTable
+        columns={columns}
+        rows={data.rows}
+        rowKey={(r) => r.id}
+        csvName="ai-pnl-outcomes.csv"
+        note={
+          data.rows.length === data.limit
+            ? `first ${formatCount(data.rows.length)} rows - narrow the filter for the rest`
             : undefined
         }
       />
@@ -337,12 +394,17 @@ export default function DrillClient() {
 
   const chips = [`${range.from} → ${range.to}`];
   const query = new URLSearchParams({ from: range.from, to: range.to });
-  for (const key of ["day", "vendor", "person", "product", "basis"] as const) {
+  const keys =
+    view === "outcomes"
+      ? (["person", "product", "kind"] as const)
+      : (["day", "vendor", "person", "product", "key", "model", "basis"] as const);
+  for (const key of keys) {
     const value = searchParams.get(key);
     if (!value) continue;
     query.set(key, value);
     if (key === "person" && value === "unassigned") chips.push("Unassigned");
     else if (key === "product" && value === "none") chips.push("No product");
+    else if (key === "model" && value === "none") chips.push("No model");
     else chips.push(`${key}: ${value.length > 12 ? `${value.slice(0, 8)}…` : value}`);
   }
 
@@ -357,6 +419,9 @@ export default function DrillClient() {
         chips={[`${range.from.slice(0, 7)} → ${range.to.slice(0, 7)}`]}
       />
     );
+  }
+  if (view === "outcomes") {
+    return <OutcomesView query={query.toString()} chips={chips} />;
   }
   return <FactsView query={query.toString()} chips={chips} />;
 }
