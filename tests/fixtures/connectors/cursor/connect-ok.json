@@ -1,0 +1,73 @@
+[
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.cursor.com/teams/members"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "teamMembers": [
+          {
+            "id": 101,
+            "name": "Dana",
+            "email": "dana@acme.com",
+            "role": "owner",
+            "isRemoved": false
+          },
+          {
+            "id": 102,
+            "name": "Omar",
+            "email": "omar@acme.com",
+            "role": "member",
+            "isRemoved": false
+          },
+          {
+            "id": 103,
+            "name": "Lee",
+            "email": "lee@acme.com",
+            "role": "member",
+            "isRemoved": true
+          },
+          {
+            "id": 104,
+            "name": "Eve",
+            "email": "eve@acme.com",
+            "role": "member",
+            "isRemoved": false
+          }
+        ]
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "POST",
+      "url": "https://api.cursor.com/teams/filtered-usage-events",
+      "body": {
+        "startDate": 1704067200000,
+        "endDate": 1704153599999,
+        "page": 1,
+        "pageSize": 1
+      }
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "totalUsageEventsCount": 0,
+        "pagination": {
+          "numPages": 0,
+          "currentPage": 1,
+          "pageSize": 1,
+          "hasNextPage": false,
+          "hasPreviousPage": false
+        },
+        "usageEvents": [],
+        "period": {
+          "startDate": 1704067200000,
+          "endDate": 1704153599999
+        }
+      }
+    }
+  }
+]

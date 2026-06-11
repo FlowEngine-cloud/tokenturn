@@ -1,0 +1,14 @@
+[
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.cursor.com/teams/members"
+    },
+    "response": {
+      "status": 401,
+      "body": {
+        "error": "Invalid API key."
+      }
+    }
+  }
+]

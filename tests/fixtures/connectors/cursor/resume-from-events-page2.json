@@ -1,0 +1,117 @@
+[
+  {
+    "request": {
+      "method": "POST",
+      "url": "https://api.cursor.com/teams/filtered-usage-events",
+      "body": {
+        "startDate": 1778544000000,
+        "endDate": 1781135999999,
+        "page": 2,
+        "pageSize": 100
+      }
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "totalUsageEventsCount": 7,
+        "pagination": {
+          "numPages": 2,
+          "currentPage": 2,
+          "pageSize": 100,
+          "hasNextPage": false,
+          "hasPreviousPage": true
+        },
+        "usageEvents": [
+          {
+            "timestamp": "1781060400000",
+            "userEmail": "agent-runner@acme.com",
+            "model": "claude-4.5-sonnet",
+            "kind": "Usage-based",
+            "maxMode": true,
+            "requestsCosts": 5,
+            "isTokenBasedCall": true,
+            "isChargeable": true,
+            "isHeadless": true,
+            "chargedCents": 150.49,
+            "tokenUsage": {
+              "inputTokens": 50000,
+              "outputTokens": 9000,
+              "cacheWriteTokens": 120000,
+              "cacheReadTokens": 400000,
+              "totalCents": 149.99
+            },
+            "cursorTokenFee": 0.5,
+            "serviceAccountId": "sa_nightly",
+            "serviceAccountName": "Nightly CI Agent"
+          },
+          {
+            "timestamp": "1781117110111",
+            "userEmail": "zoe@acme.com",
+            "model": "gpt-5",
+            "kind": "Usage-based",
+            "maxMode": false,
+            "requestsCosts": 1,
+            "isTokenBasedCall": true,
+            "isChargeable": true,
+            "isHeadless": false,
+            "chargedCents": 12.3,
+            "tokenUsage": {
+              "inputTokens": 800,
+              "outputTokens": 150,
+              "cacheWriteTokens": 0,
+              "cacheReadTokens": 0,
+              "totalCents": 11.9
+            }
+          }
+        ],
+        "period": {
+          "startDate": 1778544000000,
+          "endDate": 1781135999999
+        }
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "POST",
+      "url": "https://api.cursor.com/teams/filtered-usage-events",
+      "body": {
+        "startDate": 1781136000000,
+        "endDate": 1781222399999,
+        "page": 1,
+        "pageSize": 100
+      }
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "totalUsageEventsCount": 1,
+        "pagination": {
+          "numPages": 1,
+          "currentPage": 1,
+          "pageSize": 100,
+          "hasNextPage": false,
+          "hasPreviousPage": false
+        },
+        "usageEvents": [
+          {
+            "timestamp": "1781164800000",
+            "userEmail": "omar@acme.com",
+            "model": "auto",
+            "kind": "Usage-based",
+            "maxMode": false,
+            "requestsCosts": 2,
+            "isTokenBasedCall": false,
+            "isChargeable": true,
+            "isHeadless": false,
+            "chargedCents": 33.7
+          }
+        ],
+        "period": {
+          "startDate": 1781136000000,
+          "endDate": 1781222399999
+        }
+      }
+    }
+  }
+]

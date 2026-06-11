@@ -1,0 +1,121 @@
+[
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.cursor.com/teams/members"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "teamMembers": [
+          {
+            "id": 101,
+            "name": "Dana",
+            "email": "dana@acme.com",
+            "role": "owner",
+            "isRemoved": false
+          },
+          {
+            "id": 102,
+            "name": "Omar",
+            "email": "omar@acme.com",
+            "role": "member",
+            "isRemoved": false
+          },
+          {
+            "id": 103,
+            "name": "Lee",
+            "email": "lee@acme.com",
+            "role": "member",
+            "isRemoved": true
+          },
+          {
+            "id": 104,
+            "name": "Eve",
+            "email": "eve@acme.com",
+            "role": "member",
+            "isRemoved": false
+          }
+        ]
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "POST",
+      "url": "https://api.cursor.com/teams/spend",
+      "body": {
+        "page": 1,
+        "pageSize": 100
+      }
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "teamMemberSpend": [],
+        "subscriptionCycleStart": 1780272000000,
+        "totalMembers": 0,
+        "totalPages": 1
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "POST",
+      "url": "https://api.cursor.com/teams/daily-usage-data",
+      "body": {
+        "startDate": 1773360000000,
+        "endDate": 1775865600000,
+        "page": 1,
+        "pageSize": 500
+      }
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "data": [
+          {
+            "userId": 9,
+            "day": "2026-03-14",
+            "date": 1773360000000,
+            "email": "x@acme.com",
+            "isActive": true,
+            "totalLinesAdded": 0,
+            "totalLinesDeleted": 0,
+            "acceptedLinesAdded": 0,
+            "acceptedLinesDeleted": 0,
+            "totalApplies": 0,
+            "totalAccepts": 0,
+            "totalRejects": 0,
+            "totalTabsShown": 0,
+            "totalTabsAccepted": 0,
+            "composerRequests": 0,
+            "chatRequests": 0,
+            "agentRequests": 0,
+            "cmdkUsages": 0,
+            "subscriptionIncludedReqs": 0,
+            "apiKeyReqs": 0,
+            "usageBasedReqs": 0,
+            "bugbotUsages": 0,
+            "mostUsedModel": null,
+            "applyMostUsedExtension": null,
+            "tabMostUsedExtension": null,
+            "clientVersion": null
+          }
+        ],
+        "period": {
+          "startDate": 1773360000000,
+          "endDate": 1775865600000
+        },
+        "pagination": {
+          "page": 1,
+          "pageSize": 500,
+          "totalUsers": 4,
+          "totalPages": 1,
+          "hasNextPage": false,
+          "hasPreviousPage": false
+        }
+      }
+    }
+  }
+]

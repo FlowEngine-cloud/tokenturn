@@ -1,0 +1,689 @@
+[
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.cursor.com/teams/members"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "teamMembers": [
+          {
+            "id": 101,
+            "name": "Dana",
+            "email": "dana@acme.com",
+            "role": "owner",
+            "isRemoved": false
+          },
+          {
+            "id": 102,
+            "name": "Omar",
+            "email": "omar@acme.com",
+            "role": "member",
+            "isRemoved": false
+          },
+          {
+            "id": 103,
+            "name": "Lee",
+            "email": "lee@acme.com",
+            "role": "member",
+            "isRemoved": true
+          },
+          {
+            "id": 104,
+            "name": "Eve",
+            "email": "eve@acme.com",
+            "role": "member",
+            "isRemoved": false
+          }
+        ]
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "POST",
+      "url": "https://api.cursor.com/teams/spend",
+      "body": {
+        "page": 1,
+        "pageSize": 100
+      }
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "teamMemberSpend": [
+          {
+            "userId": 101,
+            "name": "Dana",
+            "email": "dana@acme.com",
+            "role": "owner",
+            "spendCents": 2450.125487,
+            "overallSpendCents": 5450.725487,
+            "fastPremiumRequests": 1250,
+            "hardLimitOverrideDollars": 100,
+            "monthlyLimitDollars": 200
+          },
+          {
+            "userId": 102,
+            "name": "Omar",
+            "email": "omar@acme.com",
+            "role": "member",
+            "spendCents": 0,
+            "overallSpendCents": 1875.5,
+            "fastPremiumRequests": 980,
+            "hardLimitOverrideDollars": 0,
+            "monthlyLimitDollars": null
+          }
+        ],
+        "subscriptionCycleStart": 1780272000000,
+        "totalMembers": 4,
+        "totalPages": 2
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "POST",
+      "url": "https://api.cursor.com/teams/spend",
+      "body": {
+        "page": 2,
+        "pageSize": 100
+      }
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "teamMemberSpend": [
+          {
+            "userId": 103,
+            "name": "Lee",
+            "email": "lee@acme.com",
+            "role": "member",
+            "spendCents": 300.4,
+            "overallSpendCents": 300.4,
+            "fastPremiumRequests": 0,
+            "hardLimitOverrideDollars": 0,
+            "monthlyLimitDollars": null
+          },
+          {
+            "userId": 104,
+            "name": "Eve",
+            "email": "eve@acme.com",
+            "role": "member",
+            "spendCents": 125,
+            "overallSpendCents": 999.999,
+            "fastPremiumRequests": 55,
+            "hardLimitOverrideDollars": 0,
+            "monthlyLimitDollars": 50
+          }
+        ],
+        "subscriptionCycleStart": 1780272000000,
+        "totalMembers": 4,
+        "totalPages": 2
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "POST",
+      "url": "https://api.cursor.com/teams/daily-usage-data",
+      "body": {
+        "startDate": 1773360000000,
+        "endDate": 1775865600000,
+        "page": 1,
+        "pageSize": 500
+      }
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "data": [],
+        "period": {
+          "startDate": 1773360000000,
+          "endDate": 1775865600000
+        },
+        "pagination": {
+          "page": 1,
+          "pageSize": 500,
+          "totalUsers": 4,
+          "totalPages": 0,
+          "hasNextPage": false,
+          "hasPreviousPage": false
+        }
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "POST",
+      "url": "https://api.cursor.com/teams/daily-usage-data",
+      "body": {
+        "startDate": 1775952000000,
+        "endDate": 1778457600000,
+        "page": 1,
+        "pageSize": 500
+      }
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "data": [],
+        "period": {
+          "startDate": 1775952000000,
+          "endDate": 1778457600000
+        },
+        "pagination": {
+          "page": 1,
+          "pageSize": 500,
+          "totalUsers": 4,
+          "totalPages": 0,
+          "hasNextPage": false,
+          "hasPreviousPage": false
+        }
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "POST",
+      "url": "https://api.cursor.com/teams/daily-usage-data",
+      "body": {
+        "startDate": 1778544000000,
+        "endDate": 1781049600000,
+        "page": 1,
+        "pageSize": 500
+      }
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "data": [
+          {
+            "userId": 101,
+            "day": "2026-06-09",
+            "date": 1780963200000,
+            "email": "dana@acme.com",
+            "isActive": true,
+            "totalLinesAdded": 1543,
+            "totalLinesDeleted": 892,
+            "acceptedLinesAdded": 1102,
+            "acceptedLinesDeleted": 645,
+            "totalApplies": 87,
+            "totalAccepts": 73,
+            "totalRejects": 14,
+            "totalTabsShown": 342,
+            "totalTabsAccepted": 289,
+            "composerRequests": 45,
+            "chatRequests": 128,
+            "agentRequests": 12,
+            "cmdkUsages": 67,
+            "subscriptionIncludedReqs": 180,
+            "apiKeyReqs": 0,
+            "usageBasedReqs": 5,
+            "bugbotUsages": 3,
+            "mostUsedModel": "gpt-5",
+            "applyMostUsedExtension": ".tsx",
+            "tabMostUsedExtension": ".ts",
+            "clientVersion": "0.25.1"
+          }
+        ],
+        "period": {
+          "startDate": 1778544000000,
+          "endDate": 1781049600000
+        },
+        "pagination": {
+          "page": 1,
+          "pageSize": 500,
+          "totalUsers": 4,
+          "totalPages": 2,
+          "hasNextPage": true,
+          "hasPreviousPage": false
+        }
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "POST",
+      "url": "https://api.cursor.com/teams/daily-usage-data",
+      "body": {
+        "startDate": 1778544000000,
+        "endDate": 1781049600000,
+        "page": 2,
+        "pageSize": 500
+      }
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "data": [
+          {
+            "userId": 102,
+            "day": "2026-06-09",
+            "date": 1780963200000,
+            "email": "omar@acme.com",
+            "isActive": true,
+            "totalLinesAdded": 200,
+            "totalLinesDeleted": 50,
+            "acceptedLinesAdded": 150,
+            "acceptedLinesDeleted": 30,
+            "totalApplies": 10,
+            "totalAccepts": 8,
+            "totalRejects": 2,
+            "totalTabsShown": 40,
+            "totalTabsAccepted": 25,
+            "composerRequests": 5,
+            "chatRequests": 30,
+            "agentRequests": 2,
+            "cmdkUsages": 7,
+            "subscriptionIncludedReqs": 44,
+            "apiKeyReqs": 1,
+            "usageBasedReqs": 0,
+            "bugbotUsages": 0,
+            "mostUsedModel": "claude-4.5-sonnet",
+            "applyMostUsedExtension": ".py",
+            "tabMostUsedExtension": ".py",
+            "clientVersion": "1.1.0"
+          },
+          {
+            "userId": 104,
+            "day": "2026-06-10",
+            "date": 1781049600000,
+            "email": "eve@acme.com",
+            "isActive": false,
+            "totalLinesAdded": 0,
+            "totalLinesDeleted": 0,
+            "acceptedLinesAdded": 0,
+            "acceptedLinesDeleted": 0,
+            "totalApplies": 0,
+            "totalAccepts": 0,
+            "totalRejects": 0,
+            "totalTabsShown": 0,
+            "totalTabsAccepted": 0,
+            "composerRequests": 0,
+            "chatRequests": 0,
+            "agentRequests": 0,
+            "cmdkUsages": 0,
+            "subscriptionIncludedReqs": 0,
+            "apiKeyReqs": 0,
+            "usageBasedReqs": 0,
+            "bugbotUsages": 0,
+            "mostUsedModel": null,
+            "applyMostUsedExtension": null,
+            "tabMostUsedExtension": null,
+            "clientVersion": null
+          }
+        ],
+        "period": {
+          "startDate": 1778544000000,
+          "endDate": 1781049600000
+        },
+        "pagination": {
+          "page": 2,
+          "pageSize": 500,
+          "totalUsers": 4,
+          "totalPages": 2,
+          "hasNextPage": false,
+          "hasPreviousPage": true
+        }
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "POST",
+      "url": "https://api.cursor.com/teams/daily-usage-data",
+      "body": {
+        "startDate": 1781136000000,
+        "endDate": 1781136000000,
+        "page": 1,
+        "pageSize": 500
+      }
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "data": [
+          {
+            "userId": 102,
+            "day": "2026-06-11",
+            "date": 1781136000000,
+            "email": "omar@acme.com",
+            "isActive": true,
+            "totalLinesAdded": 20,
+            "totalLinesDeleted": 5,
+            "acceptedLinesAdded": 10,
+            "acceptedLinesDeleted": 2,
+            "totalApplies": 3,
+            "totalAccepts": 2,
+            "totalRejects": 1,
+            "totalTabsShown": 12,
+            "totalTabsAccepted": 9,
+            "composerRequests": 1,
+            "chatRequests": 4,
+            "agentRequests": 1,
+            "cmdkUsages": 0,
+            "subscriptionIncludedReqs": 6,
+            "apiKeyReqs": 0,
+            "usageBasedReqs": 1,
+            "bugbotUsages": 0,
+            "mostUsedModel": "claude-4.5-sonnet",
+            "applyMostUsedExtension": ".py",
+            "tabMostUsedExtension": ".py",
+            "clientVersion": "1.1.0"
+          }
+        ],
+        "period": {
+          "startDate": 1781136000000,
+          "endDate": 1781136000000
+        },
+        "pagination": {
+          "page": 1,
+          "pageSize": 500,
+          "totalUsers": 4,
+          "totalPages": 1,
+          "hasNextPage": false,
+          "hasPreviousPage": false
+        }
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "POST",
+      "url": "https://api.cursor.com/teams/filtered-usage-events",
+      "body": {
+        "startDate": 1773360000000,
+        "endDate": 1775951999999,
+        "page": 1,
+        "pageSize": 100
+      }
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "totalUsageEventsCount": 0,
+        "pagination": {
+          "numPages": 0,
+          "currentPage": 1,
+          "pageSize": 100,
+          "hasNextPage": false,
+          "hasPreviousPage": false
+        },
+        "usageEvents": [],
+        "period": {
+          "startDate": 1773360000000,
+          "endDate": 1775951999999
+        }
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "POST",
+      "url": "https://api.cursor.com/teams/filtered-usage-events",
+      "body": {
+        "startDate": 1775952000000,
+        "endDate": 1778543999999,
+        "page": 1,
+        "pageSize": 100
+      }
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "totalUsageEventsCount": 0,
+        "pagination": {
+          "numPages": 0,
+          "currentPage": 1,
+          "pageSize": 100,
+          "hasNextPage": false,
+          "hasPreviousPage": false
+        },
+        "usageEvents": [],
+        "period": {
+          "startDate": 1775952000000,
+          "endDate": 1778543999999
+        }
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "POST",
+      "url": "https://api.cursor.com/teams/filtered-usage-events",
+      "body": {
+        "startDate": 1778544000000,
+        "endDate": 1781135999999,
+        "page": 1,
+        "pageSize": 100
+      }
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "totalUsageEventsCount": 7,
+        "pagination": {
+          "numPages": 2,
+          "currentPage": 1,
+          "pageSize": 100,
+          "hasNextPage": true,
+          "hasPreviousPage": false
+        },
+        "usageEvents": [
+          {
+            "timestamp": "1781015425854",
+            "userEmail": "dana@acme.com",
+            "model": "claude-4.5-sonnet",
+            "kind": "Usage-based",
+            "maxMode": true,
+            "requestsCosts": 5,
+            "isTokenBasedCall": true,
+            "isChargeable": true,
+            "isHeadless": false,
+            "chargedCents": 21.36232,
+            "tokenUsage": {
+              "inputTokens": 126,
+              "outputTokens": 450,
+              "cacheWriteTokens": 6112,
+              "cacheReadTokens": 11964,
+              "totalCents": 20.18232
+            },
+            "cursorTokenFee": 1.18
+          },
+          {
+            "timestamp": "1781020800000",
+            "userEmail": "dana@acme.com",
+            "model": "gpt-5",
+            "kind": "Usage-based",
+            "maxMode": false,
+            "requestsCosts": 1,
+            "isTokenBasedCall": true,
+            "isChargeable": true,
+            "isHeadless": false,
+            "chargedCents": 30.2,
+            "tokenUsage": {
+              "inputTokens": 1000,
+              "outputTokens": 200,
+              "cacheWriteTokens": 0,
+              "cacheReadTokens": 0,
+              "totalCents": 28.9
+            }
+          },
+          {
+            "timestamp": "1781020800000",
+            "userEmail": "dana@acme.com",
+            "model": "gpt-5",
+            "kind": "Usage-based",
+            "maxMode": false,
+            "requestsCosts": 1,
+            "isTokenBasedCall": true,
+            "isChargeable": true,
+            "isHeadless": false,
+            "chargedCents": 7.7,
+            "tokenUsage": {
+              "inputTokens": 300,
+              "outputTokens": 100,
+              "cacheWriteTokens": 0,
+              "cacheReadTokens": 0,
+              "totalCents": 7.4
+            }
+          },
+          {
+            "timestamp": "1780999200500",
+            "userEmail": "omar@acme.com",
+            "model": "claude-4-sonnet-thinking",
+            "kind": "Included in Business",
+            "maxMode": true,
+            "requestsCosts": 1.4,
+            "isTokenBasedCall": false,
+            "isChargeable": false,
+            "isHeadless": false,
+            "chargedCents": 8
+          },
+          {
+            "timestamp": "1781082900000",
+            "userEmail": "eve@acme.com",
+            "model": "claude-4.5-sonnet",
+            "kind": "Usage-based",
+            "maxMode": true,
+            "requestsCosts": 1,
+            "isTokenBasedCall": true,
+            "isChargeable": true,
+            "isHeadless": false,
+            "chargedCents": 37.33,
+            "tokenUsage": {
+              "inputTokens": 5805,
+              "outputTokens": 311,
+              "cacheWriteTokens": 11964,
+              "cacheReadTokens": 0,
+              "totalCents": 40.167,
+              "discountPercentOff": 10
+            },
+            "cursorTokenFee": 1.18
+          }
+        ],
+        "period": {
+          "startDate": 1778544000000,
+          "endDate": 1781135999999
+        }
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "POST",
+      "url": "https://api.cursor.com/teams/filtered-usage-events",
+      "body": {
+        "startDate": 1778544000000,
+        "endDate": 1781135999999,
+        "page": 2,
+        "pageSize": 100
+      }
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "totalUsageEventsCount": 7,
+        "pagination": {
+          "numPages": 2,
+          "currentPage": 2,
+          "pageSize": 100,
+          "hasNextPage": false,
+          "hasPreviousPage": true
+        },
+        "usageEvents": [
+          {
+            "timestamp": "1781060400000",
+            "userEmail": "agent-runner@acme.com",
+            "model": "claude-4.5-sonnet",
+            "kind": "Usage-based",
+            "maxMode": true,
+            "requestsCosts": 5,
+            "isTokenBasedCall": true,
+            "isChargeable": true,
+            "isHeadless": true,
+            "chargedCents": 150.49,
+            "tokenUsage": {
+              "inputTokens": 50000,
+              "outputTokens": 9000,
+              "cacheWriteTokens": 120000,
+              "cacheReadTokens": 400000,
+              "totalCents": 149.99
+            },
+            "cursorTokenFee": 0.5,
+            "serviceAccountId": "sa_nightly",
+            "serviceAccountName": "Nightly CI Agent"
+          },
+          {
+            "timestamp": "1781117110111",
+            "userEmail": "zoe@acme.com",
+            "model": "gpt-5",
+            "kind": "Usage-based",
+            "maxMode": false,
+            "requestsCosts": 1,
+            "isTokenBasedCall": true,
+            "isChargeable": true,
+            "isHeadless": false,
+            "chargedCents": 12.3,
+            "tokenUsage": {
+              "inputTokens": 800,
+              "outputTokens": 150,
+              "cacheWriteTokens": 0,
+              "cacheReadTokens": 0,
+              "totalCents": 11.9
+            }
+          }
+        ],
+        "period": {
+          "startDate": 1778544000000,
+          "endDate": 1781135999999
+        }
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "POST",
+      "url": "https://api.cursor.com/teams/filtered-usage-events",
+      "body": {
+        "startDate": 1781136000000,
+        "endDate": 1781222399999,
+        "page": 1,
+        "pageSize": 100
+      }
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "totalUsageEventsCount": 1,
+        "pagination": {
+          "numPages": 1,
+          "currentPage": 1,
+          "pageSize": 100,
+          "hasNextPage": false,
+          "hasPreviousPage": false
+        },
+        "usageEvents": [
+          {
+            "timestamp": "1781164800000",
+            "userEmail": "omar@acme.com",
+            "model": "auto",
+            "kind": "Usage-based",
+            "maxMode": false,
+            "requestsCosts": 2,
+            "isTokenBasedCall": false,
+            "isChargeable": true,
+            "isHeadless": false,
+            "chargedCents": 33.7
+          }
+        ],
+        "period": {
+          "startDate": 1781136000000,
+          "endDate": 1781222399999
+        }
+      }
+    }
+  }
+]

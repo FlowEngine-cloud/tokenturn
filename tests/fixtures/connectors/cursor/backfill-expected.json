@@ -1,0 +1,623 @@
+{
+  "facts": [
+    {
+      "sourceRef": "event:1781015425854:dana@acme.com:claude-4.5-sonnet",
+      "day": "2026-06-09",
+      "model": "claude-4.5-sonnet",
+      "tokens": 18652,
+      "amountCents": 21,
+      "currency": "USD",
+      "costBasis": "invoiced",
+      "identityExternalId": "101",
+      "personEmail": "dana@acme.com"
+    },
+    {
+      "sourceRef": "event:1781020800000:dana@acme.com:gpt-5",
+      "day": "2026-06-09",
+      "model": "gpt-5",
+      "tokens": 1200,
+      "amountCents": 30,
+      "currency": "USD",
+      "costBasis": "invoiced",
+      "identityExternalId": "101",
+      "personEmail": "dana@acme.com"
+    },
+    {
+      "sourceRef": "event:1781020800000:dana@acme.com:gpt-5#2",
+      "day": "2026-06-09",
+      "model": "gpt-5",
+      "tokens": 400,
+      "amountCents": 8,
+      "currency": "USD",
+      "costBasis": "invoiced",
+      "identityExternalId": "101",
+      "personEmail": "dana@acme.com"
+    },
+    {
+      "sourceRef": "event:1781060400000:sa:sa_nightly:claude-4.5-sonnet",
+      "day": "2026-06-10",
+      "model": "claude-4.5-sonnet",
+      "tokens": 579000,
+      "amountCents": 150,
+      "currency": "USD",
+      "costBasis": "invoiced",
+      "identityExternalId": "sa_nightly",
+      "personEmail": null
+    },
+    {
+      "sourceRef": "event:1781082900000:eve@acme.com:claude-4.5-sonnet",
+      "day": "2026-06-10",
+      "model": "claude-4.5-sonnet",
+      "tokens": 18080,
+      "amountCents": 37,
+      "currency": "USD",
+      "costBasis": "invoiced",
+      "identityExternalId": "104",
+      "personEmail": null
+    },
+    {
+      "sourceRef": "event:1781117110111:zoe@acme.com:gpt-5",
+      "day": "2026-06-10",
+      "model": "gpt-5",
+      "tokens": 950,
+      "amountCents": 12,
+      "currency": "USD",
+      "costBasis": "invoiced",
+      "identityExternalId": "zoe@acme.com",
+      "personEmail": null
+    },
+    {
+      "sourceRef": "event:1781164800000:omar@acme.com:auto",
+      "day": "2026-06-11",
+      "model": "auto",
+      "tokens": 0,
+      "amountCents": 34,
+      "currency": "USD",
+      "costBasis": "invoiced",
+      "identityExternalId": "102",
+      "personEmail": "omar@acme.com"
+    }
+  ],
+  "identities": [
+    {
+      "externalId": "101",
+      "kind": "user",
+      "email": "dana@acme.com",
+      "displayName": "Dana",
+      "tags": [],
+      "personEmail": "dana@acme.com"
+    },
+    {
+      "externalId": "102",
+      "kind": "user",
+      "email": "omar@acme.com",
+      "displayName": "Omar",
+      "tags": [],
+      "personEmail": "omar@acme.com"
+    },
+    {
+      "externalId": "103",
+      "kind": "user",
+      "email": "lee@acme.com",
+      "displayName": "Lee",
+      "tags": [],
+      "personEmail": "lee@acme.com"
+    },
+    {
+      "externalId": "104",
+      "kind": "user",
+      "email": "eve@acme.com",
+      "displayName": "Eve",
+      "tags": [],
+      "personEmail": null
+    },
+    {
+      "externalId": "sa_nightly",
+      "kind": "api_key",
+      "email": null,
+      "displayName": "Nightly CI Agent",
+      "tags": [
+        "Nightly CI Agent"
+      ],
+      "personEmail": null
+    },
+    {
+      "externalId": "zoe@acme.com",
+      "kind": "user",
+      "email": "zoe@acme.com",
+      "displayName": null,
+      "tags": [],
+      "personEmail": null
+    }
+  ],
+  "metrics": [
+    {
+      "sourceRef": "daily:2026-06-09:101",
+      "day": "2026-06-09",
+      "metric": "accepted_lines_added",
+      "value": 1102,
+      "identityExternalId": "101",
+      "personEmail": "dana@acme.com"
+    },
+    {
+      "sourceRef": "daily:2026-06-09:101",
+      "day": "2026-06-09",
+      "metric": "accepted_lines_deleted",
+      "value": 645,
+      "identityExternalId": "101",
+      "personEmail": "dana@acme.com"
+    },
+    {
+      "sourceRef": "daily:2026-06-09:101",
+      "day": "2026-06-09",
+      "metric": "accepts",
+      "value": 73,
+      "identityExternalId": "101",
+      "personEmail": "dana@acme.com"
+    },
+    {
+      "sourceRef": "daily:2026-06-09:101",
+      "day": "2026-06-09",
+      "metric": "agent_requests",
+      "value": 12,
+      "identityExternalId": "101",
+      "personEmail": "dana@acme.com"
+    },
+    {
+      "sourceRef": "daily:2026-06-09:101",
+      "day": "2026-06-09",
+      "metric": "api_key_requests",
+      "value": 0,
+      "identityExternalId": "101",
+      "personEmail": "dana@acme.com"
+    },
+    {
+      "sourceRef": "daily:2026-06-09:101",
+      "day": "2026-06-09",
+      "metric": "applies",
+      "value": 87,
+      "identityExternalId": "101",
+      "personEmail": "dana@acme.com"
+    },
+    {
+      "sourceRef": "daily:2026-06-09:101",
+      "day": "2026-06-09",
+      "metric": "bugbot_usages",
+      "value": 3,
+      "identityExternalId": "101",
+      "personEmail": "dana@acme.com"
+    },
+    {
+      "sourceRef": "daily:2026-06-09:101",
+      "day": "2026-06-09",
+      "metric": "chat_requests",
+      "value": 128,
+      "identityExternalId": "101",
+      "personEmail": "dana@acme.com"
+    },
+    {
+      "sourceRef": "daily:2026-06-09:101",
+      "day": "2026-06-09",
+      "metric": "cmdk_usages",
+      "value": 67,
+      "identityExternalId": "101",
+      "personEmail": "dana@acme.com"
+    },
+    {
+      "sourceRef": "daily:2026-06-09:101",
+      "day": "2026-06-09",
+      "metric": "composer_requests",
+      "value": 45,
+      "identityExternalId": "101",
+      "personEmail": "dana@acme.com"
+    },
+    {
+      "sourceRef": "daily:2026-06-09:101",
+      "day": "2026-06-09",
+      "metric": "lines_added",
+      "value": 1543,
+      "identityExternalId": "101",
+      "personEmail": "dana@acme.com"
+    },
+    {
+      "sourceRef": "daily:2026-06-09:101",
+      "day": "2026-06-09",
+      "metric": "lines_deleted",
+      "value": 892,
+      "identityExternalId": "101",
+      "personEmail": "dana@acme.com"
+    },
+    {
+      "sourceRef": "daily:2026-06-09:101",
+      "day": "2026-06-09",
+      "metric": "rejects",
+      "value": 14,
+      "identityExternalId": "101",
+      "personEmail": "dana@acme.com"
+    },
+    {
+      "sourceRef": "daily:2026-06-09:101",
+      "day": "2026-06-09",
+      "metric": "subscription_included_requests",
+      "value": 180,
+      "identityExternalId": "101",
+      "personEmail": "dana@acme.com"
+    },
+    {
+      "sourceRef": "daily:2026-06-09:101",
+      "day": "2026-06-09",
+      "metric": "tabs_accepted",
+      "value": 289,
+      "identityExternalId": "101",
+      "personEmail": "dana@acme.com"
+    },
+    {
+      "sourceRef": "daily:2026-06-09:101",
+      "day": "2026-06-09",
+      "metric": "tabs_shown",
+      "value": 342,
+      "identityExternalId": "101",
+      "personEmail": "dana@acme.com"
+    },
+    {
+      "sourceRef": "daily:2026-06-09:101",
+      "day": "2026-06-09",
+      "metric": "usage_based_requests",
+      "value": 5,
+      "identityExternalId": "101",
+      "personEmail": "dana@acme.com"
+    },
+    {
+      "sourceRef": "daily:2026-06-09:102",
+      "day": "2026-06-09",
+      "metric": "accepted_lines_added",
+      "value": 150,
+      "identityExternalId": "102",
+      "personEmail": "omar@acme.com"
+    },
+    {
+      "sourceRef": "daily:2026-06-09:102",
+      "day": "2026-06-09",
+      "metric": "accepted_lines_deleted",
+      "value": 30,
+      "identityExternalId": "102",
+      "personEmail": "omar@acme.com"
+    },
+    {
+      "sourceRef": "daily:2026-06-09:102",
+      "day": "2026-06-09",
+      "metric": "accepts",
+      "value": 8,
+      "identityExternalId": "102",
+      "personEmail": "omar@acme.com"
+    },
+    {
+      "sourceRef": "daily:2026-06-09:102",
+      "day": "2026-06-09",
+      "metric": "agent_requests",
+      "value": 2,
+      "identityExternalId": "102",
+      "personEmail": "omar@acme.com"
+    },
+    {
+      "sourceRef": "daily:2026-06-09:102",
+      "day": "2026-06-09",
+      "metric": "api_key_requests",
+      "value": 1,
+      "identityExternalId": "102",
+      "personEmail": "omar@acme.com"
+    },
+    {
+      "sourceRef": "daily:2026-06-09:102",
+      "day": "2026-06-09",
+      "metric": "applies",
+      "value": 10,
+      "identityExternalId": "102",
+      "personEmail": "omar@acme.com"
+    },
+    {
+      "sourceRef": "daily:2026-06-09:102",
+      "day": "2026-06-09",
+      "metric": "bugbot_usages",
+      "value": 0,
+      "identityExternalId": "102",
+      "personEmail": "omar@acme.com"
+    },
+    {
+      "sourceRef": "daily:2026-06-09:102",
+      "day": "2026-06-09",
+      "metric": "chat_requests",
+      "value": 30,
+      "identityExternalId": "102",
+      "personEmail": "omar@acme.com"
+    },
+    {
+      "sourceRef": "daily:2026-06-09:102",
+      "day": "2026-06-09",
+      "metric": "cmdk_usages",
+      "value": 7,
+      "identityExternalId": "102",
+      "personEmail": "omar@acme.com"
+    },
+    {
+      "sourceRef": "daily:2026-06-09:102",
+      "day": "2026-06-09",
+      "metric": "composer_requests",
+      "value": 5,
+      "identityExternalId": "102",
+      "personEmail": "omar@acme.com"
+    },
+    {
+      "sourceRef": "daily:2026-06-09:102",
+      "day": "2026-06-09",
+      "metric": "lines_added",
+      "value": 200,
+      "identityExternalId": "102",
+      "personEmail": "omar@acme.com"
+    },
+    {
+      "sourceRef": "daily:2026-06-09:102",
+      "day": "2026-06-09",
+      "metric": "lines_deleted",
+      "value": 50,
+      "identityExternalId": "102",
+      "personEmail": "omar@acme.com"
+    },
+    {
+      "sourceRef": "daily:2026-06-09:102",
+      "day": "2026-06-09",
+      "metric": "rejects",
+      "value": 2,
+      "identityExternalId": "102",
+      "personEmail": "omar@acme.com"
+    },
+    {
+      "sourceRef": "daily:2026-06-09:102",
+      "day": "2026-06-09",
+      "metric": "subscription_included_requests",
+      "value": 44,
+      "identityExternalId": "102",
+      "personEmail": "omar@acme.com"
+    },
+    {
+      "sourceRef": "daily:2026-06-09:102",
+      "day": "2026-06-09",
+      "metric": "tabs_accepted",
+      "value": 25,
+      "identityExternalId": "102",
+      "personEmail": "omar@acme.com"
+    },
+    {
+      "sourceRef": "daily:2026-06-09:102",
+      "day": "2026-06-09",
+      "metric": "tabs_shown",
+      "value": 40,
+      "identityExternalId": "102",
+      "personEmail": "omar@acme.com"
+    },
+    {
+      "sourceRef": "daily:2026-06-09:102",
+      "day": "2026-06-09",
+      "metric": "usage_based_requests",
+      "value": 0,
+      "identityExternalId": "102",
+      "personEmail": "omar@acme.com"
+    },
+    {
+      "sourceRef": "daily:2026-06-11:102",
+      "day": "2026-06-11",
+      "metric": "accepted_lines_added",
+      "value": 10,
+      "identityExternalId": "102",
+      "personEmail": "omar@acme.com"
+    },
+    {
+      "sourceRef": "daily:2026-06-11:102",
+      "day": "2026-06-11",
+      "metric": "accepted_lines_deleted",
+      "value": 2,
+      "identityExternalId": "102",
+      "personEmail": "omar@acme.com"
+    },
+    {
+      "sourceRef": "daily:2026-06-11:102",
+      "day": "2026-06-11",
+      "metric": "accepts",
+      "value": 2,
+      "identityExternalId": "102",
+      "personEmail": "omar@acme.com"
+    },
+    {
+      "sourceRef": "daily:2026-06-11:102",
+      "day": "2026-06-11",
+      "metric": "agent_requests",
+      "value": 1,
+      "identityExternalId": "102",
+      "personEmail": "omar@acme.com"
+    },
+    {
+      "sourceRef": "daily:2026-06-11:102",
+      "day": "2026-06-11",
+      "metric": "api_key_requests",
+      "value": 0,
+      "identityExternalId": "102",
+      "personEmail": "omar@acme.com"
+    },
+    {
+      "sourceRef": "daily:2026-06-11:102",
+      "day": "2026-06-11",
+      "metric": "applies",
+      "value": 3,
+      "identityExternalId": "102",
+      "personEmail": "omar@acme.com"
+    },
+    {
+      "sourceRef": "daily:2026-06-11:102",
+      "day": "2026-06-11",
+      "metric": "bugbot_usages",
+      "value": 0,
+      "identityExternalId": "102",
+      "personEmail": "omar@acme.com"
+    },
+    {
+      "sourceRef": "daily:2026-06-11:102",
+      "day": "2026-06-11",
+      "metric": "chat_requests",
+      "value": 4,
+      "identityExternalId": "102",
+      "personEmail": "omar@acme.com"
+    },
+    {
+      "sourceRef": "daily:2026-06-11:102",
+      "day": "2026-06-11",
+      "metric": "cmdk_usages",
+      "value": 0,
+      "identityExternalId": "102",
+      "personEmail": "omar@acme.com"
+    },
+    {
+      "sourceRef": "daily:2026-06-11:102",
+      "day": "2026-06-11",
+      "metric": "composer_requests",
+      "value": 1,
+      "identityExternalId": "102",
+      "personEmail": "omar@acme.com"
+    },
+    {
+      "sourceRef": "daily:2026-06-11:102",
+      "day": "2026-06-11",
+      "metric": "lines_added",
+      "value": 20,
+      "identityExternalId": "102",
+      "personEmail": "omar@acme.com"
+    },
+    {
+      "sourceRef": "daily:2026-06-11:102",
+      "day": "2026-06-11",
+      "metric": "lines_deleted",
+      "value": 5,
+      "identityExternalId": "102",
+      "personEmail": "omar@acme.com"
+    },
+    {
+      "sourceRef": "daily:2026-06-11:102",
+      "day": "2026-06-11",
+      "metric": "rejects",
+      "value": 1,
+      "identityExternalId": "102",
+      "personEmail": "omar@acme.com"
+    },
+    {
+      "sourceRef": "daily:2026-06-11:102",
+      "day": "2026-06-11",
+      "metric": "subscription_included_requests",
+      "value": 6,
+      "identityExternalId": "102",
+      "personEmail": "omar@acme.com"
+    },
+    {
+      "sourceRef": "daily:2026-06-11:102",
+      "day": "2026-06-11",
+      "metric": "tabs_accepted",
+      "value": 9,
+      "identityExternalId": "102",
+      "personEmail": "omar@acme.com"
+    },
+    {
+      "sourceRef": "daily:2026-06-11:102",
+      "day": "2026-06-11",
+      "metric": "tabs_shown",
+      "value": 12,
+      "identityExternalId": "102",
+      "personEmail": "omar@acme.com"
+    },
+    {
+      "sourceRef": "daily:2026-06-11:102",
+      "day": "2026-06-11",
+      "metric": "usage_based_requests",
+      "value": 1,
+      "identityExternalId": "102",
+      "personEmail": "omar@acme.com"
+    },
+    {
+      "sourceRef": "spend:2026-06-01:101",
+      "day": "2026-06-01",
+      "metric": "cycle_overall_spend_cents",
+      "value": 5451,
+      "identityExternalId": "101",
+      "personEmail": "dana@acme.com"
+    },
+    {
+      "sourceRef": "spend:2026-06-01:101",
+      "day": "2026-06-01",
+      "metric": "cycle_spend_cents",
+      "value": 2450,
+      "identityExternalId": "101",
+      "personEmail": "dana@acme.com"
+    },
+    {
+      "sourceRef": "spend:2026-06-01:101",
+      "day": "2026-06-01",
+      "metric": "spend_limit_dollars",
+      "value": 200,
+      "identityExternalId": "101",
+      "personEmail": "dana@acme.com"
+    },
+    {
+      "sourceRef": "spend:2026-06-01:102",
+      "day": "2026-06-01",
+      "metric": "cycle_overall_spend_cents",
+      "value": 1876,
+      "identityExternalId": "102",
+      "personEmail": "omar@acme.com"
+    },
+    {
+      "sourceRef": "spend:2026-06-01:102",
+      "day": "2026-06-01",
+      "metric": "cycle_spend_cents",
+      "value": 0,
+      "identityExternalId": "102",
+      "personEmail": "omar@acme.com"
+    },
+    {
+      "sourceRef": "spend:2026-06-01:103",
+      "day": "2026-06-01",
+      "metric": "cycle_overall_spend_cents",
+      "value": 300,
+      "identityExternalId": "103",
+      "personEmail": "lee@acme.com"
+    },
+    {
+      "sourceRef": "spend:2026-06-01:103",
+      "day": "2026-06-01",
+      "metric": "cycle_spend_cents",
+      "value": 300,
+      "identityExternalId": "103",
+      "personEmail": "lee@acme.com"
+    },
+    {
+      "sourceRef": "spend:2026-06-01:104",
+      "day": "2026-06-01",
+      "metric": "cycle_overall_spend_cents",
+      "value": 1000,
+      "identityExternalId": "104",
+      "personEmail": null
+    },
+    {
+      "sourceRef": "spend:2026-06-01:104",
+      "day": "2026-06-01",
+      "metric": "cycle_spend_cents",
+      "value": 125,
+      "identityExternalId": "104",
+      "personEmail": null
+    },
+    {
+      "sourceRef": "spend:2026-06-01:104",
+      "day": "2026-06-01",
+      "metric": "spend_limit_dollars",
+      "value": 50,
+      "identityExternalId": "104",
+      "personEmail": null
+    }
+  ]
+}

@@ -12,6 +12,8 @@ export const isStr: Check = (v) => typeof v === "string";
 export const nonEmptyStr: Check = (v) => typeof v === "string" && v.length > 0;
 export const strOrNull: Check = (v) => v === null || typeof v === "string";
 export const isInt: Check = (v) => typeof v === "number" && Number.isInteger(v);
+/** Finite number - vendors that bill fractional cents report floats. */
+export const isNum: Check = (v) => typeof v === "number" && Number.isFinite(v);
 export const intOrNull: Check = (v) =>
   v === null || (typeof v === "number" && Number.isInteger(v));
 export const isBool: Check = (v) => typeof v === "boolean";

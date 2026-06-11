@@ -1,0 +1,166 @@
+[
+  {
+    "request": {
+      "method": "POST",
+      "url": "https://api.cursor.com/teams/daily-usage-data",
+      "body": {
+        "startDate": 1773360000000,
+        "endDate": 1775865600000,
+        "page": 1,
+        "pageSize": 500
+      }
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "data": [],
+        "period": {
+          "startDate": 1773360000000,
+          "endDate": 1775865600000
+        },
+        "pagination": {
+          "page": 1,
+          "pageSize": 500,
+          "totalUsers": 4,
+          "totalPages": 0,
+          "hasNextPage": false,
+          "hasPreviousPage": false
+        }
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "POST",
+      "url": "https://api.cursor.com/teams/daily-usage-data",
+      "body": {
+        "startDate": 1775952000000,
+        "endDate": 1778457600000,
+        "page": 1,
+        "pageSize": 500
+      }
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "data": [],
+        "period": {
+          "startDate": 1775952000000,
+          "endDate": 1778457600000
+        },
+        "pagination": {
+          "page": 1,
+          "pageSize": 500,
+          "totalUsers": 4,
+          "totalPages": 0,
+          "hasNextPage": false,
+          "hasPreviousPage": false
+        }
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "POST",
+      "url": "https://api.cursor.com/teams/daily-usage-data",
+      "body": {
+        "startDate": 1778544000000,
+        "endDate": 1781049600000,
+        "page": 1,
+        "pageSize": 500
+      }
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "data": [],
+        "period": {
+          "startDate": 1778544000000,
+          "endDate": 1781049600000
+        },
+        "pagination": {
+          "page": 1,
+          "pageSize": 500,
+          "totalUsers": 4,
+          "totalPages": 0,
+          "hasNextPage": false,
+          "hasPreviousPage": false
+        }
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "POST",
+      "url": "https://api.cursor.com/teams/daily-usage-data",
+      "body": {
+        "startDate": 1781136000000,
+        "endDate": 1781136000000,
+        "page": 1,
+        "pageSize": 500
+      }
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "data": [],
+        "period": {
+          "startDate": 1781136000000,
+          "endDate": 1781136000000
+        },
+        "pagination": {
+          "page": 1,
+          "pageSize": 500,
+          "totalUsers": 4,
+          "totalPages": 0,
+          "hasNextPage": false,
+          "hasPreviousPage": false
+        }
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "POST",
+      "url": "https://api.cursor.com/teams/filtered-usage-events",
+      "body": {
+        "startDate": 1773360000000,
+        "endDate": 1775951999999,
+        "page": 1,
+        "pageSize": 100
+      }
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "totalUsageEventsCount": 1,
+        "pagination": {
+          "numPages": 1,
+          "currentPage": 1,
+          "pageSize": 100,
+          "hasNextPage": false,
+          "hasPreviousPage": false
+        },
+        "usageEvents": [
+          {
+            "timestamp": "1774000800000",
+            "userEmail": "dana@acme.com",
+            "model": "gpt-5",
+            "kind": "Usage-based",
+            "maxMode": false,
+            "requestsCosts": 1,
+            "isTokenBasedCall": false,
+            "isChargeable": true,
+            "isHeadless": false,
+            "chargedCents": 5.5,
+            "costCents": 5
+          }
+        ],
+        "period": {
+          "startDate": 1773360000000,
+          "endDate": 1775951999999
+        }
+      }
+    }
+  }
+]
