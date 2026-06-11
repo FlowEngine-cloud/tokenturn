@@ -4,7 +4,7 @@
       "method": "POST",
       "url": "https://api.linear.app/graphql",
       "body": {
-        "query": "query Issues($from: DateTimeOrDuration!, $to: DateTimeOrDuration!, $after: String) { issues(first: 50, after: $after, filter: { updatedAt: { gte: $from, lt: $to } }) { nodes { identifier title url createdAt team { key } state { name type } creator { id displayName email } assignee { id displayName email } history(first: 50) { nodes { createdAt fromState { name type } toState { name type } } } } pageInfo { hasNextPage endCursor } } }",
+        "query": "query Issues($from: DateTimeOrDuration!, $to: DateTimeOrDuration!, $after: String) { issues(first: 50, after: $after, filter: { updatedAt: { gte: $from, lt: $to } }) { nodes { identifier title url createdAt team { key } state { name type } creator { id displayName email app } assignee { id displayName email app } delegate { id displayName email app } history(first: 50) { nodes { createdAt fromState { name type } toState { name type } } } } pageInfo { hasNextPage endCursor } } }",
         "variables": {
           "from": "2026-06-12T00:00:00.000Z",
           "to": "2026-06-20T00:00:00.000Z",
@@ -33,7 +33,8 @@
                 "creator": {
                   "id": "usr-dana",
                   "displayName": "Dana",
-                  "email": "dana@acme.com"
+                  "email": "dana@acme.com",
+                  "app": false
                 },
                 "assignee": null,
                 "history": {
@@ -72,7 +73,8 @@
                       }
                     }
                   ]
-                }
+                },
+                "delegate": null
               },
               {
                 "identifier": "ENG-5",
@@ -89,7 +91,8 @@
                 "creator": {
                   "id": "usr-omar",
                   "displayName": "Omar",
-                  "email": "omar@acme.com"
+                  "email": "omar@acme.com",
+                  "app": false
                 },
                 "assignee": null,
                 "history": {
@@ -117,7 +120,8 @@
                       }
                     }
                   ]
-                }
+                },
+                "delegate": null
               }
             ],
             "pageInfo": {

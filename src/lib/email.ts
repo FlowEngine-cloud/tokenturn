@@ -29,6 +29,8 @@ export interface EmailConfig {
   /** SES (SigV4) credentials. */
   accessKeyId?: string;
   secretAccessKey?: string;
+  /** SES: AWS region (us-east-1). Mailgun: domain region, us or eu -
+   * EU-hosted domains live behind api.eu.mailgun.net. */
   region?: string;
   /** SMTP. Port 465 = implicit TLS; anything else negotiates STARTTLS. */
   host?: string;
@@ -72,7 +74,9 @@ export function validateEmailConfig(raw: unknown): EmailConfig {
       ? ["provider", "from", "accessKeyId", "secretAccessKey", "region"]
       : provider === "smtp"
         ? ["provider", "from", "host", "port", "username", "password"]
-        : ["provider", "from", "apiKey"];
+        : provider === "mailgun"
+          ? ["provider", "from", "apiKey", "region"]
+          : ["provider", "from", "apiKey"];
   const extra = Object.keys(record).find((key) => !allowed.includes(key));
   if (extra !== undefined) {
     throw new ResolveError(`unknown email config field ${extra}`, 400);
@@ -108,6 +112,14 @@ export function validateEmailConfig(raw: unknown): EmailConfig {
       username: str("username"),
       password: str("password"),
     };
+  }
+  if (provider === "mailgun") {
+    const apiKey = str("apiKey");
+    const region = str("region");
+    if (region !== "us" && region !== "eu") {
+      throw new ResolveError("region must be us or eu", 400);
+    }
+    return { provider, from: record.from as string, apiKey, region };
   }
   return {
     provider: provider as EmailProvider,
@@ -228,8 +240,9 @@ export interface EmailMessage {
 }
 
 /**
- * RFC 2045 multipart/mixed body for SES, which takes attachments only as a
- * raw MIME message. Deterministic (fixed boundary) so tests pin bytes.
+ * RFC 2045 multipart/mixed body for SES's Raw path - one MIME message
+ * carrying body + attachments. Deterministic (fixed boundary) so tests pin
+ * bytes.
  */
 export function buildMimeMessage(from: string, message: EmailMessage): string {
   const boundary = "=_ai-pnl-mime-boundary";
@@ -406,10 +419,13 @@ export async function sendEmail(
     });
   } else if (config.provider === "mailgun") {
     // The sending domain is the from address's domain - Mailgun's own
-    // convention (reports@mg.acme.com sends through mg.acme.com).
+    // convention (reports@mg.acme.com sends through mg.acme.com). EU-hosted
+    // domains only answer on the EU base URL.
     const domain = config.from.split("@")[1];
+    const base =
+      config.region === "eu" ? "https://api.eu.mailgun.net" : "https://api.mailgun.net";
     const { contentType, body } = buildMailgunBody({ ...message, from: config.from });
-    res = await fetchImpl(`https://api.mailgun.net/v3/${domain}/messages`, {
+    res = await fetchImpl(`${base}/v3/${domain}/messages`, {
       method: "POST",
       headers: {
         authorization: `Basic ${Buffer.from(`api:${config.apiKey ?? ""}`).toString("base64")}`,
@@ -427,7 +443,7 @@ export async function sendEmail(
       JSON.stringify({
         FromEmailAddress: config.from,
         Destination: { ToAddresses: [message.to] },
-        // SES v2 takes attachments only as a raw MIME message.
+        // Attachments ride SES v2's Raw path: one base64 MIME message.
         Content: message.attachments?.length
           ? {
               Raw: {

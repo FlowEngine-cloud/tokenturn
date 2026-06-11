@@ -23,7 +23,7 @@ import { replayFile, type ReplaySession } from "./helpers/replay";
  * Linear success integration (spec 7): outcomes only, never spend. Recorded
  * fixtures pin the GraphQL query + variables, the cursor paging, the
  * history-driven state machine with a per-connection 10-day window, agent
- * actors (first-class, no email) as creator/assignee, the team -> ROI
+ * actors (app users, User.app = true) as creator/delegate, the team -> ROI
  * mapping chosen at connect, the quiet-window promotion, the reopen flip,
  * and the strict-parse drift guard.
  */
@@ -102,12 +102,14 @@ describe.runIf(TEST_DATABASE_URL)("linear connector", () => {
     ]);
   });
 
-  it("lists teams for the team -> ROI mapping", async () => {
-    const ctx = buildContext(linearConnector, CONFIG, fixture("teams.json").fetch);
+  it("lists teams for the team -> ROI mapping, walking every page", async () => {
+    const session = fixture("teams.json");
+    const ctx = buildContext(linearConnector, CONFIG, session.fetch);
     expect(await linearConnector.listProjects!(ctx)).toEqual([
       { key: "ENG", name: "Engineering" },
       { key: "OPS", name: "Operations" },
     ]);
+    expect(session.remaining()).toHaveLength(0);
   });
 
   it("backfill: the team mapping routes ENG to its ROI; unmapped teams take the default", async () => {
@@ -148,7 +150,8 @@ describe.runIf(TEST_DATABASE_URL)("linear connector", () => {
     ]);
 
     // ENG-3 was canceled inside the window -> fail, credited to the agent
-    // ASSIGNEE (Devin - a first-class actor with no email).
+    // DELEGATE (Devin - an app user; agents put on an issue land in
+    // delegate, not assignee).
     expect(await trackedIssueRows(pool, "linear")).toMatchObject([
       { key: "ENG-1", project: "ENG", status: "success", product: "Platform ROI" },
       { key: "ENG-2", project: "ENG", status: "pending", decidedAt: null,
@@ -160,7 +163,8 @@ describe.runIf(TEST_DATABASE_URL)("linear connector", () => {
         decidedAt: "2026-04-12T09:00:00Z", product: "Issues done" },
     ]);
 
-    // The agent's name became its tag (spec 7); humans matched by email.
+    // The agent's name became its tag (spec 7); its synthetic app-user email
+    // is dropped (never person-matched); humans matched by email.
     expect(await identityRows(pool, "linear")).toMatchObject([
       { externalId: "agent-devin", email: null, displayName: "Devin", tags: ["devin"] },
       { externalId: "usr-dana", email: "dana@acme.com", personEmail: "dana@acme.com" },

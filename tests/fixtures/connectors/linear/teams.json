@@ -4,7 +4,8 @@
       "method": "POST",
       "url": "https://api.linear.app/graphql",
       "body": {
-        "query": "{ teams(first: 100) { nodes { key name } } }"
+        "query": "query Teams($after: String) { teams(first: 100, after: $after) { nodes { key name } pageInfo { hasNextPage endCursor } } }",
+        "variables": { "after": null }
       }
     },
     "response": {
@@ -16,12 +17,41 @@
               {
                 "key": "ENG",
                 "name": "Engineering"
-              },
+              }
+            ],
+            "pageInfo": {
+              "hasNextPage": true,
+              "endCursor": "teams-cursor-2"
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "POST",
+      "url": "https://api.linear.app/graphql",
+      "body": {
+        "query": "query Teams($after: String) { teams(first: 100, after: $after) { nodes { key name } pageInfo { hasNextPage endCursor } } }",
+        "variables": { "after": "teams-cursor-2" }
+      }
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "data": {
+          "teams": {
+            "nodes": [
               {
                 "key": "OPS",
                 "name": "Operations"
               }
-            ]
+            ],
+            "pageInfo": {
+              "hasNextPage": false,
+              "endCursor": null
+            }
           }
         }
       }

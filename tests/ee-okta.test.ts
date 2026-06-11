@@ -67,8 +67,16 @@ function oktaFetch(overrides: Record<string, () => Response> = {}) {
     if (url.startsWith(`${DOMAIN}/api/v1/logs`)) {
       return new Response(leaverLogs, { headers: { "content-type": "application/json" } });
     }
-    if (url.startsWith("https://api.cursor.com/teams/members")) {
-      return new Response("{}", { headers: { "content-type": "application/json" } });
+    if (url.startsWith("https://api.anthropic.com/v1/organizations/invites")) {
+      return new Response(JSON.stringify({ type: "invite", id: "invite_1" }), {
+        headers: { "content-type": "application/json" },
+      });
+    }
+    if (url.startsWith("https://api.cursor.com/teams/remove-member")) {
+      return new Response(
+        JSON.stringify({ success: true, userId: "user_abc", hasBillingCycleUsage: false }),
+        { headers: { "content-type": "application/json" } },
+      );
     }
     throw new Error(`unexpected request: ${url}`);
   }) as typeof fetch;
@@ -187,11 +195,15 @@ describe.runIf(TEST_DATABASE_URL)("okta sync (spec 11)", () => {
   });
 
   it("the tick pages the roster, creates people, auto-invites to connected vendors, sweeps leavers", async () => {
-    // Cursor is "connected": invite fan-out targets it (github never -
-    // login-keyed; openai/anthropic not connected here).
+    // Anthropic is "connected": invite fan-out targets it (github never -
+    // login-keyed; openai not connected here). Cursor is connected too but
+    // is never an invite vendor (its Admin API has no invite endpoint) -
+    // the leaver sweeps still remove its seats.
     await pool.query(
-      `INSERT INTO connectors (vendor, history_limit_days, scopes) VALUES ('cursor', 31, '{usage}')`,
+      `INSERT INTO connectors (vendor, history_limit_days, scopes) VALUES
+         ('anthropic', 31, '{usage}'), ('cursor', 31, '{usage}')`,
     );
+    await setSecretSetting("connector:anthropic:config", JSON.stringify({ adminKey: "ak" }), pool);
     await setSecretSetting("connector:cursor:config", JSON.stringify({ apiKey: "ck" }), pool);
 
     const { impl, calls } = oktaFetch();
@@ -216,10 +228,13 @@ describe.runIf(TEST_DATABASE_URL)("okta sync (spec 11)", () => {
       { email: "svc-reports@acme.com", name: null, source: "okta", status: "active" },
     ]);
 
-    // Auto-invite on hire: one Cursor invite per created person, by email.
+    // Auto-invite on hire: one Anthropic invite per created person, by
+    // email. Cursor gets none - there is no Cursor invite API.
     const invites = calls.filter(
-      (c) => c.url === "https://api.cursor.com/teams/members" && c.method === "POST",
+      (c) =>
+        c.url === "https://api.anthropic.com/v1/organizations/invites" && c.method === "POST",
     );
+    expect(calls.some((c) => c.url.includes("api.cursor.com"))).toBe(false);
     expect(invites.map((c) => JSON.parse(c.body!).email).sort()).toEqual([
       "dana@acme.com",
       "noa@acme.com",
@@ -258,8 +273,8 @@ describe.runIf(TEST_DATABASE_URL)("okta sync (spec 11)", () => {
       `INSERT INTO people (email, name, source) VALUES ('bob@acme.com', 'Bob', 'okta') RETURNING id`,
     );
     await pool.query(
-      `INSERT INTO identities (person_id, vendor, external_id, kind)
-       VALUES ($1, 'cursor', 'member-77', 'user')`,
+      `INSERT INTO identities (person_id, vendor, external_id, kind, email)
+       VALUES ($1, 'cursor', 'member-77', 'user', 'bob@acme.com')`,
       [rows[0].id],
     );
     const { impl, calls } = oktaFetch();
@@ -270,9 +285,12 @@ describe.runIf(TEST_DATABASE_URL)("okta sync (spec 11)", () => {
     };
     const first = await sweepLeaver(event, { db: pool, fetch: impl });
     expect(first).toEqual({ email: "bob@acme.com", outcome: "offboarded", error: null });
-    expect(
-      calls.some((c) => c.method === "DELETE" && c.url.endsWith("/teams/members/member-77")),
-    ).toBe(true);
+    // Removal is email-keyed (POST /teams/remove-member), Enterprise only.
+    const removal = calls.find(
+      (c) => c.method === "POST" && c.url === "https://api.cursor.com/teams/remove-member",
+    );
+    expect(removal).toBeDefined();
+    expect(JSON.parse(removal!.body!)).toEqual({ email: "bob@acme.com" });
 
     // The replayed event re-sweeps without duplicating items or calls.
     const second = await sweepLeaver(event, { db: pool, fetch: oktaFetch().impl });

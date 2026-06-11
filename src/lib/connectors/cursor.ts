@@ -29,9 +29,10 @@ import type {
  *
  * What one sync pulls, in phase order (one composite page token walks the
  * phases one HTTP request per fetchPage, so every request commits and
- * resumes independently). The report endpoints cap a request's window at 30
- * days, so the daily/events phases chunk the sync window into <=30-day
- * slices:
+ * resumes independently). /teams/daily-usage-data caps a request's window
+ * at 30 days ("Date range cannot exceed 30 days"); the events phase uses
+ * the same <=30-day chunks - the vendor documents no cap there, so the
+ * conservative window always stays valid:
  *
  *   1. members  GET  /teams/members          - team roster (removed members
  *      included) -> "user" identities keyed on Cursor's numeric user id;
@@ -87,12 +88,15 @@ import type {
 
 export const CURSOR_BASE = "https://api.cursor.com";
 /**
- * Each report request caps its window at 30 days (vendor limit); total
+ * /teams/daily-usage-data caps its window at 30 days (vendor limit); total
  * history depth is undocumented, so backfill is pinned to 90 days of
  * <=30-day chunks.
  */
 export const CURSOR_HISTORY_LIMIT_DAYS = 90;
-/** Vendor cap: a daily-usage / events request window may span at most 30 days. */
+/**
+ * Window per daily/events request. The 30-day cap is the documented
+ * /teams/daily-usage-data limit; events are chunked the same way.
+ */
 export const CHUNK_DAYS = 30;
 const SPEND_PAGE_SIZE = 100;
 const DAILY_PAGE_SIZE = 500;
@@ -225,9 +229,12 @@ export function setUserSpendLimitRequest(
 }
 
 /**
- * One vendor write. On any rejection the vendor's error is thrown verbatim;
- * a 2xx of any body shape is success - the write endpoints' response bodies
- * are undocumented, and nothing from them is stored.
+ * One vendor write. On any rejection the vendor's error is thrown verbatim.
+ * The write endpoints answer two documented envelopes: errors as
+ * `{ error }` (/teams/remove-member) or `{ outcome: "error", message }`
+ * (/teams/user-spend-limit) - the latter can ride a 2xx, so a 2xx body is
+ * still checked before it counts as success. Nothing from a success body is
+ * stored.
  */
 async function cursorWrite(ctx: ConnectorContext, req: CursorRequest): Promise<void> {
   const res = await ctx.fetch(req.url, {
@@ -238,21 +245,25 @@ async function cursorWrite(ctx: ConnectorContext, req: CursorRequest): Promise<v
     },
     ...(req.body !== undefined ? { body: JSON.stringify(req.body) } : {}),
   });
-  if (!res.ok) {
-    const text = await res.text();
-    let message = `cursor returned HTTP ${res.status}`;
-    try {
-      const body = JSON.parse(text) as Record<string, unknown>;
-      if (typeof body.error === "string") message = body.error;
-    } catch {
-      if (text.trim() !== "") message = text.trim();
-    }
-    throw new Error(message);
+  const text = await res.text();
+  let body: Record<string, unknown> = {};
+  try {
+    body = JSON.parse(text) as Record<string, unknown>;
+  } catch {
+    // Non-JSON body - the status decides below.
   }
+  if (res.ok && body.outcome !== "error") return;
+  let message = `cursor returned HTTP ${res.status}`;
+  if (typeof body.error === "string") message = body.error;
+  else if (typeof body.message === "string") message = body.message;
+  else if (text.trim() !== "" && Object.keys(body).length === 0) message = text.trim();
+  throw new Error(message);
 }
 
 /**
- * Push a per-user monthly limit to Cursor. On Business (or any rejection)
+ * Push a per-user monthly limit to Cursor. The vendor accepts whole dollars
+ * only ("integer only, no decimals") - refused here before the call rather
+ * than silently rounding someone's limit. On Business (or any rejection)
  * the vendor's error is thrown verbatim - never pretend the hard stop
  * happened (spec 9: limit writes are Enterprise only).
  */
@@ -261,38 +272,40 @@ export async function setCursorUserSpendLimit(
   userEmail: string,
   spendLimitDollars: number,
 ): Promise<void> {
+  if (!Number.isInteger(spendLimitDollars)) {
+    throw new Error(
+      `Cursor accepts whole-dollar limits only - $${spendLimitDollars} can't be pushed`,
+    );
+  }
   await cursorWrite(ctx, setUserSpendLimitRequest(userEmail, spendLimitDollars));
 }
 
 // ---------------------------------------------------------------------------
-// Write operations (spec 8 people in/out) - same auth, base URL, and
-// verbatim-error convention as the limit write above.
+// Write operations (spec 8 people out) - same auth, base URL, and
+// verbatim-error convention as the limit write above. The Admin API has NO
+// invite endpoint - members are added from the Cursor dashboard - so this
+// vendor never appears in the invite fan-out.
 
-export function inviteMemberRequest(email: string): CursorRequest {
-  return { method: "POST", url: `${CURSOR_BASE}/teams/members`, body: { email } };
-}
-
-export function removeMemberRequest(memberId: string): CursorRequest {
+/**
+ * POST /teams/remove-member takes exactly one of `email` or `userId`, and
+ * the userId variant wants Cursor's encoded `user_...` id - NOT the numeric
+ * id /teams/members reports - so removal is keyed on the member's email.
+ * Enterprise only.
+ */
+export function removeMemberRequest(email: string): CursorRequest {
   return {
-    method: "DELETE",
-    url: `${CURSOR_BASE}/teams/members/${encodeURIComponent(memberId)}`,
+    method: "POST",
+    url: `${CURSOR_BASE}/teams/remove-member`,
+    body: { email },
   };
 }
 
-/** Invite an email to the Cursor team. */
-export async function inviteCursorMember(
+/** Remove a member from the Cursor team (their seat) by email. */
+export async function removeCursorMember(
   ctx: ConnectorContext,
   email: string,
 ): Promise<void> {
-  await cursorWrite(ctx, inviteMemberRequest(email));
-}
-
-/** Remove a member from the Cursor team (their seat). */
-export async function removeCursorMember(
-  ctx: ConnectorContext,
-  memberId: string,
-): Promise<void> {
-  await cursorWrite(ctx, removeMemberRequest(memberId));
+  await cursorWrite(ctx, removeMemberRequest(email));
 }
 
 export function usageEventsProbeRequest(): CursorRequest {
@@ -701,7 +714,8 @@ export const cursorConnector: Connector = {
   connectNotes: [
     "Needs an Admin API key, created by a team admin in the Cursor dashboard. The Admin API requires a Business or Enterprise plan.",
     "Spend is per member, per request: every chargeable usage event's charged cents land on the person (or service account) that spent them. Events covered by the plan's included usage are not billed by Cursor and never become spend.",
-    "Setting per-user spend limits through the API is Enterprise only. On Business, Cursor's limits are read and shown next to ours, never set - and this connector never writes either way.",
+    "Setting per-user spend limits through the API is Enterprise only, and Cursor accepts whole dollars only. On Business, Cursor's limits are read and shown next to ours, never set - and this connector never writes either way.",
+    "Offboarding removes the member's seat via the API (Enterprise only, by email). There is no invite API - members are added from the Cursor dashboard.",
     "Service-account traffic is attributed to the service account, not a person - route it to a product in the Resolve queue.",
     "Seat fees are not reported by the Admin API and are never invented or amortized.",
   ],

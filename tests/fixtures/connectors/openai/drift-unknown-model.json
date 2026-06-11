@@ -40,7 +40,8 @@
             "name": "Engineering",
             "created_at": 1761991200,
             "archived_at": null,
-            "status": "active"
+            "status": "active",
+            "external_key_id": null
           }
         ],
         "first_id": "proj_eng",
@@ -69,12 +70,11 @@
             "owner": {
               "type": "user",
               "user": {
-                "object": "organization.project.user",
                 "id": "user-dana",
-                "name": "Dana",
                 "email": "dana@acme.com",
+                "name": "Dana",
                 "role": "member",
-                "added_at": 1761991200
+                "created_at": 1761991200
               }
             }
           }

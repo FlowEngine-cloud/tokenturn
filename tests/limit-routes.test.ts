@@ -198,14 +198,14 @@ describe.runIf(TEST_DATABASE_URL)("limits + alert-channel API routes", () => {
       });
 
       const res = await personLimitRoute(
-        putJson(`/api/people/${dana}/limit`, { limitUsdCents: 25_050, pushToCursor: true }, adminCookie),
+        putJson(`/api/people/${dana}/limit`, { limitUsdCents: 25_000, pushToCursor: true }, adminCookie),
         params(dana),
       );
       expect(res.status).toBe(200);
       expect((await res.json()).cursor).toEqual({
         ok: true,
         userEmail: "dana.r@acme.com",
-        spendLimitDollars: 250.5,
+        spendLimitDollars: 250,
       });
 
       expect(calls).toHaveLength(1);
@@ -213,12 +213,56 @@ describe.runIf(TEST_DATABASE_URL)("limits + alert-channel API routes", () => {
       expect(calls[0].init.method).toBe("POST");
       expect(JSON.parse(calls[0].init.body as string)).toEqual({
         userEmail: "dana.r@acme.com",
-        spendLimitDollars: 250.5,
+        spendLimitDollars: 250,
       });
       const headers = calls[0].init.headers as Record<string, string>;
       expect(headers.authorization).toBe(
         `Basic ${Buffer.from("test-admin-key:").toString("base64")}`,
       );
+    });
+
+    it("refuses a non-whole-dollar push (Cursor: integer only) without calling the vendor", async () => {
+      const calls: string[] = [];
+      vi.stubGlobal("fetch", async (url: string) => {
+        calls.push(url);
+        return new Response("{}", { status: 200 });
+      });
+      const res = await personLimitRoute(
+        putJson(`/api/people/${dana}/limit`, { limitUsdCents: 25_050, pushToCursor: true }, adminCookie),
+        params(dana),
+      );
+      expect(res.status).toBe(200);
+      expect((await res.json()).cursor).toEqual({
+        ok: false,
+        error: "Cursor accepts whole-dollar limits only - $250.5 can't be pushed",
+      });
+      expect(calls).toHaveLength(0);
+      // Our alert threshold still saved - it drives our alerts regardless.
+      const { rows } = await pool.query(
+        "SELECT monthly_limit_usd_cents::bigint AS l FROM people WHERE id = $1",
+        [dana],
+      );
+      expect(Number(rows[0].l)).toBe(25_050);
+    });
+
+    it("a 2xx carrying the documented outcome:error envelope is a failure, verbatim", async () => {
+      vi.stubGlobal(
+        "fetch",
+        async () =>
+          new Response(JSON.stringify({ outcome: "error", message: "Invalid email format" }), {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          }),
+      );
+      const res = await personLimitRoute(
+        putJson(`/api/people/${dana}/limit`, { limitUsdCents: 10_000, pushToCursor: true }, adminCookie),
+        params(dana),
+      );
+      expect(res.status).toBe(200);
+      expect((await res.json()).cursor).toEqual({
+        ok: false,
+        error: "Invalid email format",
+      });
     });
 
     it("surfaces Cursor's Enterprise-only rejection verbatim; our limit still saved", async () => {

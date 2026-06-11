@@ -146,8 +146,9 @@ describe.runIf(TEST_DATABASE_URL)("people in/out (spec 8)", () => {
       [dana],
     );
 
-    // Connected state for openai/anthropic/github (cursor connects later -
-    // the invite test wants its honest not-connected error first).
+    // Connected state for openai/anthropic/github (cursor connects later,
+    // for the offboard sweep - it is never an invite vendor: its Admin API
+    // has no invite endpoint).
     for (const [vendor, config] of [
       ["openai", { adminKey: "sk-admin-test" }],
       ["anthropic", { adminKey: "sk-ant-admin-test" }],
@@ -207,6 +208,8 @@ describe.runIf(TEST_DATABASE_URL)("people in/out (spec 8)", () => {
       {},
       { personIds: "x", vendors: [] },
       { personIds: [dana], vendors: ["slack"] },
+      // Cursor's Admin API has no invite endpoint - never an invite vendor.
+      { personIds: [dana], vendors: ["cursor"] },
       { personIds: ["not-a-uuid"], vendors: ["openai"] },
       { personIds: [], vendors: ["openai"] },
     ]) {
@@ -248,7 +251,7 @@ describe.runIf(TEST_DATABASE_URL)("people in/out (spec 8)", () => {
     const res = await inviteRoute(
       postJson(
         "/api/people/invite",
-        { personIds: [dana, omar], vendors: ["openai", "anthropic", "cursor", "github"] },
+        { personIds: [dana, omar], vendors: ["openai", "anthropic", "github"] },
         adminCookie,
       ),
     );
@@ -263,7 +266,7 @@ describe.runIf(TEST_DATABASE_URL)("people in/out (spec 8)", () => {
         error: string | null;
       }[];
     };
-    expect(results).toHaveLength(8);
+    expect(results).toHaveLength(6);
     const result = (personId: string, vendor: string) =>
       results.find((r) => r.personId === personId && r.vendor === vendor)!;
 
@@ -276,11 +279,6 @@ describe.runIf(TEST_DATABASE_URL)("people in/out (spec 8)", () => {
       error: "User omar@acme.com is already a member.",
     });
     expect(result(dana, "anthropic").ok).toBe(true);
-    // Cursor is not connected yet - honest connect-state error, not a fake.
-    expect(result(dana, "cursor")).toMatchObject({
-      ok: false,
-      error: "Cursor is not connected - connect it in Settings first",
-    });
     // GitHub seats are username-keyed: Dana has a mapped login, Omar none.
     expect(result(dana, "github")).toMatchObject({
       ok: true,
@@ -302,7 +300,7 @@ describe.runIf(TEST_DATABASE_URL)("people in/out (spec 8)", () => {
     expect(anthropicInvite.body).toEqual({ email: "dana@acme.com", role: "user" });
     const seatAdd = calls.find((c) => c.url.includes("github"))!;
     expect(seatAdd.body).toEqual({ selected_usernames: ["dana-gh"] });
-    // No cursor call ever went out - it is not connected.
+    // No cursor call ever went out - its Admin API has no invite endpoint.
     expect(calls.some((c) => c.url.includes("cursor"))).toBe(false);
   });
 
@@ -479,7 +477,10 @@ describe.runIf(TEST_DATABASE_URL)("people in/out (spec 8)", () => {
           expect(body).toEqual({ status: "archived" });
           return json({ type: "api_key", id: "ak_1", status: "archived" });
         }
-        if (method === "DELETE" && url === "https://api.cursor.com/teams/members/42") {
+        if (method === "POST" && url === "https://api.cursor.com/teams/remove-member") {
+          // Removal is email-keyed: the encoded user_... id the userId
+          // variant wants is not the numeric roster id we hold.
+          expect(body).toEqual({ email: "dana@acme.com" });
           return json({ error: "Only team admins can remove members." }, 403);
         }
         if (
@@ -549,7 +550,7 @@ describe.runIf(TEST_DATABASE_URL)("people in/out (spec 8)", () => {
 
     it("re-running the sweep retries only the failure - no duplicate items", async () => {
       const calls = stubFetch((method, url) =>
-        method === "DELETE" && url === "https://api.cursor.com/teams/members/42"
+        method === "POST" && url === "https://api.cursor.com/teams/remove-member"
           ? json({ error: "Only team admins can remove members." }, 403)
           : null,
       );
@@ -587,8 +588,8 @@ describe.runIf(TEST_DATABASE_URL)("people in/out (spec 8)", () => {
       ).toBe(404);
 
       stubFetch((method, url) =>
-        method === "DELETE" && url === "https://api.cursor.com/teams/members/42"
-          ? json({})
+        method === "POST" && url === "https://api.cursor.com/teams/remove-member"
+          ? json({ success: true, userId: "user_abc", hasBillingCycleUsage: true })
           : null,
       );
       const res = await retryRoute(

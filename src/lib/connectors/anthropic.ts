@@ -3,6 +3,7 @@ import {
   isArr,
   isBool,
   isInt,
+  isNum,
   isObj,
   isStr,
   literal,
@@ -520,8 +521,10 @@ function claudeCodeRows(label: string, body: unknown, state: AnthropicCursor): C
         tokens: isObj,
       });
       const cost = parseStrict("anthropic claude code estimated_cost", breakdown.estimated_cost, {
-        // Minor currency units (cents), integer.
-        amount: isInt,
+        // Minor currency units (cents). The docs type this "number", not
+        // integer - estimates can carry fractional cents, so accept floats
+        // and round once after summing.
+        amount: isNum,
         currency: literal("USD"),
       });
       const counts = parseStrict("anthropic claude code tokens", breakdown.tokens, {
@@ -550,7 +553,7 @@ function claudeCodeRows(label: string, body: unknown, state: AnthropicCursor): C
       tool_actions_accepted: accepted,
       tool_actions_rejected: rejected,
       tokens,
-      estimated_cost_cents: estimatedCents,
+      estimated_cost_cents: Math.round(estimatedCents),
     };
     for (const [metric, value] of Object.entries(counters)) {
       metrics.push({ day, identity, metric, value, sourceRef });

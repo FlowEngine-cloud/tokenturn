@@ -6,12 +6,20 @@
       "body": { "query": "{ viewer { id email } }" }
     },
     "response": {
-      "status": 400,
+      "status": 401,
       "body": {
         "errors": [
           {
             "message": "Authentication required, not authenticated",
-            "extensions": { "type": "authentication error", "code": "AUTHENTICATION_ERROR" }
+            "extensions": {
+              "type": "authentication error",
+              "code": "AUTHENTICATION_ERROR",
+              "statusCode": 401,
+              "userError": true,
+              "userPresentableMessage": "You need to authenticate to access this operation.",
+              "meta": {},
+              "http": { "status": 401 }
+            }
           }
         ]
       }

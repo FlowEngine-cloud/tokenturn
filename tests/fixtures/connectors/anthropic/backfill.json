@@ -1244,7 +1244,7 @@
             "model_breakdown": [
               {
                 "estimated_cost": {
-                  "amount": 95,
+                  "amount": 95.4,
                   "currency": "USD"
                 },
                 "model": "claude-sonnet-4-6",

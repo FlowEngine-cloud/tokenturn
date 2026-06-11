@@ -24,13 +24,17 @@ import type {
  * so the success state machine (lib/connectors/issues.ts) counts after the
  * fact, never from the state a sync happens to observe.
  *
- * Attribution (spec 7): Linear agents are first-class actors (since
- * 2026-03) - they appear as the issue's creator or assignee like any user,
- * with no email. An agent gets the credit when it is the ASSIGNEE or
- * CREATOR; its display name becomes a tag, so pointing that tag at an ROI
- * routes its successes there. Human creators auto-match by email; unmatched
- * actors land in Resolve. One shared app creating everything routes by the
- * team -> ROI mapping chosen at connect (listProjects = Linear teams).
+ * Attribution (spec 7): Linear agents are first-class actors - app users
+ * (User.app = true) that create issues like any user; an agent put on an
+ * issue is its DELEGATE, not its assignee ("humans maintain ownership while
+ * agents act on their behalf" - linear.app/developers/agents). An agent
+ * gets the credit when it is the delegate, assignee or creator; its display
+ * name becomes a tag, so pointing that tag at an ROI routes its successes
+ * there. Human creators auto-match by email (User.email is non-null in the
+ * schema, so app users carry one too - never used for person matching).
+ * Unmatched actors land in Resolve. One shared app creating everything
+ * routes by the team -> ROI mapping chosen at connect (listProjects =
+ * Linear teams).
  *
  * Paging: one GraphQL issues() query per fetchPage, filtered on updatedAt,
  * walked with Linear's own endCursor - it rides in sync_runs.cursor via the
@@ -46,15 +50,17 @@ const PAGE_SIZE = 50;
 const HISTORY_SIZE = 50;
 
 const VIEWER_QUERY = "{ viewer { id email } }";
-const ACTOR_FIELDS = "{ id displayName email }";
+const ACTOR_FIELDS = "{ id displayName email app }";
 const ISSUES_QUERY =
   "query Issues($from: DateTimeOrDuration!, $to: DateTimeOrDuration!, $after: String) { " +
   `issues(first: ${PAGE_SIZE}, after: $after, filter: { updatedAt: { gte: $from, lt: $to } }) { ` +
   "nodes { identifier title url createdAt team { key } state { name type } " +
-  `creator ${ACTOR_FIELDS} assignee ${ACTOR_FIELDS} ` +
+  `creator ${ACTOR_FIELDS} assignee ${ACTOR_FIELDS} delegate ${ACTOR_FIELDS} ` +
   `history(first: ${HISTORY_SIZE}) { nodes { createdAt fromState { name type } toState { name type } } } } ` +
   "pageInfo { hasNextPage endCursor } } }";
-const TEAMS_QUERY = "{ teams(first: 100) { nodes { key name } } }";
+const TEAMS_QUERY =
+  "query Teams($after: String) { teams(first: 100, after: $after) { " +
+  "nodes { key name } pageInfo { hasNextPage endCursor } } }";
 
 export interface LinearRequest {
   query: string;
@@ -65,8 +71,8 @@ export function viewerRequest(): LinearRequest {
   return { query: VIEWER_QUERY };
 }
 
-export function teamsRequest(): LinearRequest {
-  return { query: TEAMS_QUERY };
+export function teamsRequest(after: string | null = null): LinearRequest {
+  return { query: TEAMS_QUERY, variables: { after } };
 }
 
 export function issuesRequest(window: SyncWindow, after: string | null): LinearRequest {
@@ -113,8 +119,10 @@ async function linearJson(
   return body.data as Record<string, unknown>;
 }
 
-/** Linear's closed workflow-state enum -> board bucket. Anything new is
- * format drift and throws (recorded fixtures turn that into CI). */
+/** Linear's closed workflow-state enum -> board bucket (WorkflowState.type:
+ * triage, backlog, unstarted, started, completed, canceled, duplicate).
+ * Anything new is format drift and throws (recorded fixtures turn that into
+ * CI). */
 const STATE_BUCKETS: Record<string, StatusBucket> = {
   triage: "todo",
   backlog: "todo",
@@ -122,6 +130,8 @@ const STATE_BUCKETS: Record<string, StatusBucket> = {
   started: "doing",
   completed: "done",
   canceled: "todo",
+  // Closed as a duplicate of another issue - not this issue's success.
+  duplicate: "todo",
 };
 
 function bucketOf(label: string, type: string): StatusBucket {
@@ -134,7 +144,7 @@ function bucketOf(label: string, type: string): StatusBucket {
 
 interface LinearActor {
   id: string;
-  /** No email = an agent/app actor (Linear agents carry none). */
+  /** User.app - true for agent/app actors (Linear agents are app users). */
   agent: boolean;
   email: string | null;
   displayName: string | null;
@@ -146,10 +156,11 @@ function parseActor(label: string, raw: unknown): LinearActor | null {
     id: nonEmptyStr,
     displayName: strOrNull,
     email: strOrNull,
+    app: isBool,
   });
   return {
     id: actor.id as string,
-    agent: actor.email === null,
+    agent: actor.app as boolean,
     email: actor.email as string | null,
     displayName: actor.displayName as string | null,
   };
@@ -175,6 +186,9 @@ interface ParsedIssue {
   team: string;
   creator: LinearActor | null;
   assignee: LinearActor | null;
+  /** The agent user working the issue (Issue.delegate) - agents put on an
+   * issue land here, not in assignee. */
+  delegate: LinearActor | null;
   transitions: StatusTransition[];
 }
 
@@ -188,6 +202,7 @@ function parseIssue(raw: unknown): ParsedIssue {
     state: isObj,
     creator: (v) => v === null || isObj(v),
     assignee: (v) => v === null || isObj(v),
+    delegate: (v) => v === null || isObj(v),
     history: isObj,
   });
   const label = `linear issue ${String(issue.identifier)}`;
@@ -239,6 +254,7 @@ function parseIssue(raw: unknown): ParsedIssue {
     team: team.key as string,
     creator: parseActor(`${label} creator`, issue.creator),
     assignee: parseActor(`${label} assignee`, issue.assignee),
+    delegate: parseActor(`${label} delegate`, issue.delegate),
     transitions,
   };
 }
@@ -247,15 +263,18 @@ function describeActor(actor: LinearActor): IdentityInput {
   return {
     externalId: actor.id,
     kind: "user",
-    email: actor.email ?? undefined,
+    // App users carry a synthetic email - never feed it to person matching.
+    email: actor.agent ? undefined : (actor.email ?? undefined),
     displayName: actor.displayName ?? undefined,
     tags: actor.agent && actor.displayName ? [agentTag(actor.displayName)] : [],
   };
 }
 
-/** Credit (spec 7): the agent when it is assignee or creator - the assignee
- * did the work when both exist - else the human creator, by email. */
+/** Credit (spec 7): the agent when it is on the issue - the delegate did the
+ * work (Linear puts a working agent in delegate, not assignee), else an
+ * agent assignee or creator - otherwise the human creator, by email. */
 function creditedActor(issue: ParsedIssue): LinearActor | null {
+  if (issue.delegate?.agent) return issue.delegate;
   if (issue.assignee?.agent) return issue.assignee;
   if (issue.creator?.agent) return issue.creator;
   return issue.creator ?? issue.assignee;
@@ -270,7 +289,7 @@ export const linearConnector: Connector = {
   connectNotes: [
     "Success-only: counts issues, writes no spend. An issue that hits the submitted state goes pending; it succeeds when the window passes without regressing (or it reaches Done sooner) and fails if it regresses inside the window - all read from the issue history.",
     "Defaults: submitted = any started state, fail = back to backlog/unstarted/canceled, window 30 days - override below per connection.",
-    "Credit: an agent creator or assignee by name (agents are first-class actors; the name becomes a tag - point it at an ROI); otherwise the issue creator, matched by email. Map teams to ROIs on this card once connected.",
+    "Credit: an agent working the issue (its delegate) or an agent creator, by name (agents are first-class app users; the name becomes a tag - point it at an ROI); otherwise the issue creator, matched by email. Map teams to ROIs on this card once connected.",
     "Needs a personal or workspace API key with read access.",
   ],
   configFields: [
@@ -297,15 +316,31 @@ export const linearConnector: Connector = {
   },
 
   async listProjects(ctx: ConnectorContext): Promise<{ key: string; name: string }[]> {
-    const data = await linearJson(ctx, teamsRequest());
-    const teams = parseStrict("linear teams", data.teams, { nodes: isArr });
-    return (teams.nodes as unknown[]).map((raw) => {
-      const team = parseStrict("linear team", raw, {
-        key: nonEmptyStr,
-        name: nonEmptyStr,
+    const all: { key: string; name: string }[] = [];
+    let after: string | null = null;
+    do {
+      const data = await linearJson(ctx, teamsRequest(after));
+      const teams = parseStrict("linear teams", data.teams, {
+        nodes: isArr,
+        pageInfo: isObj,
       });
-      return { key: team.key as string, name: team.name as string };
-    });
+      for (const raw of teams.nodes as unknown[]) {
+        const team = parseStrict("linear team", raw, {
+          key: nonEmptyStr,
+          name: nonEmptyStr,
+        });
+        all.push({ key: team.key as string, name: team.name as string });
+      }
+      const pageInfo = parseStrict("linear teams pageInfo", teams.pageInfo, {
+        hasNextPage: isBool,
+        endCursor: strOrNull,
+      });
+      after = pageInfo.hasNextPage ? (pageInfo.endCursor as string | null) : null;
+      if (pageInfo.hasNextPage && after === null) {
+        throw new Error("linear teams pageInfo says hasNextPage with no endCursor");
+      }
+    } while (after !== null);
+    return all;
   },
 
   async fetchPage(
@@ -331,7 +366,7 @@ export const linearConnector: Connector = {
     const issues: IssueInput[] = [];
     for (const raw of issuesEnv.nodes as unknown[]) {
       const issue = parseIssue(raw);
-      for (const actor of [issue.creator, issue.assignee]) {
+      for (const actor of [issue.creator, issue.assignee, issue.delegate]) {
         if (actor !== null) identities.set(actor.id, describeActor(actor));
       }
       const credited = creditedActor(issue);

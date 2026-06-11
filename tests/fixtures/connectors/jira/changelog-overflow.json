@@ -1,0 +1,1062 @@
+[
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://acme.atlassian.net/rest/api/3/status"
+    },
+    "response": {
+      "status": 200,
+      "body": [
+        {
+          "id": "1",
+          "name": "To Do",
+          "statusCategory": {
+            "id": 2,
+            "key": "new",
+            "name": "To Do"
+          }
+        },
+        {
+          "id": "3",
+          "name": "In Progress",
+          "statusCategory": {
+            "id": 4,
+            "key": "indeterminate",
+            "name": "In Progress"
+          }
+        },
+        {
+          "id": "5",
+          "name": "Done",
+          "statusCategory": {
+            "id": 3,
+            "key": "done",
+            "name": "Done"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "request": {
+      "method": "POST",
+      "url": "https://acme.atlassian.net/rest/api/3/search/jql",
+      "body": {
+        "jql": "updated >= \"2026-06-01\" AND updated < \"2026-06-11\" ORDER BY updated ASC",
+        "maxResults": 100,
+        "fields": [
+          "creator",
+          "assignee",
+          "status",
+          "summary",
+          "project",
+          "created"
+        ],
+        "expand": "changelog"
+      }
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "issues": [
+          {
+            "id": "10007",
+            "key": "ENG-7",
+            "changelog": {
+              "startAt": 0,
+              "maxResults": 40,
+              "total": 44,
+              "histories": [
+                {
+                  "created": "2026-06-09T10:00:00.000+0000",
+                  "items": [
+                    {
+                      "field": "status",
+                      "fieldtype": "jira",
+                      "fromString": "In Progress",
+                      "toString": "Done"
+                    }
+                  ]
+                },
+                {
+                  "created": "2026-05-30T09:00:00.000+0000",
+                  "items": [
+                    {
+                      "field": "status",
+                      "fieldtype": "jira",
+                      "fromString": "To Do",
+                      "toString": "In Progress"
+                    }
+                  ]
+                },
+                {
+                  "created": "2026-05-28T09:00:00.000+0000",
+                  "items": [
+                    {
+                      "field": "Link",
+                      "fieldtype": "jira",
+                      "fromString": null,
+                      "toString": "This issue relates to ENG-1"
+                    }
+                  ]
+                },
+                {
+                  "created": "2026-05-27T09:00:00.000+0000",
+                  "items": [
+                    {
+                      "field": "Link",
+                      "fieldtype": "jira",
+                      "fromString": null,
+                      "toString": "This issue relates to ENG-1"
+                    }
+                  ]
+                },
+                {
+                  "created": "2026-05-26T09:00:00.000+0000",
+                  "items": [
+                    {
+                      "field": "Link",
+                      "fieldtype": "jira",
+                      "fromString": null,
+                      "toString": "This issue relates to ENG-1"
+                    }
+                  ]
+                },
+                {
+                  "created": "2026-05-25T09:00:00.000+0000",
+                  "items": [
+                    {
+                      "field": "Link",
+                      "fieldtype": "jira",
+                      "fromString": null,
+                      "toString": "This issue relates to ENG-1"
+                    }
+                  ]
+                },
+                {
+                  "created": "2026-05-24T09:00:00.000+0000",
+                  "items": [
+                    {
+                      "field": "Link",
+                      "fieldtype": "jira",
+                      "fromString": null,
+                      "toString": "This issue relates to ENG-1"
+                    }
+                  ]
+                },
+                {
+                  "created": "2026-05-23T09:00:00.000+0000",
+                  "items": [
+                    {
+                      "field": "Link",
+                      "fieldtype": "jira",
+                      "fromString": null,
+                      "toString": "This issue relates to ENG-1"
+                    }
+                  ]
+                },
+                {
+                  "created": "2026-05-22T09:00:00.000+0000",
+                  "items": [
+                    {
+                      "field": "Link",
+                      "fieldtype": "jira",
+                      "fromString": null,
+                      "toString": "This issue relates to ENG-1"
+                    }
+                  ]
+                },
+                {
+                  "created": "2026-05-21T09:00:00.000+0000",
+                  "items": [
+                    {
+                      "field": "Link",
+                      "fieldtype": "jira",
+                      "fromString": null,
+                      "toString": "This issue relates to ENG-1"
+                    }
+                  ]
+                },
+                {
+                  "created": "2026-05-20T09:00:00.000+0000",
+                  "items": [
+                    {
+                      "field": "Link",
+                      "fieldtype": "jira",
+                      "fromString": null,
+                      "toString": "This issue relates to ENG-1"
+                    }
+                  ]
+                },
+                {
+                  "created": "2026-05-19T09:00:00.000+0000",
+                  "items": [
+                    {
+                      "field": "Link",
+                      "fieldtype": "jira",
+                      "fromString": null,
+                      "toString": "This issue relates to ENG-1"
+                    }
+                  ]
+                },
+                {
+                  "created": "2026-05-18T09:00:00.000+0000",
+                  "items": [
+                    {
+                      "field": "Link",
+                      "fieldtype": "jira",
+                      "fromString": null,
+                      "toString": "This issue relates to ENG-1"
+                    }
+                  ]
+                },
+                {
+                  "created": "2026-05-17T09:00:00.000+0000",
+                  "items": [
+                    {
+                      "field": "Link",
+                      "fieldtype": "jira",
+                      "fromString": null,
+                      "toString": "This issue relates to ENG-1"
+                    }
+                  ]
+                },
+                {
+                  "created": "2026-05-16T09:00:00.000+0000",
+                  "items": [
+                    {
+                      "field": "Link",
+                      "fieldtype": "jira",
+                      "fromString": null,
+                      "toString": "This issue relates to ENG-1"
+                    }
+                  ]
+                },
+                {
+                  "created": "2026-05-15T09:00:00.000+0000",
+                  "items": [
+                    {
+                      "field": "Link",
+                      "fieldtype": "jira",
+                      "fromString": null,
+                      "toString": "This issue relates to ENG-1"
+                    }
+                  ]
+                },
+                {
+                  "created": "2026-05-14T09:00:00.000+0000",
+                  "items": [
+                    {
+                      "field": "Link",
+                      "fieldtype": "jira",
+                      "fromString": null,
+                      "toString": "This issue relates to ENG-1"
+                    }
+                  ]
+                },
+                {
+                  "created": "2026-05-13T09:00:00.000+0000",
+                  "items": [
+                    {
+                      "field": "Link",
+                      "fieldtype": "jira",
+                      "fromString": null,
+                      "toString": "This issue relates to ENG-1"
+                    }
+                  ]
+                },
+                {
+                  "created": "2026-05-12T09:00:00.000+0000",
+                  "items": [
+                    {
+                      "field": "Link",
+                      "fieldtype": "jira",
+                      "fromString": null,
+                      "toString": "This issue relates to ENG-1"
+                    }
+                  ]
+                },
+                {
+                  "created": "2026-05-11T09:00:00.000+0000",
+                  "items": [
+                    {
+                      "field": "Link",
+                      "fieldtype": "jira",
+                      "fromString": null,
+                      "toString": "This issue relates to ENG-1"
+                    }
+                  ]
+                },
+                {
+                  "created": "2026-05-10T09:00:00.000+0000",
+                  "items": [
+                    {
+                      "field": "Link",
+                      "fieldtype": "jira",
+                      "fromString": null,
+                      "toString": "This issue relates to ENG-1"
+                    }
+                  ]
+                },
+                {
+                  "created": "2026-05-09T09:00:00.000+0000",
+                  "items": [
+                    {
+                      "field": "Link",
+                      "fieldtype": "jira",
+                      "fromString": null,
+                      "toString": "This issue relates to ENG-1"
+                    }
+                  ]
+                },
+                {
+                  "created": "2026-05-08T09:00:00.000+0000",
+                  "items": [
+                    {
+                      "field": "Link",
+                      "fieldtype": "jira",
+                      "fromString": null,
+                      "toString": "This issue relates to ENG-1"
+                    }
+                  ]
+                },
+                {
+                  "created": "2026-05-07T09:00:00.000+0000",
+                  "items": [
+                    {
+                      "field": "Link",
+                      "fieldtype": "jira",
+                      "fromString": null,
+                      "toString": "This issue relates to ENG-1"
+                    }
+                  ]
+                },
+                {
+                  "created": "2026-05-06T09:00:00.000+0000",
+                  "items": [
+                    {
+                      "field": "Link",
+                      "fieldtype": "jira",
+                      "fromString": null,
+                      "toString": "This issue relates to ENG-1"
+                    }
+                  ]
+                },
+                {
+                  "created": "2026-05-05T09:00:00.000+0000",
+                  "items": [
+                    {
+                      "field": "Link",
+                      "fieldtype": "jira",
+                      "fromString": null,
+                      "toString": "This issue relates to ENG-1"
+                    }
+                  ]
+                },
+                {
+                  "created": "2026-05-04T09:00:00.000+0000",
+                  "items": [
+                    {
+                      "field": "Link",
+                      "fieldtype": "jira",
+                      "fromString": null,
+                      "toString": "This issue relates to ENG-1"
+                    }
+                  ]
+                },
+                {
+                  "created": "2026-05-03T09:00:00.000+0000",
+                  "items": [
+                    {
+                      "field": "Link",
+                      "fieldtype": "jira",
+                      "fromString": null,
+                      "toString": "This issue relates to ENG-1"
+                    }
+                  ]
+                },
+                {
+                  "created": "2026-05-02T09:00:00.000+0000",
+                  "items": [
+                    {
+                      "field": "Link",
+                      "fieldtype": "jira",
+                      "fromString": null,
+                      "toString": "This issue relates to ENG-1"
+                    }
+                  ]
+                },
+                {
+                  "created": "2026-05-01T09:00:00.000+0000",
+                  "items": [
+                    {
+                      "field": "Link",
+                      "fieldtype": "jira",
+                      "fromString": null,
+                      "toString": "This issue relates to ENG-1"
+                    }
+                  ]
+                },
+                {
+                  "created": "2026-04-30T09:00:00.000+0000",
+                  "items": [
+                    {
+                      "field": "Link",
+                      "fieldtype": "jira",
+                      "fromString": null,
+                      "toString": "This issue relates to ENG-1"
+                    }
+                  ]
+                },
+                {
+                  "created": "2026-04-29T09:00:00.000+0000",
+                  "items": [
+                    {
+                      "field": "Link",
+                      "fieldtype": "jira",
+                      "fromString": null,
+                      "toString": "This issue relates to ENG-1"
+                    }
+                  ]
+                },
+                {
+                  "created": "2026-04-28T09:00:00.000+0000",
+                  "items": [
+                    {
+                      "field": "Link",
+                      "fieldtype": "jira",
+                      "fromString": null,
+                      "toString": "This issue relates to ENG-1"
+                    }
+                  ]
+                },
+                {
+                  "created": "2026-04-27T09:00:00.000+0000",
+                  "items": [
+                    {
+                      "field": "Link",
+                      "fieldtype": "jira",
+                      "fromString": null,
+                      "toString": "This issue relates to ENG-1"
+                    }
+                  ]
+                },
+                {
+                  "created": "2026-04-26T09:00:00.000+0000",
+                  "items": [
+                    {
+                      "field": "Link",
+                      "fieldtype": "jira",
+                      "fromString": null,
+                      "toString": "This issue relates to ENG-1"
+                    }
+                  ]
+                },
+                {
+                  "created": "2026-04-25T09:00:00.000+0000",
+                  "items": [
+                    {
+                      "field": "Link",
+                      "fieldtype": "jira",
+                      "fromString": null,
+                      "toString": "This issue relates to ENG-1"
+                    }
+                  ]
+                },
+                {
+                  "created": "2026-04-24T09:00:00.000+0000",
+                  "items": [
+                    {
+                      "field": "Link",
+                      "fieldtype": "jira",
+                      "fromString": null,
+                      "toString": "This issue relates to ENG-1"
+                    }
+                  ]
+                },
+                {
+                  "created": "2026-04-23T09:00:00.000+0000",
+                  "items": [
+                    {
+                      "field": "Link",
+                      "fieldtype": "jira",
+                      "fromString": null,
+                      "toString": "This issue relates to ENG-1"
+                    }
+                  ]
+                },
+                {
+                  "created": "2026-04-22T09:00:00.000+0000",
+                  "items": [
+                    {
+                      "field": "Link",
+                      "fieldtype": "jira",
+                      "fromString": null,
+                      "toString": "This issue relates to ENG-1"
+                    }
+                  ]
+                },
+                {
+                  "created": "2026-04-21T09:00:00.000+0000",
+                  "items": [
+                    {
+                      "field": "Link",
+                      "fieldtype": "jira",
+                      "fromString": null,
+                      "toString": "This issue relates to ENG-1"
+                    }
+                  ]
+                }
+              ]
+            },
+            "fields": {
+              "summary": "Ship audit export",
+              "project": {
+                "id": "101",
+                "key": "ENG",
+                "name": "Engineering"
+              },
+              "created": "2026-04-01T09:00:00.000+0000",
+              "creator": {
+                "accountId": "5b10dana",
+                "accountType": "atlassian",
+                "emailAddress": "dana@acme.com",
+                "displayName": "Dana"
+              },
+              "assignee": null,
+              "status": {
+                "name": "Done",
+                "statusCategory": {
+                  "id": 3,
+                  "key": "done",
+                  "name": "Done"
+                }
+              }
+            }
+          }
+        ],
+        "isLast": true
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://acme.atlassian.net/rest/api/3/issue/ENG-7/changelog?startAt=0&maxResults=100"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "self": "https://acme.atlassian.net/rest/api/3/issue/ENG-7/changelog?startAt=0&maxResults=100",
+        "startAt": 0,
+        "maxResults": 100,
+        "total": 44,
+        "isLast": false,
+        "values": [
+          {
+            "created": "2026-04-02T09:00:00.000+0000",
+            "items": [
+              {
+                "field": "status",
+                "fieldtype": "jira",
+                "fromString": "To Do",
+                "toString": "In Progress"
+              }
+            ]
+          },
+          {
+            "created": "2026-04-20T09:00:00.000+0000",
+            "items": [
+              {
+                "field": "status",
+                "fieldtype": "jira",
+                "fromString": "In Progress",
+                "toString": "To Do"
+              }
+            ]
+          },
+          {
+            "created": "2026-04-20T10:00:00.000+0000",
+            "items": [
+              {
+                "field": "Link",
+                "fieldtype": "jira",
+                "fromString": null,
+                "toString": "This issue relates to ENG-1"
+              }
+            ]
+          },
+          {
+            "created": "2026-04-20T11:00:00.000+0000",
+            "items": [
+              {
+                "field": "Link",
+                "fieldtype": "jira",
+                "fromString": null,
+                "toString": "This issue relates to ENG-1"
+              }
+            ]
+          },
+          {
+            "created": "2026-04-21T09:00:00.000+0000",
+            "items": [
+              {
+                "field": "Link",
+                "fieldtype": "jira",
+                "fromString": null,
+                "toString": "This issue relates to ENG-1"
+              }
+            ]
+          },
+          {
+            "created": "2026-04-22T09:00:00.000+0000",
+            "items": [
+              {
+                "field": "Link",
+                "fieldtype": "jira",
+                "fromString": null,
+                "toString": "This issue relates to ENG-1"
+              }
+            ]
+          },
+          {
+            "created": "2026-04-23T09:00:00.000+0000",
+            "items": [
+              {
+                "field": "Link",
+                "fieldtype": "jira",
+                "fromString": null,
+                "toString": "This issue relates to ENG-1"
+              }
+            ]
+          },
+          {
+            "created": "2026-04-24T09:00:00.000+0000",
+            "items": [
+              {
+                "field": "Link",
+                "fieldtype": "jira",
+                "fromString": null,
+                "toString": "This issue relates to ENG-1"
+              }
+            ]
+          },
+          {
+            "created": "2026-04-25T09:00:00.000+0000",
+            "items": [
+              {
+                "field": "Link",
+                "fieldtype": "jira",
+                "fromString": null,
+                "toString": "This issue relates to ENG-1"
+              }
+            ]
+          },
+          {
+            "created": "2026-04-26T09:00:00.000+0000",
+            "items": [
+              {
+                "field": "Link",
+                "fieldtype": "jira",
+                "fromString": null,
+                "toString": "This issue relates to ENG-1"
+              }
+            ]
+          },
+          {
+            "created": "2026-04-27T09:00:00.000+0000",
+            "items": [
+              {
+                "field": "Link",
+                "fieldtype": "jira",
+                "fromString": null,
+                "toString": "This issue relates to ENG-1"
+              }
+            ]
+          },
+          {
+            "created": "2026-04-28T09:00:00.000+0000",
+            "items": [
+              {
+                "field": "Link",
+                "fieldtype": "jira",
+                "fromString": null,
+                "toString": "This issue relates to ENG-1"
+              }
+            ]
+          },
+          {
+            "created": "2026-04-29T09:00:00.000+0000",
+            "items": [
+              {
+                "field": "Link",
+                "fieldtype": "jira",
+                "fromString": null,
+                "toString": "This issue relates to ENG-1"
+              }
+            ]
+          },
+          {
+            "created": "2026-04-30T09:00:00.000+0000",
+            "items": [
+              {
+                "field": "Link",
+                "fieldtype": "jira",
+                "fromString": null,
+                "toString": "This issue relates to ENG-1"
+              }
+            ]
+          },
+          {
+            "created": "2026-05-01T09:00:00.000+0000",
+            "items": [
+              {
+                "field": "Link",
+                "fieldtype": "jira",
+                "fromString": null,
+                "toString": "This issue relates to ENG-1"
+              }
+            ]
+          },
+          {
+            "created": "2026-05-02T09:00:00.000+0000",
+            "items": [
+              {
+                "field": "Link",
+                "fieldtype": "jira",
+                "fromString": null,
+                "toString": "This issue relates to ENG-1"
+              }
+            ]
+          },
+          {
+            "created": "2026-05-03T09:00:00.000+0000",
+            "items": [
+              {
+                "field": "Link",
+                "fieldtype": "jira",
+                "fromString": null,
+                "toString": "This issue relates to ENG-1"
+              }
+            ]
+          },
+          {
+            "created": "2026-05-04T09:00:00.000+0000",
+            "items": [
+              {
+                "field": "Link",
+                "fieldtype": "jira",
+                "fromString": null,
+                "toString": "This issue relates to ENG-1"
+              }
+            ]
+          },
+          {
+            "created": "2026-05-05T09:00:00.000+0000",
+            "items": [
+              {
+                "field": "Link",
+                "fieldtype": "jira",
+                "fromString": null,
+                "toString": "This issue relates to ENG-1"
+              }
+            ]
+          },
+          {
+            "created": "2026-05-06T09:00:00.000+0000",
+            "items": [
+              {
+                "field": "Link",
+                "fieldtype": "jira",
+                "fromString": null,
+                "toString": "This issue relates to ENG-1"
+              }
+            ]
+          },
+          {
+            "created": "2026-05-07T09:00:00.000+0000",
+            "items": [
+              {
+                "field": "Link",
+                "fieldtype": "jira",
+                "fromString": null,
+                "toString": "This issue relates to ENG-1"
+              }
+            ]
+          },
+          {
+            "created": "2026-05-08T09:00:00.000+0000",
+            "items": [
+              {
+                "field": "Link",
+                "fieldtype": "jira",
+                "fromString": null,
+                "toString": "This issue relates to ENG-1"
+              }
+            ]
+          },
+          {
+            "created": "2026-05-09T09:00:00.000+0000",
+            "items": [
+              {
+                "field": "Link",
+                "fieldtype": "jira",
+                "fromString": null,
+                "toString": "This issue relates to ENG-1"
+              }
+            ]
+          },
+          {
+            "created": "2026-05-10T09:00:00.000+0000",
+            "items": [
+              {
+                "field": "Link",
+                "fieldtype": "jira",
+                "fromString": null,
+                "toString": "This issue relates to ENG-1"
+              }
+            ]
+          },
+          {
+            "created": "2026-05-11T09:00:00.000+0000",
+            "items": [
+              {
+                "field": "Link",
+                "fieldtype": "jira",
+                "fromString": null,
+                "toString": "This issue relates to ENG-1"
+              }
+            ]
+          },
+          {
+            "created": "2026-05-12T09:00:00.000+0000",
+            "items": [
+              {
+                "field": "Link",
+                "fieldtype": "jira",
+                "fromString": null,
+                "toString": "This issue relates to ENG-1"
+              }
+            ]
+          },
+          {
+            "created": "2026-05-13T09:00:00.000+0000",
+            "items": [
+              {
+                "field": "Link",
+                "fieldtype": "jira",
+                "fromString": null,
+                "toString": "This issue relates to ENG-1"
+              }
+            ]
+          },
+          {
+            "created": "2026-05-14T09:00:00.000+0000",
+            "items": [
+              {
+                "field": "Link",
+                "fieldtype": "jira",
+                "fromString": null,
+                "toString": "This issue relates to ENG-1"
+              }
+            ]
+          },
+          {
+            "created": "2026-05-15T09:00:00.000+0000",
+            "items": [
+              {
+                "field": "Link",
+                "fieldtype": "jira",
+                "fromString": null,
+                "toString": "This issue relates to ENG-1"
+              }
+            ]
+          },
+          {
+            "created": "2026-05-16T09:00:00.000+0000",
+            "items": [
+              {
+                "field": "Link",
+                "fieldtype": "jira",
+                "fromString": null,
+                "toString": "This issue relates to ENG-1"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://acme.atlassian.net/rest/api/3/issue/ENG-7/changelog?startAt=30&maxResults=100"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "self": "https://acme.atlassian.net/rest/api/3/issue/ENG-7/changelog?startAt=30&maxResults=100",
+        "startAt": 30,
+        "maxResults": 100,
+        "total": 44,
+        "isLast": true,
+        "values": [
+          {
+            "created": "2026-05-17T09:00:00.000+0000",
+            "items": [
+              {
+                "field": "Link",
+                "fieldtype": "jira",
+                "fromString": null,
+                "toString": "This issue relates to ENG-1"
+              }
+            ]
+          },
+          {
+            "created": "2026-05-18T09:00:00.000+0000",
+            "items": [
+              {
+                "field": "Link",
+                "fieldtype": "jira",
+                "fromString": null,
+                "toString": "This issue relates to ENG-1"
+              }
+            ]
+          },
+          {
+            "created": "2026-05-19T09:00:00.000+0000",
+            "items": [
+              {
+                "field": "Link",
+                "fieldtype": "jira",
+                "fromString": null,
+                "toString": "This issue relates to ENG-1"
+              }
+            ]
+          },
+          {
+            "created": "2026-05-20T09:00:00.000+0000",
+            "items": [
+              {
+                "field": "Link",
+                "fieldtype": "jira",
+                "fromString": null,
+                "toString": "This issue relates to ENG-1"
+              }
+            ]
+          },
+          {
+            "created": "2026-05-21T09:00:00.000+0000",
+            "items": [
+              {
+                "field": "Link",
+                "fieldtype": "jira",
+                "fromString": null,
+                "toString": "This issue relates to ENG-1"
+              }
+            ]
+          },
+          {
+            "created": "2026-05-22T09:00:00.000+0000",
+            "items": [
+              {
+                "field": "Link",
+                "fieldtype": "jira",
+                "fromString": null,
+                "toString": "This issue relates to ENG-1"
+              }
+            ]
+          },
+          {
+            "created": "2026-05-23T09:00:00.000+0000",
+            "items": [
+              {
+                "field": "Link",
+                "fieldtype": "jira",
+                "fromString": null,
+                "toString": "This issue relates to ENG-1"
+              }
+            ]
+          },
+          {
+            "created": "2026-05-24T09:00:00.000+0000",
+            "items": [
+              {
+                "field": "Link",
+                "fieldtype": "jira",
+                "fromString": null,
+                "toString": "This issue relates to ENG-1"
+              }
+            ]
+          },
+          {
+            "created": "2026-05-25T09:00:00.000+0000",
+            "items": [
+              {
+                "field": "Link",
+                "fieldtype": "jira",
+                "fromString": null,
+                "toString": "This issue relates to ENG-1"
+              }
+            ]
+          },
+          {
+            "created": "2026-05-26T09:00:00.000+0000",
+            "items": [
+              {
+                "field": "Link",
+                "fieldtype": "jira",
+                "fromString": null,
+                "toString": "This issue relates to ENG-1"
+              }
+            ]
+          },
+          {
+            "created": "2026-05-27T09:00:00.000+0000",
+            "items": [
+              {
+                "field": "Link",
+                "fieldtype": "jira",
+                "fromString": null,
+                "toString": "This issue relates to ENG-1"
+              }
+            ]
+          },
+          {
+            "created": "2026-05-28T09:00:00.000+0000",
+            "items": [
+              {
+                "field": "Link",
+                "fieldtype": "jira",
+                "fromString": null,
+                "toString": "This issue relates to ENG-1"
+              }
+            ]
+          },
+          {
+            "created": "2026-05-30T09:00:00.000+0000",
+            "items": [
+              {
+                "field": "status",
+                "fieldtype": "jira",
+                "fromString": "To Do",
+                "toString": "In Progress"
+              }
+            ]
+          },
+          {
+            "created": "2026-06-09T10:00:00.000+0000",
+            "items": [
+              {
+                "field": "status",
+                "fieldtype": "jira",
+                "fromString": "In Progress",
+                "toString": "Done"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+]

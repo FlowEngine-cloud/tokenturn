@@ -211,7 +211,7 @@ export const VENDOR_LIMIT_POLICIES = {
   cursor: {
     enforcement: "vendor-enforced",
     canWrite: true,
-    note: "Cursor enforces its own per-user monthly limit and reports it here. Pushing your limit to Cursor requires their Enterprise plan; on Business it is read-only.",
+    note: "Cursor enforces its own per-user monthly limit and reports it here. Pushing your limit to Cursor requires their Enterprise plan and a whole-dollar amount; on Business it is read-only.",
   },
   anthropic: {
     enforcement: "vendor-enforced",
@@ -221,7 +221,7 @@ export const VENDOR_LIMIT_POLICIES = {
   openai: {
     enforcement: "alert-only",
     canWrite: false,
-    note: `OpenAI has no budget API. ${APP_NAME} alerts at your thresholds; nothing is hard-stopped on the vendor side.`,
+    note: `OpenAI cannot enforce spend limits via API - its admin API offers alert thresholds, never hard caps. ${APP_NAME} alerts at your thresholds; nothing is hard-stopped on the vendor side.`,
   },
 } as const;
 
@@ -353,7 +353,9 @@ export interface CursorPushResult {
  * Uses the person's Cursor roster email when one is mapped (merged people
  * can differ from people.email), else their primary email - an email Cursor
  * doesn't know is rejected with the vendor's error, verbatim, exactly like
- * the Enterprise-plan rejection on Business teams.
+ * the Enterprise-plan rejection on Business teams. Cursor accepts whole
+ * dollars only; a non-whole-dollar limit is refused with the reason instead
+ * of being silently rounded.
  */
 export async function pushLimitToCursor(
   personId: string,

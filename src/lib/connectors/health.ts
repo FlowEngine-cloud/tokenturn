@@ -1,4 +1,5 @@
 import { getPool, type Db } from "../db";
+import { INVITE_VENDORS } from "../provision";
 import { getSetting } from "../settings";
 import { listConnectedRows, type ConnectedRow } from "./connect";
 import { listConnectors } from "./registry";
@@ -26,6 +27,8 @@ export interface ConnectorHealth {
   displayName: string;
   /** Success integration (spec 7): writes outcomes only, never spend. */
   successOnly: boolean;
+  /** The vendor's API can grant a seat (spec 8 invite fan-out). */
+  invitable: boolean;
   connected: boolean;
   connectedAt: string | null;
   /** How far back history goes - the connect screen shows this (spec 5). */
@@ -112,6 +115,7 @@ async function healthFor(
     vendor,
     displayName: connector.displayName,
     successOnly: connector.successOnly === true,
+    invitable: (INVITE_VENDORS as readonly string[]).includes(vendor),
     connected: connectedRowOrNull !== null,
     connectedAt: connectedRowOrNull ? iso(connectedRowOrNull.connected_at) : null,
     historyLimitDays:

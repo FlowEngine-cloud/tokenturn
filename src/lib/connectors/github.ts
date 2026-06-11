@@ -59,9 +59,12 @@ import type {
  *      per-user per-day usage counters (interactions, code generations /
  *      acceptances, lines, agent-mode use) -> usage_metrics, the Tools-page
  *      accept-rate inputs for Copilot. One report per day, served as
- *      presigned NDJSON download links (fetched unauthenticated). Capped to
- *      the trailing METRICS_REPORT_DAYS (28) of the window - the span of
- *      GitHub's own aggregate reporting; counters are not money.
+ *      signed NDJSON download links (fetched unauthenticated). A day with
+ *      no processed report answers 404 - notably today's, generated only
+ *      after the day closes - and is skipped; the trailing re-pull picks it
+ *      up once it exists. Capped to the trailing METRICS_REPORT_DAYS (28)
+ *      of the window - the span of GitHub's own aggregate reporting;
+ *      counters are not money.
  *   4. prs      GET /search/issues q=org is:pr is:merged merged:a..b - the
  *      merged-PR list, in 30-day chunks (the search result cap is per
  *      query; >1000 hits in one chunk throws rather than silently dropping
@@ -911,10 +914,20 @@ export const githubConnector: Connector = {
             rest.length > 0 ? { ...state, daily: { day: d.day, links: rest } } : afterDay(state, days);
           return { identities, facts: [], metrics, nextPageToken: tokenFor(next) };
         }
-        const links = reportLinks(
-          await ghJson(ctx, dailyReportRequest(ctx.config.org, d.day)),
-          d.day,
-        );
+        let links: string[];
+        try {
+          links = reportLinks(
+            await ghJson(ctx, dailyReportRequest(ctx.config.org, d.day)),
+            d.day,
+          );
+        } catch (err) {
+          // A day with no processed report is a documented 404 - notably
+          // window.until (today), whose report GitHub has not generated
+          // yet. Absence, not an error: the day is skipped, and the
+          // trailing re-pull picks it up once the report exists.
+          if (!(err instanceof GhHttpError && err.status === 404)) throw err;
+          links = [];
+        }
         const next =
           links.length > 0 ? { ...state, daily: { day: d.day, links } } : afterDay(state, days);
         return { identities: [], facts: [], nextPageToken: tokenFor(next) };

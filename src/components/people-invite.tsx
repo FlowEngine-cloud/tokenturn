@@ -100,7 +100,8 @@ export function PeopleAdd({ onAdded }: { onAdded: () => void }) {
         </Button>
       </div>
       <div className="flex flex-wrap items-center gap-4">
-        {connectors.map((c) => (
+        {/* Only vendors whose API can grant a seat (Cursor has no invite API). */}
+        {connectors.filter((c) => c.invitable).map((c) => (
           <label
             key={c.vendor}
             className={

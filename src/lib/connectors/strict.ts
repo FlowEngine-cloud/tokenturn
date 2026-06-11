@@ -16,7 +16,10 @@ export const isInt: Check = (v) => typeof v === "number" && Number.isInteger(v);
 export const isNum: Check = (v) => typeof v === "number" && Number.isFinite(v);
 export const intOrNull: Check = (v) =>
   v === null || (typeof v === "number" && Number.isInteger(v));
+export const numOrNull: Check = (v) =>
+  v === null || (typeof v === "number" && Number.isFinite(v));
 export const isBool: Check = (v) => typeof v === "boolean";
+export const boolOrNull: Check = (v) => v === null || typeof v === "boolean";
 export const isObj: Check = (v) => !!v && typeof v === "object" && !Array.isArray(v);
 export const isArr: Check = (v) => Array.isArray(v);
 export const literal =

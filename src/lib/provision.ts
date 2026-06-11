@@ -9,11 +9,7 @@ import {
   getConnectorConfig,
   type ConnectorOpts,
 } from "./connectors/connect";
-import {
-  cursorConnector,
-  inviteCursorMember,
-  removeCursorMember,
-} from "./connectors/cursor";
+import { cursorConnector, removeCursorMember } from "./connectors/cursor";
 import {
   addCopilotSeat,
   githubConnector,
@@ -48,7 +44,12 @@ const CONNECTORS: Record<string, Connector> = {
   openai: openaiConnector,
 };
 
-export const INVITE_VENDORS = ["anthropic", "cursor", "github", "openai"] as const;
+/**
+ * Vendors whose APIs can actually grant a seat. Cursor is absent on
+ * purpose: its Admin API has no invite endpoint (members are added from the
+ * Cursor dashboard) - offering it would be a control that can never work.
+ */
+export const INVITE_VENDORS = ["anthropic", "github", "openai"] as const;
 export type InviteVendor = (typeof INVITE_VENDORS)[number];
 
 /** The vendor access an offboard sweep can actually remove, per vendor. */
@@ -105,9 +106,6 @@ async function inviteOne(
     case "anthropic":
       await inviteAnthropicUser(ctx, person.email);
       return "org invite sent (user role)";
-    case "cursor":
-      await inviteCursorMember(ctx, person.email);
-      return "team invite sent";
     case "github": {
       // Copilot's seat API is username-keyed, never email-keyed.
       if (person.githubLogin === null) {
@@ -370,13 +368,8 @@ export async function offboardOverview(
   };
 }
 
-async function removeOne(
-  vendor: string,
-  kind: string,
-  externalId: string,
-  displayName: string | null,
-  opts: ConnectorOpts,
-): Promise<void> {
+async function removeOne(item: ItemRow, opts: ConnectorOpts): Promise<void> {
+  const { vendor, kind, externalId, displayName } = item;
   const ctx = await vendorContext(vendor, opts);
   if (vendor === "openai" && kind === "user") return deleteOpenAiUser(ctx, externalId);
   if (vendor === "openai" && kind === "api_key") return deleteOpenAiApiKey(ctx, externalId);
@@ -384,7 +377,14 @@ async function removeOne(
   if (vendor === "anthropic" && kind === "api_key") {
     return archiveAnthropicApiKey(ctx, externalId);
   }
-  if (vendor === "cursor" && kind === "user") return removeCursorMember(ctx, externalId);
+  if (vendor === "cursor" && kind === "user") {
+    // /teams/remove-member is email-keyed for us: its userId variant wants
+    // the encoded user_... id, which is not the numeric roster id we hold.
+    if (item.email === null) {
+      throw new Error("the member has no email on record - sync Cursor first");
+    }
+    return removeCursorMember(ctx, item.email);
+  }
   if (vendor === "github" && kind === "seat") {
     if (displayName === null) {
       throw new Error("the seat has no GitHub login on record - sync GitHub first");
@@ -402,13 +402,15 @@ interface ItemRow {
   externalId: string;
   kind: string;
   displayName: string | null;
+  /** The identity's vendor-side email (cursor removal is email-keyed). */
+  email: string | null;
 }
 
 /** Run one item against the vendor and persist the outcome. */
 async function executeItem(item: ItemRow, opts: ConnectorOpts): Promise<OffboardRow> {
   const db = opts.db ?? getPool();
   try {
-    await removeOne(item.vendor, item.kind, item.externalId, item.displayName, opts);
+    await removeOne(item, opts);
     const { rows } = await db.query(
       `UPDATE offboard_items
        SET status = 'removed', error = NULL, removed_at = now(), updated_at = now()
@@ -470,8 +472,9 @@ async function executeItem(item: ItemRow, opts: ConnectorOpts): Promise<Offboard
   }
 }
 
-const ITEM_COLUMNS = `id, person_id AS "personId", identity_id AS "identityId",
-       vendor, external_id AS "externalId", kind, display_name AS "displayName"`;
+const ITEM_COLUMNS = `oi.id, oi.person_id AS "personId", oi.identity_id AS "identityId",
+       oi.vendor, oi.external_id AS "externalId", oi.kind,
+       oi.display_name AS "displayName", i.email`;
 
 /**
  * The offboard sweep: plan an item for every piece of current access (the
@@ -504,9 +507,10 @@ export async function runOffboard(
   );
 
   const { rows: pending } = await db.query(
-    `SELECT ${ITEM_COLUMNS} FROM offboard_items
-     WHERE person_id = $1 AND status <> 'removed'
-     ORDER BY vendor, kind, external_id`,
+    `SELECT ${ITEM_COLUMNS} FROM offboard_items oi
+     LEFT JOIN identities i ON i.id = oi.identity_id
+     WHERE oi.person_id = $1 AND oi.status <> 'removed'
+     ORDER BY oi.vendor, oi.kind, oi.external_id`,
     [personId],
   );
   for (const item of pending as ItemRow[]) {
@@ -537,7 +541,9 @@ export async function retryOffboardItem(
 ): Promise<OffboardRow> {
   const db = opts.db ?? getPool();
   const { rows } = await db.query(
-    `SELECT ${ITEM_COLUMNS}, status FROM offboard_items WHERE id = $1`,
+    `SELECT ${ITEM_COLUMNS}, oi.status FROM offboard_items oi
+     LEFT JOIN identities i ON i.id = oi.identity_id
+     WHERE oi.id = $1`,
     [itemId],
   );
   if (rows.length === 0) throw new ResolveError("offboard item not found", 404);

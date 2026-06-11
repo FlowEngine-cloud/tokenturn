@@ -660,7 +660,7 @@
       "status": 200,
       "body": {
         "download_links": [
-          "https://gh-usage-reports.example/copilot/2026-06-09-0.ndjson"
+          "https://copilot-reports.github.com/copilot/2026-06-09-0.ndjson"
         ],
         "report_day": "2026-06-09"
       }
@@ -669,7 +669,7 @@
   {
     "request": {
       "method": "GET",
-      "url": "https://gh-usage-reports.example/copilot/2026-06-09-0.ndjson"
+      "url": "https://copilot-reports.github.com/copilot/2026-06-09-0.ndjson"
     },
     "response": {
       "status": 200,
@@ -685,7 +685,7 @@
       "status": 200,
       "body": {
         "download_links": [
-          "https://gh-usage-reports.example/copilot/2026-06-10-0.ndjson"
+          "https://copilot-reports.github.com/copilot/2026-06-10-0.ndjson"
         ],
         "report_day": "2026-06-10"
       }
@@ -694,7 +694,7 @@
   {
     "request": {
       "method": "GET",
-      "url": "https://gh-usage-reports.example/copilot/2026-06-10-0.ndjson"
+      "url": "https://copilot-reports.github.com/copilot/2026-06-10-0.ndjson"
     },
     "response": {
       "status": 200,
@@ -707,10 +707,11 @@
       "url": "https://api.github.com/orgs/acme/copilot/metrics/reports/users-1-day?day=2026-06-11"
     },
     "response": {
-      "status": 200,
+      "status": 404,
       "body": {
-        "download_links": [],
-        "report_day": "2026-06-11"
+        "message": "Not Found",
+        "documentation_url": "https://docs.github.com/rest/copilot/copilot-usage-metrics",
+        "status": "404"
       }
     }
   },

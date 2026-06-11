@@ -276,6 +276,33 @@ describe.runIf(TEST_DATABASE_URL)("jira connector", () => {
     ]);
   });
 
+  it("a truncated embedded changelog falls back to the full changelog", async () => {
+    // The search's embedded changelog serves only the ~40 most recent
+    // histories (live-verified); ENG-7 has 44, so its oldest transitions -
+    // the real submission and a regression inside the window - fall off.
+    // Judged on the embedded view alone this issue would count a FALSE
+    // success (submitted 05-30, Done 06-09). The connector must read the
+    // full changelog (GET /issue/{key}/changelog, startAt paging) instead.
+    const session = fixture("changelog-overflow.json");
+    const ctx = buildContext(jiraConnector, CONFIG, session.fetch);
+    const page = await jiraConnector.fetchPage(
+      ctx,
+      { since: "2026-06-01", until: "2026-06-10" },
+      null,
+    );
+    expect(session.remaining()).toHaveLength(0); // both changelog pages walked
+    expect(page.issues).toMatchObject([
+      {
+        key: "ENG-7",
+        project: "ENG",
+        identity: { externalId: "5b10dana", kind: "user" },
+        submittedAt: "2026-04-02T09:00:00.000Z",
+        regressedAt: "2026-04-20T09:00:00.000Z",
+        doneAt: "2026-06-09T10:00:00.000Z",
+      },
+    ]);
+  });
+
   it("vendor format drift throws with the field named, never bad numbers", async () => {
     const ctx = buildContext(jiraConnector, CONFIG, fixture("drift-issue-format.json").fetch);
     await expect(

@@ -110,6 +110,11 @@ describe.runIf(TEST_DATABASE_URL)("email provider (spec 12b)", () => {
       [{ provider: "resend", from: "nope", apiKey: "k" }, "from must be an email address"],
       [{ provider: "resend", from: "a@b.co" }, "apiKey is required for resend"],
       [{ provider: "mailgun", from: "a@b.co" }, "apiKey is required for mailgun"],
+      [{ provider: "mailgun", from: "a@b.co", apiKey: "k" }, "region is required for mailgun"],
+      [
+        { provider: "mailgun", from: "a@b.co", apiKey: "k", region: "ap" },
+        "region must be us or eu",
+      ],
       [{ provider: "ses", from: "a@b.co", accessKeyId: "A", secretAccessKey: "S" }, "region is required for ses"],
       [
         { provider: "ses", from: "a@b.co", accessKeyId: "A", secretAccessKey: "S", region: "us-east" },
@@ -307,6 +312,7 @@ describe.runIf(TEST_DATABASE_URL)("email provider (spec 12b)", () => {
             provider: "mailgun",
             from: "reports@mg.acme.com",
             apiKey: "mg_SECRET_321",
+            region: "us",
           },
         },
         adminCookie,
@@ -335,6 +341,31 @@ describe.runIf(TEST_DATABASE_URL)("email provider (spec 12b)", () => {
     );
     expect(bad.status).toBe(502);
     expect((await bad.json()).error).toBe("Forbidden");
+  });
+
+  it("Mailgun: EU-region domains send through api.eu.mailgun.net", async () => {
+    await settingsPatch(
+      patchJson(
+        "/api/settings",
+        {
+          email_provider_config: {
+            provider: "mailgun",
+            from: "reports@mg.acme.eu",
+            apiKey: "mg_SECRET_654",
+            region: "eu",
+          },
+        },
+        adminCookie,
+      ),
+    );
+    const calls = stubFetch(
+      new Response(JSON.stringify({ id: "<y>", message: "Queued." }), { status: 200 }),
+    );
+    const res = await testSendRoute(
+      postJson("/api/email/test", { to: "cfo@acme.com" }, adminCookie),
+    );
+    expect(await res.json()).toEqual({ ok: true, provider: "mailgun" });
+    expect(calls[0].url).toBe("https://api.eu.mailgun.net/v3/mg.acme.eu/messages");
   });
 
   it("Mailgun multipart bytes are pinned (attachment as a file part)", () => {

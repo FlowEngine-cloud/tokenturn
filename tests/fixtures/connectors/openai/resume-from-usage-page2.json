@@ -32,9 +32,6 @@
                 "object": "organization.usage.completions.result",
                 "input_tokens": 40000,
                 "output_tokens": 8000,
-                "input_cached_tokens": 0,
-                "input_audio_tokens": 0,
-                "output_audio_tokens": 0,
                 "num_model_requests": 42,
                 "project_id": null,
                 "user_id": null,
@@ -86,7 +83,9 @@
                   "currency": "usd"
                 },
                 "line_item": "GPT-5, input",
-                "project_id": "proj_eng"
+                "project_id": "proj_eng",
+                "api_key_id": null,
+                "quantity": 1000000.0
               },
               {
                 "object": "organization.costs.result",
@@ -95,7 +94,9 @@
                   "currency": "usd"
                 },
                 "line_item": "GPT-5, output",
-                "project_id": "proj_eng"
+                "project_id": "proj_eng",
+                "api_key_id": null,
+                "quantity": 1000000.0
               },
               {
                 "object": "organization.costs.result",
@@ -104,7 +105,9 @@
                   "currency": "usd"
                 },
                 "line_item": "text-embedding-3-small, input",
-                "project_id": "proj_eng"
+                "project_id": "proj_eng",
+                "api_key_id": null,
+                "quantity": 1000000.0
               },
               {
                 "object": "organization.costs.result",
@@ -113,7 +116,9 @@
                   "currency": "usd"
                 },
                 "line_item": "Image models",
-                "project_id": "proj_bots"
+                "project_id": "proj_bots",
+                "api_key_id": null,
+                "quantity": null
               }
             ]
           }
@@ -145,7 +150,9 @@
                   "currency": "usd"
                 },
                 "line_item": "GPT-4o mini, cached input",
-                "project_id": "proj_eng"
+                "project_id": "proj_eng",
+                "api_key_id": null,
+                "quantity": 1000000.0
               },
               {
                 "object": "organization.costs.result",
@@ -154,7 +161,9 @@
                   "currency": "usd"
                 },
                 "line_item": "Web search",
-                "project_id": null
+                "project_id": null,
+                "api_key_id": null,
+                "quantity": null
               }
             ]
           }

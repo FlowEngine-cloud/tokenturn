@@ -172,6 +172,8 @@ interface EmailField {
   secret?: boolean;
   placeholder?: string;
   width?: string;
+  /** Fixed choices render a select; the first one is the default. */
+  options?: { value: string; label: string }[];
 }
 
 /** Per-provider fields (spec 10.6): picking one shows exactly these. */
@@ -201,7 +203,21 @@ const EMAIL_PROVIDER_DEFS: { id: string; label: string; fields: EmailField[] }[]
       { key: "region", label: "Region", placeholder: "us-east-1", width: "w-32" },
     ],
   },
-  { id: "mailgun", label: "Mailgun", fields: [{ key: "apiKey", label: "API key", secret: true }] },
+  {
+    id: "mailgun",
+    label: "Mailgun",
+    fields: [
+      { key: "apiKey", label: "API key", secret: true },
+      {
+        key: "region",
+        label: "Region",
+        options: [
+          { value: "us", label: "US" },
+          { value: "eu", label: "EU" },
+        ],
+      },
+    ],
+  },
 ];
 
 function EmailCard({
@@ -227,7 +243,7 @@ function EmailCard({
     EMAIL_PROVIDER_DEFS.find((p) => p.id === provider) ?? EMAIL_PROVIDER_DEFS[0];
   const ready =
     from.trim() !== "" &&
-    def.fields.every((f) => (values[f.key] ?? "").trim() !== "") &&
+    def.fields.every((f) => f.options !== undefined || (values[f.key] ?? "").trim() !== "") &&
     (provider !== "smtp" || /^\d+$/.test((values.port ?? "").trim()));
 
   async function patch(value: Record<string, unknown> | null) {
@@ -251,7 +267,11 @@ function EmailCard({
     const payload: Record<string, unknown> = { provider, from: from.trim() };
     for (const f of def.fields) {
       const raw = (values[f.key] ?? "").trim();
-      payload[f.key] = f.key === "port" ? Number(raw) : raw;
+      payload[f.key] = f.options
+        ? raw || f.options[0].value
+        : f.key === "port"
+          ? Number(raw)
+          : raw;
     }
     void patch(payload);
   }
@@ -313,18 +333,36 @@ function EmailCard({
           </SettingsRow>
           {def.fields.map((f) => (
             <SettingsRow key={f.key} label={f.label} htmlFor={`email-${f.key}`}>
-              <Input
-                id={`email-${f.key}`}
-                type={f.secret ? "password" : "text"}
-                autoComplete="off"
-                className={cn("h-8", f.width ?? "w-64")}
-                placeholder={f.placeholder}
-                disabled={busy}
-                value={values[f.key] ?? ""}
-                onChange={(e) =>
-                  setValues((prev) => ({ ...prev, [f.key]: e.target.value }))
-                }
-              />
+              {f.options ? (
+                <select
+                  id={`email-${f.key}`}
+                  className="h-8 rounded-md border bg-transparent px-2 text-sm"
+                  disabled={busy}
+                  value={values[f.key] ?? f.options[0].value}
+                  onChange={(e) =>
+                    setValues((prev) => ({ ...prev, [f.key]: e.target.value }))
+                  }
+                >
+                  {f.options.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <Input
+                  id={`email-${f.key}`}
+                  type={f.secret ? "password" : "text"}
+                  autoComplete="off"
+                  className={cn("h-8", f.width ?? "w-64")}
+                  placeholder={f.placeholder}
+                  disabled={busy}
+                  value={values[f.key] ?? ""}
+                  onChange={(e) =>
+                    setValues((prev) => ({ ...prev, [f.key]: e.target.value }))
+                  }
+                />
+              )}
             </SettingsRow>
           ))}
           <SettingsRow>

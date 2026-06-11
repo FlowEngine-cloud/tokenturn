@@ -22,7 +22,7 @@ export interface CreditedIdentity {
  * - submitted status (default: any in-progress status - Jira statusCategory
  *   indeterminate / Linear "started"; "In Review" lives there)
  * - fail regression (default: back to To Do - Jira statusCategory new /
- *   Linear backlog, unstarted or canceled)
+ *   Linear backlog, unstarted, canceled or duplicate)
  * - window (default 30 days)
  *
  * An issue that hits submitted goes PENDING. It succeeds when the window
@@ -45,7 +45,7 @@ export const DEFAULT_ISSUE_WINDOW_DAYS = 30;
 /**
  * Where a status sits on any board: to-do, in progress, or done. Jira maps
  * statusCategory (new/indeterminate/done), Linear maps state type
- * (backlog/unstarted/triage/canceled -> todo, started -> doing,
+ * (backlog/unstarted/triage/canceled/duplicate -> todo, started -> doing,
  * completed -> done). null = the vendor no longer defines the status
  * (deleted since the transition) - it can still match by configured name,
  * never by bucket.

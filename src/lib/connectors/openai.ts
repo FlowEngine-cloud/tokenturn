@@ -1,13 +1,16 @@
 import { estimateOpenAiUsdCents } from "./openai-prices";
 import { hasPinnedPrice } from "./prices";
 import {
+  boolOrNull,
   intOrNull,
   isArr,
   isBool,
   isInt,
   isObj,
+  isStr,
   literal,
   nonEmptyStr,
+  numOrNull,
   parsePicked,
   parseStrict,
   strOrNull,
@@ -49,8 +52,10 @@ import type {
  *      (the human who spent), else the key (service/agent traffic - tag ->
  *      product routing), else the visible Unassigned bucket.
  *   5. costs     GET /v1/organization/costs
- *      grouped by project_id + line_item, 1d buckets - billed dollars, per
- *      project only. Token line items for pinned models ("GPT-5, input")
+ *      grouped by project_id + line_item, 1d buckets - billed dollars. (The
+ *      report can also group by api_key_id - still never by user; a later
+ *      loop could use it to bill non-token money per key.)
+ *      Token line items for pinned models ("GPT-5, input")
  *      are SKIPPED: that money is already on the ledger as per-user
  *      estimates from phase 4, and storing both would double count.
  *      Everything else (images, web search, embeddings and other usage we
@@ -200,11 +205,13 @@ interface ListEnvelope {
 }
 
 function parseListEnvelope(label: string, body: unknown): ListEnvelope {
+  // first_id/last_id are not required fields in the vendor schema.
   const env = parseStrict(label, body, {
     object: literal("list"),
     data: isArr,
-    first_id: strOrNull,
     has_more: isBool,
+  }, {
+    first_id: strOrNull,
     last_id: strOrNull,
   });
   if (env.has_more === true && typeof env.last_id !== "string") {
@@ -213,7 +220,7 @@ function parseListEnvelope(label: string, body: unknown): ListEnvelope {
   return {
     data: env.data as unknown[],
     hasMore: env.has_more as boolean,
-    lastId: env.last_id as string | null,
+    lastId: (env.last_id as string | null | undefined) ?? null,
   };
 }
 
@@ -251,19 +258,39 @@ function bucketDay(label: string, startTime: number): string {
 // ---------------------------------------------------------------------------
 // Phase: users
 
-function parseUser(raw: unknown): { id: string; email: string; name: string | null } {
+function parseUser(raw: unknown): {
+  id: string;
+  email: string | null;
+  name: string | null;
+} {
+  // Vendor schema: only object/id/added_at are required; name/email/role are
+  // nullable and the object carries a documented tail of metadata fields
+  // (is_default, created, nested user, SCIM flags, ...). None of it feeds
+  // ledger numbers, so the tail is type-checked but tolerated.
   const user = parseStrict("openai user", raw, {
     object: literal("organization.user"),
     id: nonEmptyStr,
-    name: strOrNull,
-    email: nonEmptyStr,
-    role: nonEmptyStr,
     added_at: isInt,
+  }, {
+    name: strOrNull,
+    email: strOrNull,
+    role: strOrNull,
+    is_default: isBool,
+    created: isInt,
+    user: isObj,
+    is_service_account: isBool,
+    is_scale_tier_authorized_purchaser: boolOrNull,
+    is_scim_managed: isBool,
+    api_key_last_used_at: intOrNull,
+    technical_level: strOrNull,
+    developer_persona: strOrNull,
+    projects: (v) => v === null || isObj(v),
   });
   return {
     id: user.id as string,
-    email: user.email as string,
-    name: user.name as string | null,
+    // A user without an email cannot auto-map - they surface in Resolve.
+    email: (user.email as string | null | undefined) ?? null,
+    name: (user.name as string | null | undefined) ?? null,
   };
 }
 
@@ -271,18 +298,25 @@ function parseUser(raw: unknown): { id: string; email: string; name: string | nu
 // Phase: projects
 
 function parseProject(raw: unknown): { id: string; name: string; status: string } {
+  // Vendor schema: only id/object/created_at are required; name and status
+  // ("active" | "archived") are nullable, and external_key_id rides along.
   const project = parseStrict("openai project", raw, {
     object: literal("organization.project"),
     id: nonEmptyStr,
-    name: nonEmptyStr,
     created_at: isInt,
+  }, {
+    name: strOrNull,
     archived_at: intOrNull,
-    status: nonEmptyStr,
+    status: strOrNull,
+    external_key_id: strOrNull,
   });
   return {
     id: project.id as string,
-    name: project.name as string,
-    status: project.status as string,
+    name: (project.name as string | null | undefined) ?? (project.id as string),
+    status:
+      (project.status as string | null | undefined) ??
+      // No status -> derive it from archived_at, the unambiguous signal.
+      ((project.archived_at as number | null | undefined) == null ? "active" : "archived"),
   };
 }
 
@@ -309,24 +343,33 @@ function parseApiKey(raw: unknown): {
     user: isObj,
     service_account: isObj,
   });
+  // Owner sub-objects per the current vendor schema: user is
+  // {id, email, name, created_at, role}, service account is
+  // {id, name, created_at, role} - neither carries an `object` discriminator
+  // anymore. The legacy shape (object + added_at, no created_at) is
+  // tolerated so a vendor rollback cannot fail the sync: only the fields
+  // the connector consumes are required.
   let ownerEmail: string | undefined;
   if (owner.type === "user") {
     const user = parseStrict("openai api key owner user", owner.user, {
-      object: literal("organization.project.user"),
       id: nonEmptyStr,
-      name: strOrNull,
       email: nonEmptyStr,
+    }, {
+      name: strOrNull,
+      created_at: isInt,
       role: nonEmptyStr,
+      object: isStr,
       added_at: isInt,
     });
     ownerEmail = user.email as string;
   } else {
     parseStrict("openai api key owner service account", owner.service_account, {
-      object: literal("organization.project.service_account"),
       id: nonEmptyStr,
-      name: strOrNull,
-      role: nonEmptyStr,
+      name: isStr,
+    }, {
       created_at: isInt,
+      role: nonEmptyStr,
+      object: isStr,
     });
   }
   return {
@@ -350,21 +393,26 @@ function parseUsageResult(raw: unknown): {
   audioOutput: number;
   batch: boolean;
 } {
+  // Vendor schema: only object/input_tokens/output_tokens/num_model_requests
+  // are required; the cached and audio token counts are optional (absent =
+  // zero). We group by user_id/api_key_id/model/batch, so those come back on
+  // every row - but model and batch are the only ones a row cannot work
+  // without (no model = unpriceable, spec 3).
   const result = parseStrict("openai usage result", raw, {
     object: literal("organization.usage.completions.result"),
     input_tokens: isInt,
     output_tokens: isInt,
-    input_cached_tokens: isInt,
-    input_audio_tokens: isInt,
-    output_audio_tokens: isInt,
     num_model_requests: isInt,
-    project_id: strOrNull,
     user_id: strOrNull,
     api_key_id: strOrNull,
     // We group by model and batch, so both must be present.
     model: nonEmptyStr,
     batch: isBool,
   }, {
+    input_cached_tokens: isInt,
+    input_audio_tokens: isInt,
+    output_audio_tokens: isInt,
+    project_id: strOrNull,
     service_tier: strOrNull,
   });
   return {
@@ -372,10 +420,10 @@ function parseUsageResult(raw: unknown): {
     apiKeyId: result.api_key_id as string | null,
     model: result.model as string,
     input: result.input_tokens as number,
-    cachedInput: result.input_cached_tokens as number,
+    cachedInput: (result.input_cached_tokens as number | undefined) ?? 0,
     output: result.output_tokens as number,
-    audioInput: result.input_audio_tokens as number,
-    audioOutput: result.output_audio_tokens as number,
+    audioInput: (result.input_audio_tokens as number | undefined) ?? 0,
+    audioOutput: (result.output_audio_tokens as number | undefined) ?? 0,
     batch: result.batch as boolean,
   };
 }
@@ -449,12 +497,18 @@ function costFacts(label: string, body: unknown): FactInput[] {
     });
     const day = bucketDay("openai cost bucket", bucket.start_time as number);
     for (const raw of bucket.results as unknown[]) {
+      // We group by project_id + line_item, so both come back on every row.
+      // api_key_id (null unless grouped by it) and quantity (the line item's
+      // unit count) ride along per the vendor schema; organization_id covers
+      // the legacy shape.
       const result = parseStrict("openai cost result", raw, {
         object: literal("organization.costs.result"),
         amount: isObj,
         line_item: strOrNull,
         project_id: strOrNull,
       }, {
+        api_key_id: strOrNull,
+        quantity: numOrNull,
         organization_id: strOrNull,
       });
       const amount = parseStrict("openai cost amount", result.amount, {
@@ -505,7 +559,7 @@ export const openaiConnector: Connector = {
   historyLimitDays: OPENAI_HISTORY_LIMIT_DAYS,
   connectNotes: [
     "Needs an Admin API key (sk-admin-..., created by an organization owner in the OpenAI platform) with the read scopes api.management.read and api.usage.read.",
-    "OpenAI's cost report groups dollars by project and line item only - it has no user grouping. Per-user dollars are token counts priced with the pinned model price table, always marked estimated.",
+    "OpenAI's cost report groups dollars by project, line item and API key - it has no user grouping. Per-user dollars are token counts priced with the pinned model price table, always marked estimated.",
     "Token line items in the cost report are skipped for models we estimate - that money is already on the ledger per user; storing both would double count. Other line items (images, web search, embeddings, ...) are stored as invoiced, unassigned spend per project.",
     "API keys auto-map to their owner's email. Service-account keys have no owner email and surface in the Resolve queue, where they can be routed to a product instead of a person.",
   ],
@@ -545,7 +599,8 @@ export const openaiConnector: Connector = {
           return {
             externalId: user.id,
             kind: "user",
-            email: user.email,
+            // email = the auto-map; a user without one stays unmapped -> Resolve.
+            email: user.email ?? undefined,
             displayName: user.name ?? undefined,
           };
         });
@@ -733,12 +788,16 @@ export async function mintOpenAiKey(
     method: "POST",
     body: { name },
   });
+  // api_key is nullable in the vendor schema - a create that answers
+  // without one is useless to the mint flow, so say that plainly.
   const account = parsePicked("openai service account response", body, {
     object: literal("organization.project.service_account"),
     id: nonEmptyStr,
     name: nonEmptyStr,
-    api_key: isObj,
   });
+  if (!isObj(account.api_key)) {
+    throw new Error("openai created the service account but returned no API key");
+  }
   const key = parsePicked("openai service account api key", account.api_key, {
     object: literal("organization.project.service_account.api_key"),
     id: nonEmptyStr,

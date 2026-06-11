@@ -56,7 +56,8 @@
             "name": "Engineering",
             "created_at": 1761991200,
             "archived_at": null,
-            "status": "active"
+            "status": "active",
+            "external_key_id": null
           },
           {
             "object": "organization.project",
@@ -64,7 +65,8 @@
             "name": "Bots",
             "created_at": 1761991200,
             "archived_at": null,
-            "status": "active"
+            "status": "active",
+            "external_key_id": null
           }
         ],
         "first_id": "proj_eng",
@@ -93,12 +95,11 @@
             "owner": {
               "type": "user",
               "user": {
-                "object": "organization.project.user",
                 "id": "user-dana",
-                "name": "Dana",
                 "email": "dana@acme.com",
+                "name": "Dana",
                 "role": "member",
-                "added_at": 1761991200
+                "created_at": 1761991200
               }
             }
           },
@@ -112,12 +113,11 @@
             "owner": {
               "type": "user",
               "user": {
-                "object": "organization.project.user",
                 "id": "user-omar",
-                "name": "Omar",
                 "email": "omar@acme.com",
+                "name": "Omar",
                 "role": "member",
-                "added_at": 1761991200
+                "created_at": 1761991200
               }
             }
           }
@@ -148,7 +148,6 @@
             "owner": {
               "type": "service_account",
               "service_account": {
-                "object": "organization.project.service_account",
                 "id": "svc_bot",
                 "name": "Support Bot",
                 "role": "member",
@@ -340,7 +339,9 @@
                   "currency": "usd"
                 },
                 "line_item": "GPT-5, input",
-                "project_id": "proj_eng"
+                "project_id": "proj_eng",
+                "api_key_id": null,
+                "quantity": 1000000.0
               },
               {
                 "object": "organization.costs.result",
@@ -349,7 +350,9 @@
                   "currency": "usd"
                 },
                 "line_item": "GPT-5, output",
-                "project_id": "proj_eng"
+                "project_id": "proj_eng",
+                "api_key_id": null,
+                "quantity": 1000000.0
               },
               {
                 "object": "organization.costs.result",
@@ -358,7 +361,9 @@
                   "currency": "usd"
                 },
                 "line_item": "text-embedding-3-small, input",
-                "project_id": "proj_eng"
+                "project_id": "proj_eng",
+                "api_key_id": null,
+                "quantity": 1000000.0
               },
               {
                 "object": "organization.costs.result",
@@ -367,7 +372,9 @@
                   "currency": "usd"
                 },
                 "line_item": "Image models",
-                "project_id": "proj_bots"
+                "project_id": "proj_bots",
+                "api_key_id": null,
+                "quantity": null
               }
             ]
           },
@@ -383,7 +390,9 @@
                   "currency": "usd"
                 },
                 "line_item": "GPT-4o mini, cached input",
-                "project_id": "proj_eng"
+                "project_id": "proj_eng",
+                "api_key_id": null,
+                "quantity": 1000000.0
               },
               {
                 "object": "organization.costs.result",
@@ -392,7 +401,9 @@
                   "currency": "usd"
                 },
                 "line_item": "Web search",
-                "project_id": null
+                "project_id": null,
+                "api_key_id": null,
+                "quantity": null
               }
             ]
           },
@@ -408,7 +419,9 @@
                   "currency": "usd"
                 },
                 "line_item": "Image models",
-                "project_id": "proj_bots"
+                "project_id": "proj_bots",
+                "api_key_id": null,
+                "quantity": null
               }
             ]
           }

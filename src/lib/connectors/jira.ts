@@ -5,7 +5,7 @@ import {
   type StatusBucket,
   type StatusTransition,
 } from "./issues";
-import { isArr, isObj, nonEmptyStr, parsePicked, strOrNull } from "./strict";
+import { isArr, isBool, isInt, isObj, nonEmptyStr, parsePicked, strOrNull } from "./strict";
 import { addDays } from "./sync";
 import type {
   Connector,
@@ -40,6 +40,12 @@ import type {
  * carry status NAMES only, and the default submitted/fail matching needs
  * each status's category. Jira serves full history; backfill is pinned to
  * 365 days.
+ *
+ * The embedded changelog (expand=changelog) serves only the MOST RECENT ~40
+ * histories of an issue; older transitions - including the first submission
+ * - fall off. When the embedded page is short of the issue's total, the
+ * full timeline is re-read from GET /issue/{key}/changelog (paginated,
+ * oldest first) so the state machine never judges a truncated history.
  */
 
 export const JIRA_HISTORY_LIMIT_DAYS = 365;
@@ -130,6 +136,16 @@ export function projectsRequest(site: string, startAt: number): JiraRequest {
   };
 }
 
+/** One page of an issue's FULL changelog, oldest first - the fallback when
+ * the search's embedded changelog is truncated (it caps at the most recent
+ * ~40 histories). */
+export function changelogRequest(site: string, key: string, startAt: number): JiraRequest {
+  return {
+    method: "GET",
+    url: `${site}/rest/api/3/issue/${encodeURIComponent(key)}/changelog?startAt=${startAt}&maxResults=100`,
+  };
+}
+
 const CATEGORY_BUCKETS: Record<string, StatusBucket> = {
   new: "todo",
   indeterminate: "doing",
@@ -198,9 +214,52 @@ interface ParsedIssue {
   creator: JiraActor | null;
   assignee: JiraActor | null;
   transitions: StatusTransition[];
+  /** The embedded changelog served fewer histories than the issue's total -
+   * the oldest transitions are missing and the full changelog must be read
+   * from GET /issue/{key}/changelog before the state machine may judge. */
+  changelogTruncated: boolean;
 }
 
-function parseIssue(raw: unknown, buckets: Map<string, StatusBucket>): ParsedIssue {
+type Move = StatusTransition & { fromName: string | null };
+
+/** The status moves inside a list of changelog histories (search-embedded
+ * `histories` and GET /issue/{key}/changelog `values` share the shape). */
+function parseHistoryMoves(
+  label: string,
+  histories: unknown[],
+  buckets: Map<string, StatusBucket>,
+): Move[] {
+  const moves: Move[] = [];
+  for (const rawHistory of histories) {
+    const history = parsePicked(`${label} history`, rawHistory, {
+      created: nonEmptyStr,
+      items: isArr,
+    });
+    for (const rawItem of history.items as unknown[]) {
+      const item = parsePicked(`${label} history item`, rawItem, { field: nonEmptyStr }, {
+        fromString: strOrNull,
+        toString: strOrNull,
+      });
+      if (item.field !== "status") continue;
+      // Indexed access: "toString" would otherwise resolve to the method.
+      const toName = (item["toString"] as string | null | undefined) ?? null;
+      if (toName === null) continue;
+      moves.push({
+        ts: utcIso(label, history.created as string),
+        name: toName,
+        bucket: buckets.get(toName.toLowerCase()) ?? null,
+        fromName: (item.fromString as string | null | undefined) ?? null,
+      });
+    }
+  }
+  return moves;
+}
+
+function parseIssue(
+  raw: unknown,
+  buckets: Map<string, StatusBucket>,
+  fullHistories?: unknown[],
+): ParsedIssue {
   const issue = parsePicked("jira issue", raw, { key: nonEmptyStr, fields: isObj }, {
     changelog: isObj,
   });
@@ -225,34 +284,23 @@ function parseIssue(raw: unknown, buckets: Map<string, StatusBucket>): ParsedIss
   const project = parsePicked(`${label} project`, fields.project, { key: nonEmptyStr });
 
   // Rebuild the status timeline from the changelog: each status item is one
-  // transition at its history's timestamp.
-  const moves: (StatusTransition & { fromName: string | null })[] = [];
-  if (issue.changelog !== undefined) {
-    const changelog = parsePicked(`${label} changelog`, issue.changelog, {
-      histories: isArr,
-    });
-    for (const rawHistory of changelog.histories as unknown[]) {
-      const history = parsePicked(`${label} history`, rawHistory, {
-        created: nonEmptyStr,
-        items: isArr,
-      });
-      for (const rawItem of history.items as unknown[]) {
-        const item = parsePicked(`${label} history item`, rawItem, { field: nonEmptyStr }, {
-          fromString: strOrNull,
-          toString: strOrNull,
-        });
-        if (item.field !== "status") continue;
-        // Indexed access: "toString" would otherwise resolve to the method.
-        const toName = (item["toString"] as string | null | undefined) ?? null;
-        if (toName === null) continue;
-        moves.push({
-          ts: utcIso(label, history.created as string),
-          name: toName,
-          bucket: buckets.get(toName.toLowerCase()) ?? null,
-          fromName: (item.fromString as string | null | undefined) ?? null,
-        });
-      }
-    }
+  // transition at its history's timestamp. The full changelog, when the
+  // caller had to fetch it, replaces the truncated embedded one.
+  let moves: Move[] = [];
+  let changelogTruncated = false;
+  if (fullHistories !== undefined) {
+    moves = parseHistoryMoves(label, fullHistories, buckets);
+  } else if (issue.changelog !== undefined) {
+    const changelog = parsePicked(
+      `${label} changelog`,
+      issue.changelog,
+      { histories: isArr },
+      { total: isInt },
+    );
+    const histories = changelog.histories as unknown[];
+    const total = (changelog.total as number | undefined) ?? histories.length;
+    changelogTruncated = total > histories.length;
+    moves = parseHistoryMoves(label, histories, buckets);
   }
   moves.sort((a, b) => a.ts.localeCompare(b.ts));
   const transitions: StatusTransition[] = moves.map(({ ts, name, bucket }) => ({
@@ -282,7 +330,29 @@ function parseIssue(raw: unknown, buckets: Map<string, StatusBucket>): ParsedIss
     creator: parseActor(`${label} creator`, fields.creator ?? null),
     assignee: parseActor(`${label} assignee`, fields.assignee ?? null),
     transitions,
+    changelogTruncated,
   };
+}
+
+/** Every changelog history of one issue, walking the vendor's startAt
+ * paging (oldest first) to the end. */
+async function fetchFullChangelog(
+  ctx: ConnectorContext,
+  site: string,
+  key: string,
+): Promise<unknown[]> {
+  const histories: unknown[] = [];
+  for (let startAt = 0; ; ) {
+    const body = await jiraJson(ctx, changelogRequest(site, key, startAt));
+    const page = parsePicked(`jira issue ${key} changelog page`, body, {
+      values: isArr,
+      isLast: isBool,
+    });
+    const values = page.values as unknown[];
+    histories.push(...values);
+    if ((page.isLast as boolean) || values.length === 0) return histories;
+    startAt += values.length;
+  }
 }
 
 function describeActor(actor: JiraActor): IdentityInput {
@@ -374,8 +444,10 @@ export const jiraConnector: Connector = {
     const buckets = parseStatusBuckets(await jiraJson(ctx, statusesRequest(site)));
     const body = await jiraJson(ctx, searchRequest(site, window, pageToken));
     const env = parsePicked("jira search response", body, { issues: isArr }, {
-      nextPageToken: nonEmptyStr,
-      isLast: (v) => typeof v === "boolean",
+      // The vendor documents the last page's token as null (it may also be
+      // omitted entirely - both mean "no next page").
+      nextPageToken: (v) => v === null || nonEmptyStr(v),
+      isLast: isBool,
     });
 
     const stateConfig: IssueStateConfig = {
@@ -385,7 +457,12 @@ export const jiraConnector: Connector = {
     const identities = new Map<string, IdentityInput>();
     const issues: IssueInput[] = [];
     for (const raw of env.issues as unknown[]) {
-      const issue = parseIssue(raw, buckets);
+      let issue = parseIssue(raw, buckets);
+      if (issue.changelogTruncated) {
+        // The embedded changelog dropped the issue's oldest transitions -
+        // judge the full timeline, never the truncated one.
+        issue = parseIssue(raw, buckets, await fetchFullChangelog(ctx, site, issue.key));
+      }
       for (const actor of [issue.creator, issue.assignee]) {
         if (actor !== null) identities.set(actor.accountId, describeActor(actor));
       }
@@ -403,7 +480,7 @@ export const jiraConnector: Connector = {
       });
     }
 
-    const next = (env.nextPageToken as string | undefined) ?? null;
+    const next = (env.nextPageToken as string | null | undefined) ?? null;
     return {
       identities: [...identities.values()],
       facts: [],

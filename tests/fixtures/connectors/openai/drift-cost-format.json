@@ -59,7 +59,9 @@
                 },
                 "line_item": "Web search",
                 "project_id": "proj_eng",
-                "amount_usd": 1.25
+                "amount_usd": 1.25,
+                "api_key_id": null,
+                "quantity": null
               }
             ]
           }
