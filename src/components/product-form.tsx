@@ -14,7 +14,13 @@ import type { Product } from "@/lib/products";
  * changed.) */
 
 export const ATTRIBUTION_OPTIONS = ["connector", "key", "sdk", "manual"] as const;
-export const OUTCOME_OPTIONS = ["none", "github_pr", "sdk_event", "manual"] as const;
+export const OUTCOME_OPTIONS = [
+  "none",
+  "github_pr",
+  "issue_done",
+  "sdk_event",
+  "manual",
+] as const;
 
 /** Raw enums mean nothing to a CFO - label them, and say how the chosen
  * slice actually feeds the ROI (spec 7). */
@@ -33,6 +39,7 @@ const ATTRIBUTION_HINTS: Record<string, string> = {
 export const OUTCOME_LABELS: Record<string, string> = {
   none: "None - cost only",
   github_pr: "Merged PRs",
+  issue_done: "Issues done (Jira/Linear)",
   sdk_event: "track() events",
   manual: "Manual",
 };

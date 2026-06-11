@@ -6,8 +6,8 @@
       "body": {
         "query": "query Issues($from: DateTimeOrDuration!, $to: DateTimeOrDuration!, $after: String) { issues(first: 50, after: $after, filter: { updatedAt: { gte: $from, lt: $to } }) { nodes { identifier title url createdAt team { key } state { name type } creator { id displayName email } assignee { id displayName email } history(first: 50) { nodes { createdAt fromState { name type } toState { name type } } } } pageInfo { hasNextPage endCursor } } }",
         "variables": {
-          "from": "2026-06-06T00:00:00.000Z",
-          "to": "2026-06-14T00:00:00.000Z",
+          "from": "2026-06-12T00:00:00.000Z",
+          "to": "2026-06-20T00:00:00.000Z",
           "after": null
         }
       }
@@ -62,44 +62,6 @@
                     },
                     {
                       "createdAt": "2026-06-02T09:00:00.000Z",
-                      "fromState": {
-                        "name": "Todo",
-                        "type": "unstarted"
-                      },
-                      "toState": {
-                        "name": "In Progress",
-                        "type": "started"
-                      }
-                    }
-                  ]
-                }
-              },
-              {
-                "identifier": "ENG-2",
-                "title": "Add rate limit headers",
-                "url": "https://linear.app/acme/issue/eng-2",
-                "createdAt": "2026-06-07T15:00:00.000Z",
-                "team": {
-                  "key": "ENG"
-                },
-                "state": {
-                  "name": "In Progress",
-                  "type": "started"
-                },
-                "creator": {
-                  "id": "agent-devin",
-                  "displayName": "Devin",
-                  "email": null
-                },
-                "assignee": {
-                  "id": "agent-devin",
-                  "displayName": "Devin",
-                  "email": null
-                },
-                "history": {
-                  "nodes": [
-                    {
-                      "createdAt": "2026-06-08T08:00:00.000Z",
                       "fromState": {
                         "name": "Todo",
                         "type": "unstarted"

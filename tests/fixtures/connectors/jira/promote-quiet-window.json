@@ -51,7 +51,7 @@
       "method": "POST",
       "url": "https://acme.atlassian.net/rest/api/3/search/jql",
       "body": {
-        "jql": "updated >= \"2025-06-11\" AND updated < \"2026-06-12\" ORDER BY updated ASC",
+        "jql": "updated >= \"2026-06-13\" AND updated < \"2026-07-10\" ORDER BY updated ASC",
         "maxResults": 100,
         "fields": [
           "creator",
@@ -69,34 +69,58 @@
       "body": {
         "issues": [
           {
-            "id": "10009",
-            "key": "SUP-9",
+            "id": "10005",
+            "key": "SUP-5",
             "changelog": {
               "startAt": 0,
               "maxResults": 40,
-              "total": 0,
-              "histories": []
+              "total": 2,
+              "histories": [
+                {
+                  "created": "2026-06-13T08:00:00.000+0000",
+                  "items": [
+                    {
+                      "field": "status",
+                      "fieldtype": "jira",
+                      "fromString": "In Progress",
+                      "toString": "Done"
+                    }
+                  ]
+                },
+                {
+                  "created": "2026-06-12T10:00:00.000+0000",
+                  "items": [
+                    {
+                      "field": "status",
+                      "fieldtype": "jira",
+                      "fromString": "To Do",
+                      "toString": "In Progress"
+                    }
+                  ]
+                }
+              ]
             },
             "fields": {
-              "summary": "Drifty",
+              "summary": "Throttle retries",
               "project": {
                 "id": "100",
                 "key": "SUP",
                 "name": "Support"
               },
+              "created": "2026-06-12T09:00:00.000+0000",
               "creator": {
-                "accountId": "5b10dana",
+                "accountId": "5b10omar",
                 "accountType": "atlassian",
-                "emailAddress": "dana@acme.com",
-                "displayName": "Dana"
+                "emailAddress": "omar@acme.com",
+                "displayName": "Omar"
               },
               "assignee": null,
               "status": {
-                "name": "In Progress",
+                "name": "Done",
                 "statusCategory": {
-                  "id": 4,
-                  "key": "indeterminate",
-                  "name": "In Progress"
+                  "id": 3,
+                  "key": "done",
+                  "name": "Done"
                 }
               }
             }

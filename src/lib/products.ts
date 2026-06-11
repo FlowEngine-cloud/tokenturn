@@ -34,8 +34,7 @@ export const ATTRIBUTIONS = ["connector", "key", "sdk", "manual"] as const;
 export const OUTCOME_KINDS = [
   "none",
   "github_pr",
-  "jira_issue",
-  "linear_issue",
+  "issue_done",
   "sdk_event",
   "manual",
 ] as const;
@@ -48,6 +47,50 @@ export function isAttribution(v: unknown): v is Attribution {
 
 export function isOutcomeKind(v: unknown): v is OutcomeKind {
   return typeof v === "string" && (OUTCOME_KINDS as readonly string[]).includes(v);
+}
+
+/**
+ * Built-in default products per connector outcome kind (spec 7: merged PRs
+ * built in for coding; "Issues done" for the Jira/Linear integrations).
+ * Created on first use when no product with that outcome_kind exists, so
+ * connector outcomes always have an ROI row to land in.
+ */
+const DEFAULT_OUTCOME_PRODUCTS: Record<string, string> = {
+  github_pr: "Coding",
+  issue_done: "Issues done",
+};
+
+/** Resolve the product an outcome kind routes to (oldest live match wins). */
+export async function resolveOutcomeProduct(
+  db: Db,
+  kind: string,
+  cache: Map<string, string>,
+): Promise<string> {
+  const cached = cache.get(kind);
+  if (cached) return cached;
+  const select = `SELECT id FROM products
+                  WHERE outcome_kind = $1 AND archived_at IS NULL
+                  ORDER BY created_at, id LIMIT 1`;
+  let { rows } = await db.query(select, [kind]);
+  if (rows.length === 0) {
+    const name = DEFAULT_OUTCOME_PRODUCTS[kind];
+    if (!name) {
+      throw new Error(`no product with outcome_kind ${kind} to route outcomes to`);
+    }
+    await db.query(
+      `INSERT INTO products (name, attribution, outcome_kind)
+       VALUES ($1, 'connector', $2) ON CONFLICT DO NOTHING`,
+      [name, kind],
+    );
+    ({ rows } = await db.query(select, [kind]));
+    if (rows.length === 0) {
+      throw new Error(
+        `cannot create the default "${name}" product for outcome_kind ${kind}: the name is taken`,
+      );
+    }
+  }
+  cache.set(kind, rows[0].id as string);
+  return rows[0].id as string;
 }
 
 /** Money entered by hand: non-negative integer cents. */
@@ -289,6 +332,7 @@ export function productUnit(
 ): string | null {
   if (outcomeKind === "none") return null;
   if (outcomeKind === "github_pr") return "merge";
+  if (outcomeKind === "issue_done") return "issue";
   if (liveKinds.length === 1 && liveKinds[0] !== "manual") return liveKinds[0];
   return "outcome";
 }

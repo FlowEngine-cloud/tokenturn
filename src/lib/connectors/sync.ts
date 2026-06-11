@@ -3,15 +3,18 @@ import type { Pool, PoolClient } from "pg";
 import { getPool } from "../db";
 import { trueUpAfterSync } from "../invoices";
 import { logger, type Logger } from "../logger";
+import { resolveOutcomeProduct } from "../products";
 import { getSetting } from "../settings";
 import { applyTagRouting } from "../tags";
 import { buildContext, connectedRow, getConnectorConfig } from "./connect";
+import { promoteDueIssues, upsertTrackedIssue, windowDaysFrom } from "./issues";
 import { getConnector } from "./registry";
 import type {
   Connector,
   ConnectorPage,
   FactInput,
   IdentityInput,
+  IssueInput,
   MetricInput,
   OutcomeInput,
   RevertInput,
@@ -210,49 +213,18 @@ function validateRevert(revert: RevertInput): void {
   }
 }
 
-/**
- * Built-in default products per outcome kind (spec 7: "GitHub merged PRs as
- * the built-in default for coding"). Created on first use when no product
- * with that outcome_kind exists, so connector outcomes always have a cost
- * center to land in.
- */
-const DEFAULT_OUTCOME_PRODUCTS: Record<string, string> = {
-  github_pr: "Coding",
-  jira_issue: "Jira issues",
-  linear_issue: "Linear issues",
-};
-
-/** Resolve the product an outcome kind routes to (oldest live match wins). */
-async function resolveOutcomeProduct(
-  db: PoolClient,
-  kind: string,
-  cache: Map<string, string>,
-): Promise<string> {
-  const cached = cache.get(kind);
-  if (cached) return cached;
-  const select = `SELECT id FROM products
-                  WHERE outcome_kind = $1 AND archived_at IS NULL
-                  ORDER BY created_at, id LIMIT 1`;
-  let { rows } = await db.query(select, [kind]);
-  if (rows.length === 0) {
-    const name = DEFAULT_OUTCOME_PRODUCTS[kind];
-    if (!name) {
-      throw new Error(`no product with outcome_kind ${kind} to route outcomes to`);
-    }
-    await db.query(
-      `INSERT INTO products (name, attribution, outcome_kind)
-       VALUES ($1, 'connector', $2) ON CONFLICT DO NOTHING`,
-      [name, kind],
-    );
-    ({ rows } = await db.query(select, [kind]));
-    if (rows.length === 0) {
+function validateIssue(issue: IssueInput): void {
+  if (!issue.sourceRef || !issue.key || !issue.project) {
+    throw new Error("connector emitted an issue without a sourceRef, key or project");
+  }
+  for (const field of ["submittedAt", "doneAt", "regressedAt"] as const) {
+    const ts = issue[field];
+    if (ts !== undefined && !validTs(ts)) {
       throw new Error(
-        `cannot create the default "${name}" product for outcome_kind ${kind}: the name is taken`,
+        `connector emitted a bad issue ${field} ${JSON.stringify(ts)} (${issue.key})`,
       );
     }
   }
-  cache.set(kind, rows[0].id as string);
-  return rows[0].id as string;
 }
 
 function identityMapKey(externalId: string, kind: string): string {
@@ -366,10 +338,22 @@ async function reattributeIdentityHistory(
      WHERE identity_id = $1 AND person_id IS DISTINCT FROM $2`,
     [resolved.id, resolved.personId],
   );
+  // Outcomes follow the identity's product routing too (spec 7: an agent's
+  // name-tag pointed at an ROI moves the successes it earned, not just its
+  // spend) - and the issue ledger mirrors it so the ticket drill agrees.
   await db.query(
-    `UPDATE outcomes SET person_id = $2
-     WHERE identity_id = $1 AND person_id IS DISTINCT FROM $2`,
-    [resolved.id, resolved.personId],
+    `UPDATE outcomes
+     SET person_id = $2, product_id = COALESCE($3, product_id)
+     WHERE identity_id = $1
+       AND (person_id IS DISTINCT FROM $2
+         OR ($3::uuid IS NOT NULL AND product_id IS DISTINCT FROM $3))`,
+    [resolved.id, resolved.personId, resolved.productId],
+  );
+  await db.query(
+    `UPDATE issue_tracking SET product_id = $2, updated_at = now()
+     WHERE identity_id = $1 AND $2::uuid IS NOT NULL
+       AND product_id IS DISTINCT FROM $2`,
+    [resolved.id, resolved.productId],
   );
 }
 
@@ -386,7 +370,7 @@ interface PageCommit {
 
 /**
  * Upsert one page and advance the cursor, atomically. Returns rows written
- * (facts + metrics + outcomes + revert flips applied).
+ * (facts + metrics + outcomes + tracked issues + revert flips applied).
  */
 async function commitPage(
   db: PoolClient,
@@ -394,6 +378,7 @@ async function commitPage(
   vendor: string,
   page: ConnectorPage,
   cursor: SyncCursor,
+  issueCtx: { windowDays: number; now: Date },
 ): Promise<PageCommit> {
   await db.query("BEGIN");
   try {
@@ -582,7 +567,32 @@ async function commitPage(
       }
     }
 
-    const rowCount = page.facts.length + metrics.length + outcomes.length + flips;
+    // Tracked issues (success integrations, spec 7): the framework runs the
+    // success state machine per issue - tracking row, emitted/restated
+    // 'issue_done' outcome, or a flip when it regressed inside the window.
+    const issues = page.issues ?? [];
+    let issueRows = 0;
+    for (const issue of issues) {
+      validateIssue(issue);
+      let resolved: ResolvedIdentity | null = null;
+      if (issue.identity) {
+        const key = identityMapKey(issue.identity.externalId, issue.identity.kind);
+        resolved = idMap.get(key) ?? (await ensureIdentity(db, vendor, issue.identity));
+        idMap.set(key, resolved);
+      }
+      issueRows += await upsertTrackedIssue(
+        db,
+        vendor,
+        issue,
+        resolved,
+        issueCtx.windowDays,
+        issueCtx.now,
+        productCache,
+      );
+    }
+
+    const rowCount =
+      page.facts.length + metrics.length + outcomes.length + flips + issueRows;
     await db.query(
       `UPDATE sync_runs
        SET cursor = $2, rows_synced = COALESCE(rows_synced, 0) + $3
@@ -675,7 +685,11 @@ export async function runSync(vendor: string, opts: SyncOpts = {}): Promise<Sync
       );
     }
 
-    const today = utcDay(opts.now ?? new Date());
+    const now = opts.now ?? new Date();
+    const today = utcDay(now);
+    // The per-connection success window (issue integrations, spec 7); inert
+    // for connectors that emit no issues.
+    const issueCtx = { windowDays: windowDaysFrom(config), now };
     const prevWatermark = last?.cursor.watermark ?? null;
     // Resume an interrupted window at its exact page; otherwise open a new one.
     const resume = last?.cursor.inProgress;
@@ -715,7 +729,7 @@ export async function runSync(vendor: string, opts: SyncOpts = {}): Promise<Sync
               watermark: prevWatermark,
               inProgress: { since: window.since, until: window.until, pageToken: page.nextPageToken },
             };
-        const committed = await commitPage(client, runId, vendor, page, cursor);
+        const committed = await commitPage(client, runId, vendor, page, cursor, issueCtx);
         rowsSynced += committed.rows;
         if (committed.factSpan) {
           factSpan = factSpan
@@ -727,6 +741,28 @@ export async function runSync(vendor: string, opts: SyncOpts = {}): Promise<Sync
         }
         if (done) break;
         pageToken = page.nextPageToken;
+      }
+
+      // Promote pending issues whose window passed quietly (spec 7). Only
+      // after a fully successful run: every regression inside the window was
+      // just re-pulled (windows resume from the watermark), so a pending row
+      // that survived the pages really did pass its window untouched.
+      await client.query("BEGIN");
+      try {
+        const promoted = await promoteDueIssues(client, vendor, now, new Map());
+        if (promoted > 0) {
+          rowsSynced += promoted;
+          await client.query(
+            `UPDATE sync_runs
+             SET rows_synced = COALESCE(rows_synced, 0) + $2 WHERE id = $1`,
+            [runId, promoted],
+          );
+          log.info("pending issues promoted to success", { promoted });
+        }
+        await client.query("COMMIT");
+      } catch (err) {
+        await client.query("ROLLBACK").catch(() => {});
+        throw err;
       }
 
       await client.query(

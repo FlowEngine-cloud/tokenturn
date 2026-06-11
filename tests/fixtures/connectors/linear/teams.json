@@ -1,0 +1,30 @@
+[
+  {
+    "request": {
+      "method": "POST",
+      "url": "https://api.linear.app/graphql",
+      "body": {
+        "query": "{ teams(first: 100) { nodes { key name } } }"
+      }
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "data": {
+          "teams": {
+            "nodes": [
+              {
+                "key": "ENG",
+                "name": "Engineering"
+              },
+              {
+                "key": "OPS",
+                "name": "Operations"
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+]

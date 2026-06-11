@@ -1,0 +1,40 @@
+[
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://acme.atlassian.net/rest/api/3/project/search?startAt=0&maxResults=100"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "values": [
+          {
+            "id": "100",
+            "key": "SUP",
+            "name": "Support"
+          }
+        ],
+        "isLast": false
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://acme.atlassian.net/rest/api/3/project/search?startAt=1&maxResults=100"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "values": [
+          {
+            "id": "101",
+            "key": "ENG",
+            "name": "Engineering"
+          }
+        ],
+        "isLast": true
+      }
+    }
+  }
+]

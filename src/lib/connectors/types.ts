@@ -122,6 +122,36 @@ export interface RevertInput {
   targetSha?: string;
 }
 
+/**
+ * One tracked issue from a success integration (spec 7: Jira, Linear),
+ * distilled from its status-transition history (Jira changelog / Linear
+ * history) against the connection's configured statuses. The framework runs
+ * the success state machine on these (lib/connectors/issues.ts): submitted
+ * -> pending; success when the window passes without regression or Done
+ * arrives sooner; fail when it regresses inside the window. Success emits
+ * one 'issue_done' outcome; the issue is counted from history, never from
+ * the status the sync happens to observe.
+ */
+export interface IssueInput {
+  /** The issue's web URL - the outcome's source_ref (drills, and keeps the
+   * two issue vendors from colliding on a shared "ENG-1" key). */
+  sourceRef: string;
+  /** The human key ("ENG-12") - what the ticket drill shows. */
+  key: string;
+  title?: string;
+  /** Jira project key / Linear team key - the project -> ROI mapping unit. */
+  project: string;
+  /** The credited identity (spec 7: agent assignee, agent creator, else the
+   * human creator by email); omitted = unattributed. */
+  identity?: { externalId: string; kind: IdentityInput["kind"] };
+  /** First transition into the connection's "submitted" status, ISO ts. */
+  submittedAt?: string;
+  /** First transition into Done at/after the anchor, ISO ts. */
+  doneAt?: string;
+  /** First regression into the fail status after the anchor, ISO ts. */
+  regressedAt?: string;
+}
+
 /** One page of a sync. nextPageToken null = the window is complete. */
 export interface ConnectorPage {
   identities: IdentityInput[];
@@ -132,6 +162,9 @@ export interface ConnectorPage {
   outcomes?: OutcomeInput[];
   /** Reverts to apply against previously synced outcomes. */
   reverts?: RevertInput[];
+  /** Tracked issues (success integrations) - the framework runs the success
+   * state machine and owns the outcomes they emit. */
+  issues?: IssueInput[];
   nextPageToken: string | null;
 }
 
@@ -147,6 +180,10 @@ export interface ConfigField {
   label: string;
   /** Render as a password input. */
   secret?: boolean;
+  /** May be left empty (the connector applies its default). */
+  optional?: boolean;
+  /** Shown in the empty input - states the default. */
+  placeholder?: string;
 }
 
 export interface Connector {
@@ -173,6 +210,11 @@ export interface Connector {
   connectNotes?: string[];
   /** Credential fields the connect screen collects for this vendor. */
   configFields?: ConfigField[];
+  /**
+   * Success integrations only: the vendor's projects (Jira projects, Linear
+   * teams) - the project -> ROI mapping screen at connect lists these.
+   */
+  listProjects?(ctx: ConnectorContext): Promise<{ key: string; name: string }[]>;
   /**
    * Validate the token's scopes on connect. Throw to reject the connect -
    * the error message is shown to the user verbatim.

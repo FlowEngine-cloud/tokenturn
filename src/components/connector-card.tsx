@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { ConnectorHealth } from "@/lib/connectors/health";
 import { formatCount, timeAgo } from "@/lib/format";
+import { useFetch } from "@/lib/use-fetch";
 import { cn } from "@/lib/utils";
 
 /**
@@ -104,6 +105,77 @@ export function PlugCard({
   );
 }
 
+interface RoutedProject {
+  key: string;
+  name: string;
+  productId: string | null;
+}
+
+/**
+ * The project -> ROI mapping for a connected success integration (spec 7):
+ * one row per Jira project / Linear team, each pointing at an ROI or the
+ * default "Issues done" row. Changes apply retroactively - the project's
+ * counted successes move with it.
+ */
+function ProjectRoutes({ vendor }: { vendor: string }) {
+  const [version, setVersion] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+  const [busyKey, setBusyKey] = useState<string | null>(null);
+  const fetched = useFetch<{ projects: RoutedProject[] }>(
+    `/api/connectors/${vendor}/projects?v=${version}`,
+  );
+  const { data: productsData } = useFetch<{ products: { id: string; name: string }[] }>(
+    "/api/products",
+  );
+  if (fetched.error) return <ErrorLine message={fetched.error} />;
+  if (!fetched.data || fetched.data.projects.length === 0) return null;
+
+  async function route(project: string, productId: string | null) {
+    setBusyKey(project);
+    setError(null);
+    const { error: failure } = await send(
+      `/api/connectors/${vendor}/projects`,
+      "PUT",
+      { project, productId },
+    );
+    setBusyKey(null);
+    if (failure) setError(failure);
+    else setVersion((v) => v + 1);
+  }
+
+  return (
+    <div className="space-y-2 border-t pt-3">
+      <p className="text-sm font-medium text-muted-foreground">
+        {vendor === "linear" ? "Teams → ROI" : "Projects → ROI"}
+      </p>
+      <div className="grid gap-2 sm:grid-cols-2">
+        {fetched.data.projects.map((p) => (
+          <div key={p.key} className="flex items-center gap-2">
+            <Label htmlFor={`${vendor}-route-${p.key}`} className="w-40 truncate" title={p.name}>
+              {p.key === p.name ? p.key : `${p.key} · ${p.name}`}
+            </Label>
+            <select
+              id={`${vendor}-route-${p.key}`}
+              className="h-8 flex-1 rounded-md border bg-transparent px-2 text-sm"
+              disabled={busyKey === p.key}
+              value={p.productId ?? ""}
+              onChange={(e) => void route(p.key, e.target.value || null)}
+            >
+              <option value="">Default</option>
+              {(productsData?.products ?? []).map((product) => (
+                <option key={product.id} value={product.id}>
+                  {product.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        ))}
+      </div>
+      <ErrorLine message={error} />
+    </div>
+  );
+}
+
 export function ConnectorCard({
   c,
   isAdmin,
@@ -181,6 +253,7 @@ export function ConnectorCard({
                     id={`${c.vendor}-${field.key}`}
                     type={field.secret ? "password" : "text"}
                     autoComplete="off"
+                    placeholder={field.placeholder}
                     className="h-8 w-64"
                     disabled={busy}
                     value={config[field.key] ?? ""}
@@ -192,7 +265,10 @@ export function ConnectorCard({
               ))}
               <Button
                 size="sm"
-                disabled={busy || c.configFields.some((f) => !config[f.key]?.trim())}
+                disabled={
+                  busy ||
+                  c.configFields.some((f) => !f.optional && !config[f.key]?.trim())
+                }
                 onClick={() =>
                   run(() =>
                     send(`/api/connectors/${c.vendor}/connect`, "POST", { config }),
@@ -243,6 +319,7 @@ export function ConnectorCard({
           </Link>
         </div>
       )}
+      {c.connected && c.successOnly && isAdmin && <ProjectRoutes vendor={c.vendor} />}
       <ErrorLine message={error} />
     </PlugCard>
   );

@@ -18,6 +18,7 @@ import { RowLink, Tile } from "@/components/tile";
 import { TrendBars } from "@/components/trend-bars";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import type { TrackedIssueRow } from "@/lib/connectors/issues";
 import { formatCents, formatCount, shortDay } from "@/lib/format";
 import type {
   ManualEntry,
@@ -115,7 +116,7 @@ export default function ProductClient() {
   // (a skeleton swap would eat the form's "saved" state mid-edit).
   const [version, setVersion] = useState(0);
   const { data: auth } = useFetch<{ user: { role: string } | null }>("/api/auth/state");
-  const fetched = useFetch<ProductDetail>(
+  const fetched = useFetch<ProductDetail & { issues: TrackedIssueRow[] }>(
     `/api/products/${id}?from=${range.from}&to=${range.to}&v=${version}`,
   );
   const data = useLatest(fetched.data);
@@ -216,6 +217,62 @@ export default function ProductClient() {
       csv: (r) => (r.valueCents === null ? null : (r.valueCents / 100).toFixed(2)),
     },
     { key: "note", header: "Note", render: (r) => r.note ?? "–", csv: (r) => r.note },
+  ];
+
+  // The ticket list behind the issue successes (spec 7): every tracked
+  // Jira/Linear issue routed here, with the state the machine derived from
+  // its status history. The key links to the real issue - the drill.
+  const ISSUE_STATUS_CLASS: Record<TrackedIssueRow["status"], string> = {
+    pending: "text-muted-foreground",
+    success: "text-green-700",
+    fail: "text-amber-700",
+  };
+  const issueColumns: Column<TrackedIssueRow>[] = [
+    {
+      key: "key",
+      header: "Issue",
+      render: (r) => (
+        <a
+          href={r.sourceRef}
+          target="_blank"
+          rel="noreferrer"
+          className="font-mono text-sm underline-offset-2 hover:underline"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {r.key}
+        </a>
+      ),
+      csv: (r) => r.key,
+    },
+    {
+      key: "title",
+      header: "Title",
+      render: (r) => <span className="line-clamp-1">{r.title ?? "–"}</span>,
+      csv: (r) => r.title,
+    },
+    { key: "project", header: "Project", render: (r) => r.project, csv: (r) => r.project },
+    {
+      key: "who",
+      header: "Who",
+      render: (r) => r.personName ?? r.personEmail ?? r.identityName ?? "–",
+      csv: (r) => r.personName ?? r.personEmail ?? r.identityName,
+    },
+    {
+      key: "status",
+      header: "Status",
+      render: (r) => <span className={ISSUE_STATUS_CLASS[r.status]}>{r.status}</span>,
+      csv: (r) => r.status,
+    },
+    {
+      key: "day",
+      header: "Day",
+      align: "right",
+      render: (r) =>
+        r.decidedAt !== null
+          ? shortDay(r.decidedAt.slice(0, 10))
+          : `window ends ${shortDay(r.windowEnd.slice(0, 10))}`,
+      csv: (r) => (r.decidedAt ?? r.windowEnd).slice(0, 10),
+    },
   ];
 
   const dailyColumns: Column<ProductDailyRow>[] = [
@@ -405,6 +462,19 @@ export default function ProductClient() {
             rowKey={(r) => r.id}
             csvName="ai-pnl-roi-keys.csv"
             rowHref={(r) => withRange(`/keys/${r.id}`, range)}
+            maxHeightClass="max-h-96"
+          />
+        </section>
+      )}
+
+      {data.issues.length > 0 && (
+        <section className="space-y-2">
+          <h2 className="text-sm font-medium text-muted-foreground">Issues</h2>
+          <DataTable
+            columns={issueColumns}
+            rows={data.issues}
+            rowKey={(r) => `${r.vendor}:${r.sourceRef}`}
+            csvName="ai-pnl-roi-issues.csv"
             maxHeightClass="max-h-96"
           />
         </section>

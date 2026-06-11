@@ -69,13 +69,19 @@ async function healthFor(
      ORDER BY finished_at DESC LIMIT 1`,
     [vendor],
   );
+  // Success integrations share one outcome kind (issue_done), so their
+  // success count comes from the per-vendor issue ledger; spend connectors
+  // count their own kinds (github_pr).
   const { rows: counts } = await db.query(
     `SELECT
        (SELECT count(*) FROM spend_facts WHERE vendor = $1) AS facts,
        (SELECT count(*) FROM identities WHERE vendor = $1) AS identities,
        (SELECT count(*) FROM usage_metrics WHERE vendor = $1) AS metrics,
-       (SELECT count(*) FROM outcomes WHERE kind = ANY($2)) AS outcomes`,
-    [vendor, connector.outcomeKinds ?? []],
+       CASE WHEN $3 THEN
+         (SELECT count(*) FROM issue_tracking
+          WHERE vendor = $1 AND status = 'success')
+       ELSE (SELECT count(*) FROM outcomes WHERE kind = ANY($2)) END AS outcomes`,
+    [vendor, connector.outcomeKinds ?? [], connector.successOnly === true],
   );
 
   const lastRun = runs[0] ?? null;

@@ -4,7 +4,7 @@
       "method": "POST",
       "url": "https://api.linear.app/graphql",
       "body": {
-        "query": "query Issues($from: DateTimeOrDuration!, $to: DateTimeOrDuration!, $after: String) { issues(first: 100, after: $after, filter: { updatedAt: { gte: $from, lt: $to } }) { nodes { identifier updatedAt completedAt state { type } creator { id displayName email } } pageInfo { hasNextPage endCursor } } }",
+        "query": "query Issues($from: DateTimeOrDuration!, $to: DateTimeOrDuration!, $after: String) { issues(first: 50, after: $after, filter: { updatedAt: { gte: $from, lt: $to } }) { nodes { identifier title url createdAt team { key } state { name type } creator { id displayName email } assignee { id displayName email } history(first: 50) { nodes { createdAt fromState { name type } toState { name type } } } } pageInfo { hasNextPage endCursor } } }",
         "variables": {
           "from": "2025-06-11T00:00:00.000Z",
           "to": "2026-06-12T00:00:00.000Z",
@@ -20,14 +20,43 @@
             "nodes": [
               {
                 "identifier": "ENG-9",
-                "updatedAt": "2026-06-09T10:15:00.000Z",
-                "completedAt": "2026-06-09T10:15:00.000Z",
-                "state": { "type": "completed" },
-                "creator": { "id": "u_dana", "displayName": "Dana", "email": "dana@acme.com" },
-                "priority": 2
+                "title": "Drifty",
+                "url": "https://linear.app/acme/issue/eng-9",
+                "createdAt": "2026-06-01T09:00:00.000Z",
+                "team": {
+                  "key": "ENG"
+                },
+                "state": {
+                  "name": "In Progress",
+                  "type": "started"
+                },
+                "creator": {
+                  "id": "usr-dana",
+                  "displayName": "Dana",
+                  "email": "dana@acme.com"
+                },
+                "assignee": null,
+                "history": {
+                  "nodes": [
+                    {
+                      "createdAt": "2026-06-02T09:00:00.000Z",
+                      "fromState": {
+                        "name": "Todo",
+                        "type": "unstarted"
+                      },
+                      "toState": {
+                        "name": "Paused",
+                        "type": "paused"
+                      }
+                    }
+                  ]
+                }
               }
             ],
-            "pageInfo": { "hasNextPage": false, "endCursor": null }
+            "pageInfo": {
+              "hasNextPage": false,
+              "endCursor": null
+            }
           }
         }
       }

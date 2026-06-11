@@ -1,4 +1,5 @@
 import { badRequest, cleanName, cleanUuid, readJson, requireAdmin, requireUser } from "@/lib/api";
+import { listTrackedIssues } from "@/lib/connectors/issues";
 import { getPool } from "@/lib/db";
 import {
   cleanDay,
@@ -51,7 +52,12 @@ export async function GET(
   if (range instanceof Response) return range;
 
   try {
-    return Response.json(await productDetail(id, range, db));
+    const detail = await productDetail(id, range, db);
+    // The ticket list behind the product's issue successes (spec 7): every
+    // tracked Jira/Linear issue routed here with its pending/success/fail
+    // state, on the same range as the outcome counts.
+    const issues = await listTrackedIssues(id, range, db);
+    return Response.json({ ...detail, issues });
   } catch (error) {
     if (error instanceof ResolveError) {
       return Response.json({ error: error.message }, { status: error.status });
@@ -92,7 +98,7 @@ export async function PATCH(
   }
   if (body.outcomeKind !== undefined) {
     if (!isOutcomeKind(body.outcomeKind)) {
-      return badRequest("outcomeKind must be one of none, github_pr, jira_issue, linear_issue, sdk_event, manual");
+      return badRequest("outcomeKind must be one of none, github_pr, issue_done, sdk_event, manual");
     }
     update.outcomeKind = body.outcomeKind;
   }

@@ -4,7 +4,7 @@
       "method": "POST",
       "url": "https://api.linear.app/graphql",
       "body": {
-        "query": "query Issues($from: DateTimeOrDuration!, $to: DateTimeOrDuration!, $after: String) { issues(first: 100, after: $after, filter: { updatedAt: { gte: $from, lt: $to } }) { nodes { identifier updatedAt completedAt state { type } creator { id displayName email } } pageInfo { hasNextPage endCursor } } }",
+        "query": "query Issues($from: DateTimeOrDuration!, $to: DateTimeOrDuration!, $after: String) { issues(first: 50, after: $after, filter: { updatedAt: { gte: $from, lt: $to } }) { nodes { identifier title url createdAt team { key } state { name type } creator { id displayName email } assignee { id displayName email } history(first: 50) { nodes { createdAt fromState { name type } toState { name type } } } } pageInfo { hasNextPage endCursor } } }",
         "variables": {
           "from": "2025-06-11T00:00:00.000Z",
           "to": "2026-06-12T00:00:00.000Z",
@@ -20,27 +20,92 @@
             "nodes": [
               {
                 "identifier": "ENG-1",
-                "updatedAt": "2026-06-09T10:15:00.000Z",
-                "completedAt": "2026-06-09T10:15:00.000Z",
-                "state": { "type": "completed" },
-                "creator": { "id": "u_dana", "displayName": "Dana", "email": "dana@acme.com" }
+                "title": "Fix OAuth refresh",
+                "url": "https://linear.app/acme/issue/eng-1",
+                "createdAt": "2026-06-01T09:00:00.000Z",
+                "team": {
+                  "key": "ENG"
+                },
+                "state": {
+                  "name": "Done",
+                  "type": "completed"
+                },
+                "creator": {
+                  "id": "usr-dana",
+                  "displayName": "Dana",
+                  "email": "dana@acme.com"
+                },
+                "assignee": null,
+                "history": {
+                  "nodes": [
+                    {
+                      "createdAt": "2026-06-09T10:15:00.000Z",
+                      "fromState": {
+                        "name": "In Progress",
+                        "type": "started"
+                      },
+                      "toState": {
+                        "name": "Done",
+                        "type": "completed"
+                      }
+                    },
+                    {
+                      "createdAt": "2026-06-02T09:00:00.000Z",
+                      "fromState": {
+                        "name": "Todo",
+                        "type": "unstarted"
+                      },
+                      "toState": {
+                        "name": "In Progress",
+                        "type": "started"
+                      }
+                    }
+                  ]
+                }
               },
               {
                 "identifier": "ENG-2",
-                "updatedAt": "2026-06-10T09:00:00.000Z",
-                "completedAt": null,
-                "state": { "type": "started" },
-                "creator": { "id": "u_omar", "displayName": "Omar", "email": "omar@acme.com" }
-              },
-              {
-                "identifier": "ENG-3",
-                "updatedAt": "2026-06-08T20:00:00.000Z",
-                "completedAt": "2026-06-08T20:00:00.000Z",
-                "state": { "type": "completed" },
-                "creator": null
+                "title": "Add rate limit headers",
+                "url": "https://linear.app/acme/issue/eng-2",
+                "createdAt": "2026-06-07T15:00:00.000Z",
+                "team": {
+                  "key": "ENG"
+                },
+                "state": {
+                  "name": "In Progress",
+                  "type": "started"
+                },
+                "creator": {
+                  "id": "agent-devin",
+                  "displayName": "Devin",
+                  "email": null
+                },
+                "assignee": {
+                  "id": "agent-devin",
+                  "displayName": "Devin",
+                  "email": null
+                },
+                "history": {
+                  "nodes": [
+                    {
+                      "createdAt": "2026-06-08T08:00:00.000Z",
+                      "fromState": {
+                        "name": "Todo",
+                        "type": "unstarted"
+                      },
+                      "toState": {
+                        "name": "In Progress",
+                        "type": "started"
+                      }
+                    }
+                  ]
+                }
               }
             ],
-            "pageInfo": { "hasNextPage": true, "endCursor": "cur2" }
+            "pageInfo": {
+              "hasNextPage": true,
+              "endCursor": "cursor2"
+            }
           }
         }
       }
@@ -51,11 +116,11 @@
       "method": "POST",
       "url": "https://api.linear.app/graphql",
       "body": {
-        "query": "query Issues($from: DateTimeOrDuration!, $to: DateTimeOrDuration!, $after: String) { issues(first: 100, after: $after, filter: { updatedAt: { gte: $from, lt: $to } }) { nodes { identifier updatedAt completedAt state { type } creator { id displayName email } } pageInfo { hasNextPage endCursor } } }",
+        "query": "query Issues($from: DateTimeOrDuration!, $to: DateTimeOrDuration!, $after: String) { issues(first: 50, after: $after, filter: { updatedAt: { gte: $from, lt: $to } }) { nodes { identifier title url createdAt team { key } state { name type } creator { id displayName email } assignee { id displayName email } history(first: 50) { nodes { createdAt fromState { name type } toState { name type } } } } pageInfo { hasNextPage endCursor } } }",
         "variables": {
           "from": "2025-06-11T00:00:00.000Z",
           "to": "2026-06-12T00:00:00.000Z",
-          "after": "cur2"
+          "after": "cursor2"
         }
       }
     },
@@ -66,14 +131,93 @@
           "issues": {
             "nodes": [
               {
-                "identifier": "ENG-4",
-                "updatedAt": "2026-06-10T18:30:00.000Z",
-                "completedAt": "2026-06-10T18:30:00.000Z",
-                "state": { "type": "completed" },
-                "creator": { "id": "u_dana", "displayName": "Dana", "email": "dana@acme.com" }
+                "identifier": "ENG-3",
+                "title": "Migrate event bus",
+                "url": "https://linear.app/acme/issue/eng-3",
+                "createdAt": "2026-05-18T09:00:00.000Z",
+                "team": {
+                  "key": "ENG"
+                },
+                "state": {
+                  "name": "Canceled",
+                  "type": "canceled"
+                },
+                "creator": {
+                  "id": "usr-omar",
+                  "displayName": "Omar",
+                  "email": "omar@acme.com"
+                },
+                "assignee": {
+                  "id": "agent-devin",
+                  "displayName": "Devin",
+                  "email": null
+                },
+                "history": {
+                  "nodes": [
+                    {
+                      "createdAt": "2026-05-25T09:00:00.000Z",
+                      "fromState": {
+                        "name": "In Progress",
+                        "type": "started"
+                      },
+                      "toState": {
+                        "name": "Canceled",
+                        "type": "canceled"
+                      }
+                    },
+                    {
+                      "createdAt": "2026-05-20T09:00:00.000Z",
+                      "fromState": {
+                        "name": "Todo",
+                        "type": "unstarted"
+                      },
+                      "toState": {
+                        "name": "In Progress",
+                        "type": "started"
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "identifier": "OPS-4",
+                "title": "Nightly cache warmup",
+                "url": "https://linear.app/acme/issue/ops-4",
+                "createdAt": "2026-04-01T09:00:00.000Z",
+                "team": {
+                  "key": "OPS"
+                },
+                "state": {
+                  "name": "In Progress",
+                  "type": "started"
+                },
+                "creator": {
+                  "id": "usr-dana",
+                  "displayName": "Dana",
+                  "email": "dana@acme.com"
+                },
+                "assignee": null,
+                "history": {
+                  "nodes": [
+                    {
+                      "createdAt": "2026-04-02T09:00:00.000Z",
+                      "fromState": {
+                        "name": "Todo",
+                        "type": "unstarted"
+                      },
+                      "toState": {
+                        "name": "In Progress",
+                        "type": "started"
+                      }
+                    }
+                  ]
+                }
               }
             ],
-            "pageInfo": { "hasNextPage": false, "endCursor": null }
+            "pageInfo": {
+              "hasNextPage": false,
+              "endCursor": null
+            }
           }
         }
       }

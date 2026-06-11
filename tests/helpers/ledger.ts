@@ -70,3 +70,20 @@ export async function lastRunRow(pool: Pool, vendor: string) {
   );
   return rows[0];
 }
+
+export async function trackedIssueRows(pool: Pool, vendor: string) {
+  const { rows } = await pool.query(
+    `SELECT t.issue_key AS key, t.project, t.status,
+            to_char(t.anchor_ts AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS "anchorTs",
+            to_char(t.decided_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS "decidedAt",
+            pr.name AS product, i.external_id AS "identityExternalId",
+            p.email AS "personEmail"
+     FROM issue_tracking t
+     JOIN products pr ON pr.id = t.product_id
+     LEFT JOIN identities i ON i.id = t.identity_id
+     LEFT JOIN people p ON p.id = i.person_id
+     WHERE t.vendor = $1 ORDER BY t.issue_key`,
+    [vendor],
+  );
+  return rows;
+}

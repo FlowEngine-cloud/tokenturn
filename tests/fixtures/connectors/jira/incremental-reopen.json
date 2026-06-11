@@ -1,12 +1,67 @@
 [
   {
     "request": {
+      "method": "GET",
+      "url": "https://acme.atlassian.net/rest/api/3/status"
+    },
+    "response": {
+      "status": 200,
+      "body": [
+        {
+          "id": "1",
+          "name": "To Do",
+          "statusCategory": {
+            "id": 2,
+            "key": "new",
+            "name": "To Do"
+          }
+        },
+        {
+          "id": "3",
+          "name": "In Progress",
+          "statusCategory": {
+            "id": 4,
+            "key": "indeterminate",
+            "name": "In Progress"
+          }
+        },
+        {
+          "id": "4",
+          "name": "In Review",
+          "statusCategory": {
+            "id": 4,
+            "key": "indeterminate",
+            "name": "In Progress"
+          }
+        },
+        {
+          "id": "5",
+          "name": "Done",
+          "statusCategory": {
+            "id": 3,
+            "key": "done",
+            "name": "Done"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "request": {
       "method": "POST",
       "url": "https://acme.atlassian.net/rest/api/3/search/jql",
       "body": {
         "jql": "updated >= \"2026-06-06\" AND updated < \"2026-06-14\" ORDER BY updated ASC",
         "maxResults": 100,
-        "fields": ["creator", "status", "resolutiondate", "statuscategorychangedate"]
+        "fields": [
+          "creator",
+          "assignee",
+          "status",
+          "summary",
+          "project",
+          "created"
+        ],
+        "expand": "changelog"
       }
     },
     "response": {
@@ -15,40 +70,183 @@
         "issues": [
           {
             "id": "10001",
-            "self": "https://acme.atlassian.net/rest/api/3/issue/10001",
             "key": "SUP-1",
+            "changelog": {
+              "startAt": 0,
+              "maxResults": 40,
+              "total": 4,
+              "histories": [
+                {
+                  "created": "2026-06-12T08:00:00.000+0000",
+                  "items": [
+                    {
+                      "field": "status",
+                      "fieldtype": "jira",
+                      "fromString": "Done",
+                      "toString": "To Do"
+                    }
+                  ]
+                },
+                {
+                  "created": "2026-06-09T10:15:00.000+0000",
+                  "items": [
+                    {
+                      "field": "status",
+                      "fieldtype": "jira",
+                      "fromString": "In Review",
+                      "toString": "Done"
+                    }
+                  ]
+                },
+                {
+                  "created": "2026-06-05T10:00:00.000+0000",
+                  "items": [
+                    {
+                      "field": "status",
+                      "fieldtype": "jira",
+                      "fromString": "In Progress",
+                      "toString": "In Review"
+                    }
+                  ]
+                },
+                {
+                  "created": "2026-06-02T09:00:00.000+0000",
+                  "items": [
+                    {
+                      "field": "status",
+                      "fieldtype": "jira",
+                      "fromString": "To Do",
+                      "toString": "In Progress"
+                    }
+                  ]
+                }
+              ]
+            },
             "fields": {
+              "summary": "Fix login redirect",
+              "project": {
+                "id": "100",
+                "key": "SUP",
+                "name": "Support"
+              },
+              "created": "2026-06-01T09:00:00.000+0000",
               "creator": {
                 "accountId": "5b10dana",
                 "accountType": "atlassian",
                 "emailAddress": "dana@acme.com",
                 "displayName": "Dana"
               },
+              "assignee": null,
               "status": {
-                "name": "Reopened",
-                "statusCategory": { "id": 2, "key": "new", "name": "To Do" }
+                "name": "To Do",
+                "statusCategory": {
+                  "id": 2,
+                  "key": "new",
+                  "name": "To Do"
+                }
+              }
+            }
+          },
+          {
+            "id": "10002",
+            "key": "SUP-2",
+            "changelog": {
+              "startAt": 0,
+              "maxResults": 40,
+              "total": 1,
+              "histories": [
+                {
+                  "created": "2026-06-08T08:00:00.000+0000",
+                  "items": [
+                    {
+                      "field": "status",
+                      "fieldtype": "jira",
+                      "fromString": "To Do",
+                      "toString": "In Progress"
+                    }
+                  ]
+                }
+              ]
+            },
+            "fields": {
+              "summary": "Rotate deploy keys",
+              "project": {
+                "id": "100",
+                "key": "SUP",
+                "name": "Support"
               },
-              "resolutiondate": null,
-              "statuscategorychangedate": "2026-06-12T08:00:00.000+0000"
+              "created": "2026-06-07T15:00:00.000+0000",
+              "creator": {
+                "accountId": "appbot-1",
+                "accountType": "app",
+                "displayName": "Deploy Agent"
+              },
+              "assignee": null,
+              "status": {
+                "name": "In Progress",
+                "statusCategory": {
+                  "id": 4,
+                  "key": "indeterminate",
+                  "name": "In Progress"
+                }
+              }
             }
           },
           {
             "id": "10005",
-            "self": "https://acme.atlassian.net/rest/api/3/issue/10005",
             "key": "SUP-5",
+            "changelog": {
+              "startAt": 0,
+              "maxResults": 40,
+              "total": 2,
+              "histories": [
+                {
+                  "created": "2026-06-13T08:00:00.000+0000",
+                  "items": [
+                    {
+                      "field": "status",
+                      "fieldtype": "jira",
+                      "fromString": "In Progress",
+                      "toString": "Done"
+                    }
+                  ]
+                },
+                {
+                  "created": "2026-06-12T10:00:00.000+0000",
+                  "items": [
+                    {
+                      "field": "status",
+                      "fieldtype": "jira",
+                      "fromString": "To Do",
+                      "toString": "In Progress"
+                    }
+                  ]
+                }
+              ]
+            },
             "fields": {
+              "summary": "Throttle retries",
+              "project": {
+                "id": "100",
+                "key": "SUP",
+                "name": "Support"
+              },
+              "created": "2026-06-12T09:00:00.000+0000",
               "creator": {
                 "accountId": "5b10omar",
                 "accountType": "atlassian",
                 "emailAddress": "omar@acme.com",
                 "displayName": "Omar"
               },
+              "assignee": null,
               "status": {
                 "name": "Done",
-                "statusCategory": { "id": 3, "key": "done", "name": "Done" }
-              },
-              "resolutiondate": "2026-06-12T12:00:00.000+0000",
-              "statuscategorychangedate": "2026-06-12T12:00:00.000+0000"
+                "statusCategory": {
+                  "id": 3,
+                  "key": "done",
+                  "name": "Done"
+                }
+              }
             }
           }
         ],

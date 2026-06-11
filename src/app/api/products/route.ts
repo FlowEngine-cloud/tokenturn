@@ -36,7 +36,7 @@ export async function POST(req: Request) {
     return badRequest("attribution must be one of connector, key, sdk, manual");
   }
   if (body.outcomeKind !== undefined && !isOutcomeKind(body.outcomeKind)) {
-    return badRequest("outcomeKind must be one of none, github_pr, jira_issue, linear_issue, sdk_event, manual");
+    return badRequest("outcomeKind must be one of none, github_pr, issue_done, sdk_event, manual");
   }
 
   try {

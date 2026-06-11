@@ -192,8 +192,11 @@ export interface Touched extends Omit<Reattributed, "rollups"> {
 /**
  * Point an identity's FULL history (facts, metrics, outcomes) at a person -
  * or at Unassigned (personId null) - and, when a product is given, route its
- * facts there. Only rows that disagree are touched, so re-runs are no-ops.
- * Returns the changed row counts and the UTC day span they cover.
+ * facts AND outcomes there (spec 7: an agent's name-tag pointed at an ROI
+ * moves the successes it earned, not just its spend; the issue ledger
+ * mirrors the move so the ticket drill agrees). Only rows that disagree are
+ * touched, so re-runs are no-ops. Returns the changed row counts and the
+ * UTC day span they cover.
  * (Also used by tag->product routing, spec 7b - see lib/tags.ts.)
  */
 export async function reattribute(
@@ -202,22 +205,21 @@ export async function reattribute(
   personId: string | null,
   productId: string | null = null,
 ): Promise<Touched> {
-  const factWhere = `identity_id = $1
+  const rowWhere = `identity_id = $1
      AND (person_id IS DISTINCT FROM $2
        OR ($3::uuid IS NOT NULL AND product_id IS DISTINCT FROM $3))`;
   const { rows: span } = await db.query(
     `SELECT min(d)::text AS from, max(d)::text AS to FROM (
-       SELECT day AS d FROM spend_facts WHERE ${factWhere}
+       SELECT day AS d FROM spend_facts WHERE ${rowWhere}
        UNION ALL
-       SELECT (ts AT TIME ZONE 'UTC')::date FROM outcomes
-       WHERE identity_id = $1 AND person_id IS DISTINCT FROM $2
+       SELECT (ts AT TIME ZONE 'UTC')::date FROM outcomes WHERE ${rowWhere}
      ) days`,
     [identityId, personId, productId],
   );
   const facts = await db.query(
     `UPDATE spend_facts
      SET person_id = $2, product_id = COALESCE($3, product_id)
-     WHERE ${factWhere}`,
+     WHERE ${rowWhere}`,
     [identityId, personId, productId],
   );
   const metrics = await db.query(
@@ -226,9 +228,16 @@ export async function reattribute(
     [identityId, personId],
   );
   const outcomes = await db.query(
-    `UPDATE outcomes SET person_id = $2
-     WHERE identity_id = $1 AND person_id IS DISTINCT FROM $2`,
-    [identityId, personId],
+    `UPDATE outcomes
+     SET person_id = $2, product_id = COALESCE($3, product_id)
+     WHERE ${rowWhere}`,
+    [identityId, personId, productId],
+  );
+  await db.query(
+    `UPDATE issue_tracking SET product_id = $2, updated_at = now()
+     WHERE identity_id = $1 AND $2::uuid IS NOT NULL
+       AND product_id IS DISTINCT FROM $2`,
+    [identityId, productId],
   );
   return {
     facts: facts.rowCount ?? 0,

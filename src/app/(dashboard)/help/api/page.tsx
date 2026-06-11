@@ -358,8 +358,9 @@ export default function ApiReferencePage() {
             <p>
               Create an ROI row: name, attribution (<Code>connector</Code>,{" "}
               <Code>key</Code>, <Code>sdk</Code>, <Code>manual</Code>), success metric
-              (<Code>none</Code>, <Code>github_pr</Code>, <Code>sdk_event</Code>,{" "}
-              <Code>manual</Code>), optional default value per success.
+              (<Code>none</Code>, <Code>github_pr</Code>, <Code>issue_done</Code>,{" "}
+              <Code>sdk_event</Code>, <Code>manual</Code>), optional default value per
+              success.
             </p>
           </Endpoint>
           <Endpoint methods={["PATCH"]} path="/api/products/{id}" auth="admin">
@@ -444,6 +445,14 @@ export default function ApiReferencePage() {
           <Endpoint methods={["GET", "DELETE"]} path="/api/connectors/{vendor}" auth="admin">
             <p>
               Connector detail; <Code>DELETE</Code> disconnects (synced history stays).
+            </p>
+          </Endpoint>
+          <Endpoint methods={["GET", "PUT"]} path="/api/connectors/{vendor}/projects" auth="admin">
+            <p>
+              Success integrations (Jira, Linear): the project → ROI mapping.{" "}
+              <Code>GET</Code> lists the vendor&apos;s projects/teams with their
+              mapping; <Code>PUT</Code> <Code>{`{"project", "productId"}`}</Code> maps
+              one (null clears it) and re-routes its history retroactively.
             </p>
           </Endpoint>
         </ApiSection>

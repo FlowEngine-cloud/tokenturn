@@ -41,6 +41,21 @@ export {
   connectorHealth,
   type ConnectorHealth,
 } from "./health";
+export {
+  DEFAULT_ISSUE_WINDOW_DAYS,
+  distillTransitions,
+  evaluateIssue,
+  ISSUE_OUTCOME_KIND,
+  listIssueProjectRoutes,
+  listTrackedIssues,
+  setIssueProjectRoute,
+  windowDaysFrom,
+  type IssueProjectRoute,
+  type IssueStateConfig,
+  type StatusBucket,
+  type StatusTransition,
+  type TrackedIssueRow,
+} from "./issues";
 export type {
   ConfigField,
   Connector,
@@ -48,6 +63,7 @@ export type {
   ConnectorPage,
   FactInput,
   IdentityInput,
+  IssueInput,
   MetricInput,
   OutcomeInput,
   RevertInput,
