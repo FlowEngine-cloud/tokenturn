@@ -1,0 +1,19 @@
+[
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.openai.com/v1/organization/users?limit=1"
+    },
+    "response": {
+      "status": 401,
+      "body": {
+        "error": {
+          "message": "Incorrect API key provided: sk-admin***-key. You can find your API key at https://platform.openai.com/settings/organization/admin-keys.",
+          "type": "invalid_request_error",
+          "param": null,
+          "code": "invalid_api_key"
+        }
+      }
+    }
+  }
+]

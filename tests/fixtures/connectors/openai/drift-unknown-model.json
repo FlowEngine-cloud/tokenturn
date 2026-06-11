@@ -1,0 +1,125 @@
+[
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.openai.com/v1/organization/users?limit=100"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "object": "list",
+        "data": [
+          {
+            "object": "organization.user",
+            "id": "user-eve",
+            "name": "Eve",
+            "email": "eve@acme.com",
+            "role": "member",
+            "added_at": 1761991200
+          }
+        ],
+        "first_id": "user-eve",
+        "last_id": "user-eve",
+        "has_more": false
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.openai.com/v1/organization/projects?limit=100&include_archived=true"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "object": "list",
+        "data": [
+          {
+            "object": "organization.project",
+            "id": "proj_eng",
+            "name": "Engineering",
+            "created_at": 1761991200,
+            "archived_at": null,
+            "status": "active"
+          }
+        ],
+        "first_id": "proj_eng",
+        "last_id": "proj_eng",
+        "has_more": false
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.openai.com/v1/organization/projects/proj_eng/api_keys?limit=100"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "object": "list",
+        "data": [
+          {
+            "object": "organization.project.api_key",
+            "id": "key_dana",
+            "name": "dana-laptop",
+            "redacted_value": "sk-...ana",
+            "created_at": 1762000000,
+            "last_used_at": 1781000000,
+            "owner": {
+              "type": "user",
+              "user": {
+                "object": "organization.project.user",
+                "id": "user-dana",
+                "name": "Dana",
+                "email": "dana@acme.com",
+                "role": "member",
+                "added_at": 1761991200
+              }
+            }
+          }
+        ],
+        "first_id": "key_dana",
+        "last_id": "key_dana",
+        "has_more": false
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.openai.com/v1/organization/usage/completions?start_time=1765584000&end_time=1781222400&bucket_width=1d&group_by=user_id&group_by=api_key_id&group_by=model&group_by=batch&limit=31"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "object": "page",
+        "data": [
+          {
+            "object": "bucket",
+            "start_time": 1781049600,
+            "end_time": 1781136000,
+            "results": [
+              {
+                "object": "organization.usage.completions.result",
+                "input_tokens": 1000,
+                "output_tokens": 100,
+                "input_cached_tokens": 0,
+                "input_audio_tokens": 0,
+                "output_audio_tokens": 0,
+                "num_model_requests": 42,
+                "project_id": null,
+                "user_id": "user-eve",
+                "api_key_id": "key_dana",
+                "model": "gpt-6-preview",
+                "batch": false
+              }
+            ]
+          }
+        ],
+        "has_more": false,
+        "next_page": null
+      }
+    }
+  }
+]

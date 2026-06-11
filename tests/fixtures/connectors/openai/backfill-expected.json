@@ -1,0 +1,170 @@
+{
+  "facts": [
+    {
+      "sourceRef": "cost:2026-06-09:proj_bots:Image models",
+      "day": "2026-06-09",
+      "model": null,
+      "tokens": 0,
+      "amountCents": 350,
+      "currency": "USD",
+      "costBasis": "invoiced",
+      "identityExternalId": null,
+      "personEmail": null
+    },
+    {
+      "sourceRef": "cost:2026-06-09:proj_eng:text-embedding-3-small, input",
+      "day": "2026-06-09",
+      "model": null,
+      "tokens": 0,
+      "amountCents": 1234,
+      "currency": "USD",
+      "costBasis": "invoiced",
+      "identityExternalId": null,
+      "personEmail": null
+    },
+    {
+      "sourceRef": "cost:2026-06-10:org:Web search",
+      "day": "2026-06-10",
+      "model": null,
+      "tokens": 0,
+      "amountCents": 125,
+      "currency": "USD",
+      "costBasis": "invoiced",
+      "identityExternalId": null,
+      "personEmail": null
+    },
+    {
+      "sourceRef": "usage:2026-06-09:none:key_svc:gpt-4.1-2025-04-14:batch",
+      "day": "2026-06-09",
+      "model": "gpt-4.1-2025-04-14",
+      "tokens": 1100000,
+      "amountCents": 140,
+      "currency": "USD",
+      "costBasis": "estimated",
+      "identityExternalId": "key_svc",
+      "personEmail": null
+    },
+    {
+      "sourceRef": "usage:2026-06-09:user-dana:key_dana:gpt-5-2025-08-07:live",
+      "day": "2026-06-09",
+      "model": "gpt-5-2025-08-07",
+      "tokens": 110000,
+      "amountCents": 20,
+      "currency": "USD",
+      "costBasis": "estimated",
+      "identityExternalId": "user-dana",
+      "personEmail": "dana@acme.com"
+    },
+    {
+      "sourceRef": "usage:2026-06-09:user-eve:none:gpt-4o-2024-08-06:live",
+      "day": "2026-06-09",
+      "model": "gpt-4o-2024-08-06",
+      "tokens": 12400,
+      "amountCents": 5,
+      "currency": "USD",
+      "costBasis": "estimated",
+      "identityExternalId": "user-eve",
+      "personEmail": null
+    },
+    {
+      "sourceRef": "usage:2026-06-09:user-omar:key_omar:gpt-4o-mini-2024-07-18:live",
+      "day": "2026-06-09",
+      "model": "gpt-4o-mini-2024-07-18",
+      "tokens": 560000,
+      "amountCents": 11,
+      "currency": "USD",
+      "costBasis": "estimated",
+      "identityExternalId": "user-omar",
+      "personEmail": "omar@acme.com"
+    },
+    {
+      "sourceRef": "usage:2026-06-10:none:none:o4-mini-2025-04-16:live",
+      "day": "2026-06-10",
+      "model": "o4-mini-2025-04-16",
+      "tokens": 48000,
+      "amountCents": 8,
+      "currency": "USD",
+      "costBasis": "estimated",
+      "identityExternalId": null,
+      "personEmail": null
+    },
+    {
+      "sourceRef": "usage:2026-06-10:user-dana:key_dana:gpt-4o-audio-preview-2024-12-17:live",
+      "day": "2026-06-10",
+      "model": "gpt-4o-audio-preview-2024-12-17",
+      "tokens": 18000,
+      "amountCents": 58,
+      "currency": "USD",
+      "costBasis": "estimated",
+      "identityExternalId": "user-dana",
+      "personEmail": "dana@acme.com"
+    },
+    {
+      "sourceRef": "usage:2026-06-10:user-dana:key_dana:gpt-5-2025-08-07:live",
+      "day": "2026-06-10",
+      "model": "gpt-5-2025-08-07",
+      "tokens": 220000,
+      "amountCents": 34,
+      "currency": "USD",
+      "costBasis": "estimated",
+      "identityExternalId": "user-dana",
+      "personEmail": "dana@acme.com"
+    }
+  ],
+  "identities": [
+    {
+      "externalId": "key_dana",
+      "kind": "api_key",
+      "email": "dana@acme.com",
+      "displayName": "dana-laptop",
+      "tags": [
+        "dana-laptop"
+      ],
+      "personEmail": "dana@acme.com"
+    },
+    {
+      "externalId": "key_omar",
+      "kind": "api_key",
+      "email": "omar@acme.com",
+      "displayName": "omar-laptop",
+      "tags": [
+        "omar-laptop"
+      ],
+      "personEmail": "omar@acme.com"
+    },
+    {
+      "externalId": "key_svc",
+      "kind": "api_key",
+      "email": null,
+      "displayName": "support-bot",
+      "tags": [
+        "support-bot"
+      ],
+      "personEmail": null
+    },
+    {
+      "externalId": "user-dana",
+      "kind": "user",
+      "email": "dana@acme.com",
+      "displayName": "Dana",
+      "tags": [],
+      "personEmail": "dana@acme.com"
+    },
+    {
+      "externalId": "user-eve",
+      "kind": "user",
+      "email": "eve@acme.com",
+      "displayName": "Eve",
+      "tags": [],
+      "personEmail": null
+    },
+    {
+      "externalId": "user-omar",
+      "kind": "user",
+      "email": "omar@acme.com",
+      "displayName": "Omar",
+      "tags": [],
+      "personEmail": "omar@acme.com"
+    }
+  ]
+}

@@ -1,0 +1,72 @@
+[
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.openai.com/v1/organization/usage/completions?start_time=1765584000&end_time=1781222400&bucket_width=1d&group_by=user_id&group_by=api_key_id&group_by=model&group_by=batch&limit=31"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "object": "page",
+        "data": [
+          {
+            "object": "bucket",
+            "start_time": 1781049600,
+            "end_time": 1781136000,
+            "results": [
+              {
+                "object": "organization.usage.completions.result",
+                "input_tokens": 1000,
+                "output_tokens": 100,
+                "input_cached_tokens": 0,
+                "input_audio_tokens": 0,
+                "output_audio_tokens": 0,
+                "num_model_requests": 42,
+                "project_id": null,
+                "user_id": "user-eve",
+                "api_key_id": "key_dana",
+                "model": "gpt-4o-2024-08-06",
+                "batch": false
+              }
+            ]
+          }
+        ],
+        "has_more": false,
+        "next_page": null
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.openai.com/v1/organization/costs?start_time=1765584000&end_time=1781222400&bucket_width=1d&group_by=project_id&group_by=line_item&limit=180"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "object": "page",
+        "data": [
+          {
+            "object": "bucket",
+            "start_time": 1781049600,
+            "end_time": 1781136000,
+            "results": [
+              {
+                "object": "organization.costs.result",
+                "amount": {
+                  "value": 1.25,
+                  "currency": "usd"
+                },
+                "line_item": "Web search",
+                "project_id": "proj_eng",
+                "amount_usd": 1.25
+              }
+            ]
+          }
+        ],
+        "has_more": false,
+        "next_page": null
+      }
+    }
+  }
+]

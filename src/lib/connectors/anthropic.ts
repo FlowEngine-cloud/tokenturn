@@ -1,4 +1,15 @@
 import { estimateAnthropicUsdCents } from "./anthropic-prices";
+import {
+  isArr,
+  isBool,
+  isInt,
+  isObj,
+  isStr,
+  literal,
+  nonEmptyStr,
+  parseStrict,
+  strOrNull,
+} from "./strict";
 import { addDays } from "./sync";
 import type {
   Connector,
@@ -88,48 +99,7 @@ const INITIAL_CURSOR: AnthropicCursor = {
 };
 
 // ---------------------------------------------------------------------------
-// Strict parsing - any drift in the vendor format throws, verbatim.
-
-type Check = (v: unknown) => boolean;
-const isStr: Check = (v) => typeof v === "string";
-const nonEmptyStr: Check = (v) => typeof v === "string" && v.length > 0;
-const strOrNull: Check = (v) => v === null || typeof v === "string";
-const isInt: Check = (v) => typeof v === "number" && Number.isInteger(v);
-const isBool: Check = (v) => typeof v === "boolean";
-const isObj: Check = (v) => !!v && typeof v === "object" && !Array.isArray(v);
-const isArr: Check = (v) => Array.isArray(v);
-const literal =
-  (want: string): Check =>
-  (v) =>
-    v === want;
-
-function parseStrict(
-  label: string,
-  raw: unknown,
-  required: Record<string, Check>,
-  optional: Record<string, Check> = {},
-): Record<string, unknown> {
-  if (!isObj(raw)) {
-    throw new Error(`${label} is not an object: ${JSON.stringify(raw)}`);
-  }
-  const record = raw as Record<string, unknown>;
-  for (const key of Object.keys(record)) {
-    if (!(key in required) && !(key in optional)) {
-      throw new Error(`${label}: unexpected field "${key}"`);
-    }
-  }
-  for (const [key, ok] of Object.entries(required)) {
-    if (!ok(record[key])) {
-      throw new Error(`${label}: missing or invalid "${key}"`);
-    }
-  }
-  for (const [key, ok] of Object.entries(optional)) {
-    if (key in record && !ok(record[key])) {
-      throw new Error(`${label}: missing or invalid "${key}"`);
-    }
-  }
-  return record;
-}
+// Strict parsing (shared helpers in strict.ts) - drift throws, verbatim.
 
 const UTC_MIDNIGHT_RE = /^\d{4}-\d{2}-\d{2}T00:00:00(\.\d+)?Z$/;
 const DAY_OR_MIDNIGHT_RE = /^\d{4}-\d{2}-\d{2}(T00:00:00(\.\d+)?Z)?$/;

@@ -326,7 +326,7 @@ describe.runIf(TEST_DATABASE_URL)("anthropic connector", () => {
       });
       expect(result.status).toBe("error");
       expect(result.error).toBe(
-        'no pinned price for Anthropic model "claude-zeta-9" - add it to the pinned price table (anthropic-prices.ts)',
+        'no pinned price for Anthropic model "claude-zeta-9" - add it to the pinned price file (src/lib/connectors/model-prices.json)',
       );
       expect(await factRows(ctx.pool, "anthropic")).toHaveLength(0);
     });

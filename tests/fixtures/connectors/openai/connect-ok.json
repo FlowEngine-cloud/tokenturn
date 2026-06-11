@@ -1,0 +1,49 @@
+[
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.openai.com/v1/organization/users?limit=1"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "object": "list",
+        "data": [
+          {
+            "object": "organization.user",
+            "id": "user-dana",
+            "name": "Dana",
+            "email": "dana@acme.com",
+            "role": "owner",
+            "added_at": 1761991200
+          }
+        ],
+        "first_id": "user-dana",
+        "last_id": "user-dana",
+        "has_more": false
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.openai.com/v1/organization/costs?start_time=1704067200&limit=1"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "object": "page",
+        "data": [
+          {
+            "object": "bucket",
+            "start_time": 1704067200,
+            "end_time": 1704153600,
+            "results": []
+          }
+        ],
+        "has_more": true,
+        "next_page": "page_probe"
+      }
+    }
+  }
+]

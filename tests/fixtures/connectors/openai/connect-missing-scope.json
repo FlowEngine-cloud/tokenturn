@@ -1,0 +1,44 @@
+[
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.openai.com/v1/organization/users?limit=1"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "object": "list",
+        "data": [
+          {
+            "object": "organization.user",
+            "id": "user-dana",
+            "name": "Dana",
+            "email": "dana@acme.com",
+            "role": "owner",
+            "added_at": 1761991200
+          }
+        ],
+        "first_id": "user-dana",
+        "last_id": "user-dana",
+        "has_more": false
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.openai.com/v1/organization/costs?start_time=1704067200&limit=1"
+    },
+    "response": {
+      "status": 403,
+      "body": {
+        "error": {
+          "message": "You have insufficient permissions for this operation. Missing scopes: api.usage.read. Check that you are using the correct API key.",
+          "type": "invalid_request_error",
+          "param": null,
+          "code": "insufficient_scope"
+        }
+      }
+    }
+  }
+]

@@ -1,0 +1,427 @@
+[
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.openai.com/v1/organization/users?limit=100"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "object": "list",
+        "data": [
+          {
+            "object": "organization.user",
+            "id": "user-dana",
+            "name": "Dana",
+            "email": "dana@acme.com",
+            "role": "owner",
+            "added_at": 1761991200
+          },
+          {
+            "object": "organization.user",
+            "id": "user-omar",
+            "name": "Omar",
+            "email": "omar@acme.com",
+            "role": "member",
+            "added_at": 1761991200
+          },
+          {
+            "object": "organization.user",
+            "id": "user-eve",
+            "name": "Eve",
+            "email": "eve@acme.com",
+            "role": "member",
+            "added_at": 1761991200
+          }
+        ],
+        "first_id": "user-dana",
+        "last_id": "user-eve",
+        "has_more": false
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.openai.com/v1/organization/projects?limit=100&include_archived=true"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "object": "list",
+        "data": [
+          {
+            "object": "organization.project",
+            "id": "proj_eng",
+            "name": "Engineering",
+            "created_at": 1761991200,
+            "archived_at": null,
+            "status": "active"
+          },
+          {
+            "object": "organization.project",
+            "id": "proj_bots",
+            "name": "Bots",
+            "created_at": 1761991200,
+            "archived_at": null,
+            "status": "active"
+          }
+        ],
+        "first_id": "proj_eng",
+        "last_id": "proj_bots",
+        "has_more": false
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.openai.com/v1/organization/projects/proj_eng/api_keys?limit=100"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "object": "list",
+        "data": [
+          {
+            "object": "organization.project.api_key",
+            "id": "key_dana",
+            "name": "dana-laptop",
+            "redacted_value": "sk-...ana",
+            "created_at": 1762000000,
+            "last_used_at": 1781000000,
+            "owner": {
+              "type": "user",
+              "user": {
+                "object": "organization.project.user",
+                "id": "user-dana",
+                "name": "Dana",
+                "email": "dana@acme.com",
+                "role": "member",
+                "added_at": 1761991200
+              }
+            }
+          }
+        ],
+        "first_id": "key_dana",
+        "last_id": "key_dana",
+        "has_more": true
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.openai.com/v1/organization/projects/proj_eng/api_keys?limit=100&after=key_dana"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "object": "list",
+        "data": [
+          {
+            "object": "organization.project.api_key",
+            "id": "key_omar",
+            "name": "omar-laptop",
+            "redacted_value": "sk-...mar",
+            "created_at": 1762000000,
+            "last_used_at": 1781000000,
+            "owner": {
+              "type": "user",
+              "user": {
+                "object": "organization.project.user",
+                "id": "user-omar",
+                "name": "Omar",
+                "email": "omar@acme.com",
+                "role": "member",
+                "added_at": 1761991200
+              }
+            }
+          }
+        ],
+        "first_id": "key_omar",
+        "last_id": "key_omar",
+        "has_more": false
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.openai.com/v1/organization/projects/proj_bots/api_keys?limit=100"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "object": "list",
+        "data": [
+          {
+            "object": "organization.project.api_key",
+            "id": "key_svc",
+            "name": "support-bot",
+            "redacted_value": "sk-...svc",
+            "created_at": 1762000000,
+            "last_used_at": 1781000000,
+            "owner": {
+              "type": "service_account",
+              "service_account": {
+                "object": "organization.project.service_account",
+                "id": "svc_bot",
+                "name": "Support Bot",
+                "role": "member",
+                "created_at": 1762000000
+              }
+            }
+          }
+        ],
+        "first_id": "key_svc",
+        "last_id": "key_svc",
+        "has_more": false
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.openai.com/v1/organization/usage/completions?start_time=1765584000&end_time=1781222400&bucket_width=1d&group_by=user_id&group_by=api_key_id&group_by=model&group_by=batch&limit=31"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "object": "page",
+        "data": [
+          {
+            "object": "bucket",
+            "start_time": 1780963200,
+            "end_time": 1781049600,
+            "results": [
+              {
+                "object": "organization.usage.completions.result",
+                "input_tokens": 100000,
+                "output_tokens": 10000,
+                "input_cached_tokens": 20000,
+                "input_audio_tokens": 0,
+                "output_audio_tokens": 0,
+                "num_model_requests": 42,
+                "project_id": null,
+                "user_id": "user-dana",
+                "api_key_id": "key_dana",
+                "model": "gpt-5-2025-08-07",
+                "batch": false
+              },
+              {
+                "object": "organization.usage.completions.result",
+                "input_tokens": 500000,
+                "output_tokens": 60000,
+                "input_cached_tokens": 0,
+                "input_audio_tokens": 0,
+                "output_audio_tokens": 0,
+                "num_model_requests": 42,
+                "project_id": null,
+                "user_id": "user-omar",
+                "api_key_id": "key_omar",
+                "model": "gpt-4o-mini-2024-07-18",
+                "batch": false
+              },
+              {
+                "object": "organization.usage.completions.result",
+                "input_tokens": 1000000,
+                "output_tokens": 100000,
+                "input_cached_tokens": 0,
+                "input_audio_tokens": 0,
+                "output_audio_tokens": 0,
+                "num_model_requests": 42,
+                "project_id": null,
+                "user_id": null,
+                "api_key_id": "key_svc",
+                "model": "gpt-4.1-2025-04-14",
+                "batch": true
+              },
+              {
+                "object": "organization.usage.completions.result",
+                "input_tokens": 10000,
+                "output_tokens": 2400,
+                "input_cached_tokens": 0,
+                "input_audio_tokens": 0,
+                "output_audio_tokens": 0,
+                "num_model_requests": 42,
+                "project_id": null,
+                "user_id": "user-eve",
+                "api_key_id": null,
+                "model": "gpt-4o-2024-08-06",
+                "batch": false
+              }
+            ]
+          }
+        ],
+        "has_more": true,
+        "next_page": "usage_p2"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.openai.com/v1/organization/usage/completions?start_time=1765584000&end_time=1781222400&bucket_width=1d&group_by=user_id&group_by=api_key_id&group_by=model&group_by=batch&limit=31&page=usage_p2"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "object": "page",
+        "data": [
+          {
+            "object": "bucket",
+            "start_time": 1781049600,
+            "end_time": 1781136000,
+            "results": [
+              {
+                "object": "organization.usage.completions.result",
+                "input_tokens": 200000,
+                "output_tokens": 20000,
+                "input_cached_tokens": 100000,
+                "input_audio_tokens": 0,
+                "output_audio_tokens": 0,
+                "num_model_requests": 42,
+                "project_id": null,
+                "user_id": "user-dana",
+                "api_key_id": "key_dana",
+                "model": "gpt-5-2025-08-07",
+                "batch": false
+              },
+              {
+                "object": "organization.usage.completions.result",
+                "input_tokens": 40000,
+                "output_tokens": 8000,
+                "input_cached_tokens": 0,
+                "input_audio_tokens": 0,
+                "output_audio_tokens": 0,
+                "num_model_requests": 42,
+                "project_id": null,
+                "user_id": null,
+                "api_key_id": null,
+                "model": "o4-mini-2025-04-16",
+                "batch": false
+              },
+              {
+                "object": "organization.usage.completions.result",
+                "input_tokens": 5000,
+                "output_tokens": 1000,
+                "input_cached_tokens": 0,
+                "input_audio_tokens": 10000,
+                "output_audio_tokens": 2000,
+                "num_model_requests": 42,
+                "project_id": null,
+                "user_id": "user-dana",
+                "api_key_id": "key_dana",
+                "model": "gpt-4o-audio-preview-2024-12-17",
+                "batch": false
+              }
+            ]
+          }
+        ],
+        "has_more": false,
+        "next_page": null
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.openai.com/v1/organization/costs?start_time=1765584000&end_time=1781222400&bucket_width=1d&group_by=project_id&group_by=line_item&limit=180"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "object": "page",
+        "data": [
+          {
+            "object": "bucket",
+            "start_time": 1780963200,
+            "end_time": 1781049600,
+            "results": [
+              {
+                "object": "organization.costs.result",
+                "amount": {
+                  "value": 0.23,
+                  "currency": "usd"
+                },
+                "line_item": "GPT-5, input",
+                "project_id": "proj_eng"
+              },
+              {
+                "object": "organization.costs.result",
+                "amount": {
+                  "value": 1.1,
+                  "currency": "usd"
+                },
+                "line_item": "GPT-5, output",
+                "project_id": "proj_eng"
+              },
+              {
+                "object": "organization.costs.result",
+                "amount": {
+                  "value": 12.34,
+                  "currency": "usd"
+                },
+                "line_item": "text-embedding-3-small, input",
+                "project_id": "proj_eng"
+              },
+              {
+                "object": "organization.costs.result",
+                "amount": {
+                  "value": 3.5,
+                  "currency": "usd"
+                },
+                "line_item": "Image models",
+                "project_id": "proj_bots"
+              }
+            ]
+          }
+        ],
+        "has_more": true,
+        "next_page": "costs_p2"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.openai.com/v1/organization/costs?start_time=1765584000&end_time=1781222400&bucket_width=1d&group_by=project_id&group_by=line_item&limit=180&page=costs_p2"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "object": "page",
+        "data": [
+          {
+            "object": "bucket",
+            "start_time": 1781049600,
+            "end_time": 1781136000,
+            "results": [
+              {
+                "object": "organization.costs.result",
+                "amount": {
+                  "value": 0.04,
+                  "currency": "usd"
+                },
+                "line_item": "GPT-4o mini, cached input",
+                "project_id": "proj_eng"
+              },
+              {
+                "object": "organization.costs.result",
+                "amount": {
+                  "value": 1.25,
+                  "currency": "usd"
+                },
+                "line_item": "Web search",
+                "project_id": null
+              }
+            ]
+          }
+        ],
+        "has_more": false,
+        "next_page": null
+      }
+    }
+  }
+]

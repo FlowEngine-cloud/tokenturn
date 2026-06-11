@@ -9,6 +9,7 @@
  */
 
 import { anthropicConnector } from "./anthropic";
+import { openaiConnector } from "./openai";
 import { registerConnector } from "./registry";
 
 export {
@@ -49,5 +50,7 @@ export type {
   SyncWindow,
 } from "./types";
 export { anthropicConnector } from "./anthropic";
+export { openaiConnector } from "./openai";
 
 registerConnector(anthropicConnector);
+registerConnector(openaiConnector);
