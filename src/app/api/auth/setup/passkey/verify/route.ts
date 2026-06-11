@@ -3,6 +3,7 @@ import { badRequest, cleanName, conflict, readJson, tooManyRequests } from "@/li
 import { createSession, isClaimed, jsonWithSession } from "@/lib/auth";
 import { getPool } from "@/lib/db";
 import { logger } from "@/lib/logger";
+import { startOnboarding } from "@/lib/onboarding";
 import { clientKey, rateLimit } from "@/lib/rate-limit";
 import {
   addCredential,
@@ -53,6 +54,8 @@ export async function POST(req: Request) {
     const user = rows[0];
     await addCredential(user.id, credential, client);
     const session = await createSession(user.id, client);
+    // A claim against an empty ledger starts onboarding (spec 10).
+    await startOnboarding(client);
     await client.query("COMMIT");
     logger.info("instance claimed", { userId: user.id, method: "passkey" });
     return jsonWithSession(req, { user }, session);

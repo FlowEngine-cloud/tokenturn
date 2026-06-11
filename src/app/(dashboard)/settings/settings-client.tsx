@@ -3,7 +3,20 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Check, Copy, Loader2 } from "lucide-react";
-import { statusOf } from "@/components/connector-health";
+import { ConnectorCard } from "@/components/connector-card";
+import {
+  ConfirmButton,
+  ErrorLine,
+  send,
+  toCents,
+  useLatest,
+} from "@/components/form-utils";
+import {
+  NewProductForm,
+  ProductFields,
+  productBody,
+  type ProductFieldsValue,
+} from "@/components/product-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -49,33 +62,6 @@ interface UserRow {
   has_password: boolean;
 }
 
-async function send(
-  url: string,
-  method: "POST" | "PATCH" | "PUT" | "DELETE",
-  body?: Record<string, unknown>,
-): Promise<{ error: string | null; data: Record<string, unknown> | null }> {
-  try {
-    const res = await fetch(url, {
-      method,
-      headers: body === undefined ? {} : { "content-type": "application/json" },
-      body: body === undefined ? undefined : JSON.stringify(body),
-    });
-    const data = (await res.json().catch(() => null)) as Record<string, unknown> | null;
-    if (res.ok) return { error: null, data };
-    return {
-      error: (data?.error as string) ?? `request failed (${res.status})`,
-      data: null,
-    };
-  } catch (err) {
-    return { error: err instanceof Error ? err.message : String(err), data: null };
-  }
-}
-
-function ErrorLine({ message }: { message: string | null }) {
-  if (!message) return null;
-  return <p className="text-sm text-destructive">{message}</p>;
-}
-
 function Section({
   title,
   children,
@@ -91,307 +77,7 @@ function Section({
   );
 }
 
-/** Two-step destructive button: first click arms, second fires. */
-function ConfirmButton({
-  label,
-  confirmLabel,
-  disabled,
-  onConfirm,
-}: {
-  label: string;
-  confirmLabel: string;
-  disabled?: boolean;
-  onConfirm: () => void;
-}) {
-  const [armed, setArmed] = useState(false);
-  return (
-    <Button
-      variant={armed ? "destructive" : "ghost"}
-      size="sm"
-      disabled={disabled}
-      onBlur={() => setArmed(false)}
-      onClick={() => {
-        if (armed) {
-          setArmed(false);
-          onConfirm();
-        } else {
-          setArmed(true);
-        }
-      }}
-    >
-      {armed ? confirmLabel : label}
-    </Button>
-  );
-}
-
-/** Dollars typed by a human -> integer cents, or null when not a number. */
-function toCents(text: string): number | null {
-  if (text.trim() === "") return null;
-  const n = Number(text);
-  if (!Number.isFinite(n) || n < 0) return null;
-  return Math.round(n * 100);
-}
-
-// ---- Connectors (spec 5: connect screens state vendor limits verbatim) ----
-
-function ConnectorCard({
-  c,
-  isAdmin,
-  onChanged,
-}: {
-  c: ConnectorHealth;
-  isAdmin: boolean;
-  onChanged: () => void;
-}) {
-  const [config, setConfig] = useState<Record<string, string>>({});
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
-  const status = statusOf(c);
-
-  async function run(action: () => Promise<{ error: string | null; data: Record<string, unknown> | null }>) {
-    setBusy(true);
-    setError(null);
-    setNotice(null);
-    const { error: failure, data } = await action();
-    setBusy(false);
-    if (failure) {
-      setError(failure);
-      return;
-    }
-    const r = data?.run as { status?: string; rowsSynced?: number; error?: string | null } | undefined;
-    if (r) {
-      setNotice(r.status === "success" ? `synced ${formatCount(r.rowsSynced ?? 0)} rows` : null);
-      setError(r.error ?? null);
-    }
-    onChanged();
-  }
-
-  return (
-    <div className="space-y-3 rounded-lg border p-4">
-      <div className="flex flex-wrap items-center gap-3">
-        <span className={cn("h-2 w-2 shrink-0 rounded-full", status.dot)} />
-        <span className="font-medium">{c.displayName}</span>
-        <span className="text-sm text-muted-foreground">{status.label}</span>
-        <span className="flex-1" />
-        {c.connected && (
-          <span className="text-sm text-muted-foreground">
-            {c.lastSuccessAt ? `synced ${timeAgo(c.lastSuccessAt)}` : "never synced"}
-            {" · "}
-            {formatCount(c.rowCounts.spendFacts)} facts ·{" "}
-            {formatCount(c.rowCounts.identities)} identities ·{" "}
-            {formatCount(c.rowCounts.metrics)} metrics
-          </span>
-        )}
-        <Link
-          href={`/drill?view=runs&vendor=${c.vendor}`}
-          className="text-sm text-muted-foreground hover:text-foreground"
-        >
-          Runs →
-        </Link>
-      </div>
-
-      {c.inProgress && (
-        <p className="text-sm text-amber-700">
-          backfilling {c.inProgress.since} → {c.inProgress.until}
-        </p>
-      )}
-      {c.connected && c.lastRun?.error && (
-        <p className="text-sm text-red-600" title={c.lastRun.error}>
-          {c.lastRun.error}
-        </p>
-      )}
-
-      {!c.connected && (
-        <>
-          <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
-            <li>Backfills ~{c.historyLimitDays} days of history on connect.</li>
-            {c.connectNotes.map((note) => (
-              <li key={note}>{note}</li>
-            ))}
-          </ul>
-          {isAdmin ? (
-            <div className="flex flex-wrap items-end gap-2">
-              {c.configFields.map((field) => (
-                <div key={field.key} className="space-y-1">
-                  <Label htmlFor={`${c.vendor}-${field.key}`}>{field.label}</Label>
-                  <Input
-                    id={`${c.vendor}-${field.key}`}
-                    type={field.secret ? "password" : "text"}
-                    autoComplete="off"
-                    className="h-8 w-64"
-                    disabled={busy}
-                    value={config[field.key] ?? ""}
-                    onChange={(e) =>
-                      setConfig((prev) => ({ ...prev, [field.key]: e.target.value }))
-                    }
-                  />
-                </div>
-              ))}
-              <Button
-                size="sm"
-                disabled={busy || c.configFields.some((f) => !config[f.key]?.trim())}
-                onClick={() =>
-                  run(() =>
-                    send(`/api/connectors/${c.vendor}/connect`, "POST", { config }),
-                  )
-                }
-              >
-                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Connect"}
-              </Button>
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">Admin connects vendors.</p>
-          )}
-        </>
-      )}
-
-      {c.connected && isAdmin && (
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={busy}
-            onClick={() => run(() => send(`/api/connectors/${c.vendor}/sync`, "POST"))}
-          >
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Sync now"}
-          </Button>
-          <ConfirmButton
-            label="Disconnect"
-            confirmLabel="Confirm disconnect"
-            disabled={busy}
-            onConfirm={() =>
-              run(() => send(`/api/connectors/${c.vendor}`, "DELETE"))
-            }
-          />
-          {notice && <span className="text-sm text-green-700">{notice}</span>}
-        </div>
-      )}
-      <ErrorLine message={error} />
-    </div>
-  );
-}
-
 // ---- Products = cost centers (spec 7) -------------------------------------
-
-const ATTRIBUTION_OPTIONS = ["connector", "key", "sdk", "manual"] as const;
-const OUTCOME_OPTIONS = ["none", "github_pr", "sdk_event", "manual"] as const;
-
-function ProductFields({
-  value,
-  onChange,
-  disabled,
-  idPrefix,
-}: {
-  value: {
-    name: string;
-    attribution: string;
-    outcomeKind: string;
-    defaultValue: string;
-    defaultCurrency: string;
-  };
-  onChange: (next: ProductFieldsValue) => void;
-  disabled: boolean;
-  idPrefix: string;
-}) {
-  const set = (patch: Partial<ProductFieldsValue>) => onChange({ ...value, ...patch });
-  return (
-    <div className="flex flex-wrap items-end gap-2">
-      <div className="space-y-1">
-        <Label htmlFor={`${idPrefix}-name`}>Name</Label>
-        <Input
-          id={`${idPrefix}-name`}
-          className="h-8 w-44"
-          disabled={disabled}
-          value={value.name}
-          onChange={(e) => set({ name: e.target.value })}
-        />
-      </div>
-      <div className="space-y-1">
-        <Label htmlFor={`${idPrefix}-attribution`}>Spend from</Label>
-        <select
-          id={`${idPrefix}-attribution`}
-          className="h-8 rounded-md border bg-transparent px-2 text-sm"
-          disabled={disabled}
-          value={value.attribution}
-          onChange={(e) => set({ attribution: e.target.value })}
-        >
-          {ATTRIBUTION_OPTIONS.map((a) => (
-            <option key={a} value={a}>
-              {a}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div className="space-y-1">
-        <Label htmlFor={`${idPrefix}-outcome`}>Outcomes</Label>
-        <select
-          id={`${idPrefix}-outcome`}
-          className="h-8 rounded-md border bg-transparent px-2 text-sm"
-          disabled={disabled}
-          value={value.outcomeKind}
-          onChange={(e) => set({ outcomeKind: e.target.value })}
-        >
-          {OUTCOME_OPTIONS.map((k) => (
-            <option key={k} value={k}>
-              {k}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div className="space-y-1">
-        <Label htmlFor={`${idPrefix}-value`}>Value per outcome</Label>
-        <div className="flex gap-1">
-          <Input
-            id={`${idPrefix}-value`}
-            className="h-8 w-24"
-            inputMode="decimal"
-            placeholder="4.50"
-            disabled={disabled}
-            value={value.defaultValue}
-            onChange={(e) => set({ defaultValue: e.target.value })}
-          />
-          <Input
-            aria-label="Value currency"
-            className="h-8 w-16 uppercase"
-            maxLength={3}
-            disabled={disabled}
-            value={value.defaultCurrency}
-            onChange={(e) => set({ defaultCurrency: e.target.value.toUpperCase() })}
-          />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-type ProductFieldsValue = {
-  name: string;
-  attribution: string;
-  outcomeKind: string;
-  defaultValue: string;
-  defaultCurrency: string;
-};
-
-/** name/attribution/outcomeKind/defaultValue form state -> API body. */
-function productBody(value: ProductFieldsValue): Record<string, unknown> | string {
-  if (!value.name.trim()) return "name required";
-  const body: Record<string, unknown> = {
-    name: value.name.trim(),
-    attribution: value.attribution,
-    outcomeKind: value.outcomeKind,
-  };
-  if (value.defaultValue.trim() !== "") {
-    const cents = toCents(value.defaultValue);
-    if (cents === null) return "value per outcome must be a non-negative amount";
-    body.defaultValueCents = cents;
-    body.defaultValueCurrency = value.defaultCurrency || "USD";
-  } else {
-    body.defaultValueCents = null;
-    body.defaultValueCurrency = null;
-  }
-  return body;
-}
 
 function ManualEntryForm({ product, onChanged }: { product: ProductListItem; onChanged: () => void }) {
   const canCost = product.attribution === "manual";
@@ -650,55 +336,6 @@ function ProductRow({
   );
 }
 
-function NewProductForm({ onChanged }: { onChanged: () => void }) {
-  const [fields, setFields] = useState<ProductFieldsValue>({
-    name: "",
-    attribution: "sdk",
-    outcomeKind: "none",
-    defaultValue: "",
-    defaultCurrency: "USD",
-  });
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  return (
-    <div className="space-y-2">
-      <div className="flex flex-wrap items-end gap-2">
-        <ProductFields value={fields} onChange={setFields} disabled={busy} idPrefix="new" />
-        <Button
-          size="sm"
-          disabled={busy || fields.name.trim() === ""}
-          onClick={async () => {
-            const body = productBody(fields);
-            if (typeof body === "string") {
-              setError(body);
-              return;
-            }
-            setBusy(true);
-            setError(null);
-            const { error: failure } = await send("/api/products", "POST", body);
-            setBusy(false);
-            if (failure) {
-              setError(failure);
-            } else {
-              setFields({
-                name: "",
-                attribution: "sdk",
-                outcomeKind: "none",
-                defaultValue: "",
-                defaultCurrency: "USD",
-              });
-              onChanged();
-            }
-          }}
-        >
-          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create"}
-        </Button>
-      </div>
-      <ErrorLine message={error} />
-    </div>
-  );
-}
 
 // ---- Ingest keys (spec 6: minted in Settings, shown once, per product) ----
 
@@ -1151,18 +788,6 @@ function UsersSection({
 }
 
 // ---- Page ------------------------------------------------------------------
-
-/**
- * Keep the last loaded value while a refetch is in flight. Settings refetches
- * after every write (the ?v= bump); without this the page would fall back to
- * the skeleton, unmounting every section - and with them the one-time minted
- * ingest token, "saved" notices and open edit forms.
- */
-function useLatest<T>(value: T | null): T | null {
-  const [last, setLast] = useState<T | null>(null);
-  if (value !== null && value !== last) setLast(value); // derived state, re-renders pre-commit
-  return value ?? last;
-}
 
 export default function SettingsClient() {
   const [version, setVersion] = useState(0);

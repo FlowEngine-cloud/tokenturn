@@ -2,6 +2,7 @@ import { badRequest, cleanName, cleanPassword, conflict, readJson, tooManyReques
 import { createSession, isClaimed, jsonWithSession } from "@/lib/auth";
 import { getPool } from "@/lib/db";
 import { logger } from "@/lib/logger";
+import { startOnboarding } from "@/lib/onboarding";
 import { hashPassword } from "@/lib/password";
 import { clientKey, rateLimit } from "@/lib/rate-limit";
 
@@ -30,6 +31,8 @@ export async function POST(req: Request) {
     );
     const user = rows[0];
     const session = await createSession(user.id, client);
+    // A claim against an empty ledger starts onboarding (spec 10).
+    await startOnboarding(client);
     await client.query("COMMIT");
     logger.info("instance claimed", { userId: user.id, method: "password" });
     return jsonWithSession(req, { user }, session);

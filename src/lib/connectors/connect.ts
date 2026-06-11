@@ -1,4 +1,6 @@
+import { Pool } from "pg";
 import { getPool, type Db } from "../db";
+import { wipeDemoData } from "../demo";
 import { logger } from "../logger";
 import {
   deleteSetting,
@@ -75,6 +77,11 @@ export async function connectConnector(
   const check = await connector.validateScopes(
     buildContext(connector, config, opts.fetch),
   );
+
+  // The first real connector wipes the demo dataset (spec 10, Onboarding).
+  // It runs after the token validated and before anything is stored: a
+  // failed wipe fails the connect cleanly, never mixes demo with real.
+  await wipeDemoData(db instanceof Pool ? db : getPool());
 
   await setSecretSetting(configKey(vendor), JSON.stringify(config), db, opts.dataDir);
   const { rows } = await db.query(

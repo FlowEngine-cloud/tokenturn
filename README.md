@@ -22,6 +22,10 @@ docker compose exec app reset-admin
 
 prints a one-time reset link (valid 30 minutes, single use) to open on your instance's URL.
 
+## Onboarding
+
+Claiming a fresh, empty instance opens one popup: **import employees**, or **start with demo data** (`POST /api/demo`, admin) - about six months of realistic people, keys, tags, products, daily spend, and outcomes written through the normal tables and rollups, so every page looks alive and every demo number still drills to its (demo) source rows. The demo dataset is wiped automatically the moment the first real vendor connects - except any person or product that real data has attached to in the meantime, which stays (only its demo spend disappears). Either choice lands on one screen with the three setup steps - connect a vendor, upload the people CSV, name a product - showing live backfill progress; when the first backfill lands, the screen becomes the Overview. The stage lives in settings (`GET`/`PATCH /api/onboarding`, forward-only `welcome → setup → done`), so instances upgraded from an earlier version never see onboarding. The people CSV import (`POST /api/people/import`, admin, CSV body) auto-detects headers (an email column required; name or first/last optional, extras ignored), `?preview=1` returns per-row verdicts without committing, and a commit is all-or-nothing. Re-import upserts by email case-insensitively and never removes anyone - offboard is the only exit - and identities that synced before their person existed (self-minted keys) auto-match on import, re-attributing their full history.
+
 ## Health
 
 `GET /healthz` returns `200 {"status":"ok","db":"ok"}` when the app and database are up, `503` otherwise. The Docker image ships a matching `HEALTHCHECK`.
