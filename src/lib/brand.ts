@@ -1,6 +1,5 @@
 /**
- * The product name, in one place (still a placeholder - name TBD).
- * Every UI string, page title, email, PDF and the WebAuthn rpName import
- * this, so the eventual rename is a one-line change.
+ * The product name, in one place. Every UI string, page title, email, PDF
+ * and the WebAuthn rpName import this.
  */
-export const APP_NAME = "AI P&L";
+export const APP_NAME = "Tokenturn";

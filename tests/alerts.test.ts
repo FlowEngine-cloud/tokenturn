@@ -13,6 +13,7 @@ import {
   registerAlertSink,
   SLACK_WEBHOOK_SETTING,
 } from "../src/lib/alerts";
+import { APP_NAME } from "../src/lib/brand";
 import { clearEventListeners, emitEvent, type AppEvents } from "../src/lib/events";
 import { checkBurnAlerts } from "../src/lib/limits";
 import { recomputeRollups } from "../src/lib/rollup";
@@ -91,7 +92,7 @@ describe.runIf(TEST_DATABASE_URL)("Slack alert channel", () => {
     expect(formatLimitAlert({ ...LIMIT_EVENT, name: null, thresholdPct: 100 })).toBe(
       "dana@acme.com hit 100% of their $500.00 monthly AI limit: " +
         "$412.10 spent in 2026-03. " +
-        "AI P&L does not hard-stop spend - check vendor-side limits.",
+        `${APP_NAME} does not hard-stop spend - check vendor-side limits.`,
     );
     expect(
       formatAnomalyAlert({

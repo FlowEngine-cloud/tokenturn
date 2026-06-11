@@ -10,6 +10,7 @@ import {
 } from "../ee/lib/scheduled-reports";
 import { PATCH as settingsPatch } from "../src/app/api/settings/route";
 import { createSession, SESSION_COOKIE } from "../src/lib/auth";
+import { APP_NAME } from "../src/lib/brand";
 import { closePool } from "../src/lib/db";
 import { buildMimeMessage, setEmailConfig } from "../src/lib/email";
 import { EE_LOCKED_COPY } from "../src/lib/license";
@@ -77,7 +78,7 @@ describe("the report PDF", () => {
     const text = pdf.toString("latin1");
     expect(text.startsWith("%PDF-1.4\n")).toBe(true);
     expect(text.endsWith("%%EOF\n")).toBe(true);
-    expect(text).toContain("(AI P&L) Tj");
+    expect(text).toContain(`(${APP_NAME}) Tj`);
     expect(text).toContain("Monthly report - May 2026");
     expect(text).toContain("Support bot");
     expect(text).toContain("10.9x");
@@ -217,7 +218,7 @@ describe.runIf(TEST_DATABASE_URL)("scheduled reports tick (spec 11)", () => {
     });
     expect(calls.length).toBe(2);
     const sent = JSON.parse(calls[0].body);
-    expect(sent.subject).toBe("AI P&L monthly report - May 2026");
+    expect(sent.subject).toBe(`${APP_NAME} monthly report - May 2026`);
     expect(sent.attachments).toHaveLength(1);
     expect(sent.attachments[0].filename).toBe("ai-pnl-report-2026-05.pdf");
     expect(
@@ -276,7 +277,7 @@ describe.runIf(TEST_DATABASE_URL)("scheduled reports tick (spec 11)", () => {
   it("builds a deterministic multipart MIME message for SES attachments", () => {
     const mime = buildMimeMessage("reports@acme.com", {
       to: "cfo@acme.com",
-      subject: "AI P&L monthly report - May 2026",
+      subject: `${APP_NAME} monthly report - May 2026`,
       text: "attached",
       attachments: [
         { filename: "r.pdf", contentType: "application/pdf", content: Buffer.from("%PDF-1.4").toString("base64") },

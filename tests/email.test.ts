@@ -7,6 +7,7 @@ import {
   PATCH as settingsPatch,
 } from "../src/app/api/settings/route";
 import { createSession, SESSION_COOKIE } from "../src/lib/auth";
+import { APP_NAME } from "../src/lib/brand";
 import { closePool } from "../src/lib/db";
 import { buildMailgunBody, signSesSendEmail } from "../src/lib/email";
 import { runMigrations } from "../scripts/migrate.mjs";
@@ -191,8 +192,8 @@ describe.runIf(TEST_DATABASE_URL)("email provider (spec 12b)", () => {
     expect(JSON.parse(calls[0].body)).toEqual({
       from: "reports@acme.com",
       to: ["cfo@acme.com"],
-      subject: "AI P&L test email",
-      text: "Your AI P&L email provider works. This is a test send from Settings.",
+      subject: `${APP_NAME} test email`,
+      text: `Your ${APP_NAME} email provider works. This is a test send from Settings.`,
     });
   });
 
@@ -234,8 +235,8 @@ describe.runIf(TEST_DATABASE_URL)("email provider (spec 12b)", () => {
     expect(JSON.parse(calls[0].body)).toEqual({
       From: "reports@acme.com",
       To: "cfo@acme.com",
-      Subject: "AI P&L test email",
-      TextBody: "Your AI P&L email provider works. This is a test send from Settings.",
+      Subject: `${APP_NAME} test email`,
+      TextBody: `Your ${APP_NAME} email provider works. This is a test send from Settings.`,
       MessageStream: "outbound",
     });
 
@@ -283,8 +284,8 @@ describe.runIf(TEST_DATABASE_URL)("email provider (spec 12b)", () => {
     expect(sendMail).toHaveBeenCalledWith({
       from: "reports@acme.com",
       to: "cfo@acme.com",
-      subject: "AI P&L test email",
-      text: "Your AI P&L email provider works. This is a test send from Settings.",
+      subject: `${APP_NAME} test email`,
+      text: `Your ${APP_NAME} email provider works. This is a test send from Settings.`,
       attachments: [],
     });
 
@@ -326,7 +327,7 @@ describe.runIf(TEST_DATABASE_URL)("email provider (spec 12b)", () => {
     const body = Buffer.from(calls[0].body as unknown as Uint8Array).toString("utf8");
     expect(body).toContain('name="from"\r\n\r\nreports@mg.acme.com');
     expect(body).toContain('name="to"\r\n\r\ncfo@acme.com');
-    expect(body).toContain('name="subject"\r\n\r\nAI P&L test email');
+    expect(body).toContain(`name="subject"\r\n\r\n${APP_NAME} test email`);
 
     stubFetch(new Response(JSON.stringify({ message: "Forbidden" }), { status: 401 }));
     const bad = await testSendRoute(
@@ -397,8 +398,8 @@ describe.runIf(TEST_DATABASE_URL)("email provider (spec 12b)", () => {
       Destination: { ToAddresses: ["cfo@acme.com"] },
       Content: {
         Simple: {
-          Subject: { Data: "AI P&L test email" },
-          Body: { Text: { Data: "Your AI P&L email provider works. This is a test send from Settings." } },
+          Subject: { Data: `${APP_NAME} test email` },
+          Body: { Text: { Data: `Your ${APP_NAME} email provider works. This is a test send from Settings.` } },
         },
       },
     });
@@ -423,7 +424,8 @@ describe.runIf(TEST_DATABASE_URL)("email provider (spec 12b)", () => {
         FromEmailAddress: "reports@acme.com",
         Destination: { ToAddresses: ["cfo@acme.com"] },
         Content: {
-          Simple: { Subject: { Data: "AI P&L test email" }, Body: { Text: { Data: "hello" } } },
+          // A fixed payload: this pins the SIGNING, independent of branding.
+          Simple: { Subject: { Data: "Golden test email" }, Body: { Text: { Data: "hello" } } },
         },
       }),
       new Date("2026-06-11T12:00:00Z"),
@@ -433,7 +435,7 @@ describe.runIf(TEST_DATABASE_URL)("email provider (spec 12b)", () => {
     expect(signed.headers.authorization).toBe(
       "AWS4-HMAC-SHA256 Credential=AKIATEST/20260611/us-east-1/ses/aws4_request, " +
         "SignedHeaders=content-type;host;x-amz-date, " +
-        "Signature=34f1efefb87f854a46a77c2589abe7140746584ccbff5801c2aaade5cebd8dea",
+        "Signature=dee04c7a98c193f8b8f144793367f9e8e6417f275556dd9e55d8f8236e93b23d",
     );
   });
 
