@@ -8,6 +8,7 @@ import {
   isObj,
   literal,
   nonEmptyStr,
+  parsePicked,
   parseStrict,
   strOrNull,
 } from "./strict";
@@ -107,9 +108,15 @@ const INITIAL_CURSOR: OpenAiCursor = {
 async function openaiJson(
   ctx: ConnectorContext,
   url: string,
+  init?: { method: "POST" | "DELETE"; body?: Record<string, unknown> },
 ): Promise<Record<string, unknown>> {
   const res = await ctx.fetch(url, {
-    headers: { authorization: `Bearer ${ctx.config.adminKey ?? ""}` },
+    method: init?.method ?? "GET",
+    headers: {
+      authorization: `Bearer ${ctx.config.adminKey ?? ""}`,
+      ...(init?.body !== undefined ? { "content-type": "application/json" } : {}),
+    },
+    ...(init?.body !== undefined ? { body: JSON.stringify(init.body) } : {}),
   });
   const body = (await res.json()) as Record<string, unknown>;
   if (!res.ok) {
@@ -263,7 +270,7 @@ function parseUser(raw: unknown): { id: string; email: string; name: string | nu
 // ---------------------------------------------------------------------------
 // Phase: projects
 
-function parseProject(raw: unknown): { id: string } {
+function parseProject(raw: unknown): { id: string; name: string; status: string } {
   const project = parseStrict("openai project", raw, {
     object: literal("organization.project"),
     id: nonEmptyStr,
@@ -272,7 +279,11 @@ function parseProject(raw: unknown): { id: string } {
     archived_at: intOrNull,
     status: nonEmptyStr,
   });
-  return { id: project.id as string };
+  return {
+    id: project.id as string,
+    name: project.name as string,
+    status: project.status as string,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -615,3 +626,177 @@ export const openaiConnector: Connector = {
     }
   },
 };
+
+// ---------------------------------------------------------------------------
+// Write operations (spec 8 people in/out). NOT part of sync - the connector
+// itself only ever reads - but they live here because they share the vendor
+// auth, base URL, and verbatim-error convention. Write responses feed no
+// ledger numbers, so they are parsed picked, not strict: only the fields we
+// consume are checked.
+
+export function invitesUrl(): string {
+  return `${OPENAI_BASE}/v1/organization/invites`;
+}
+
+export function deleteUserUrl(userId: string): string {
+  return `${OPENAI_BASE}/v1/organization/users/${encodeURIComponent(userId)}`;
+}
+
+export function serviceAccountsUrl(projectId: string): string {
+  return `${OPENAI_BASE}/v1/organization/projects/${encodeURIComponent(projectId)}/service_accounts`;
+}
+
+export function deleteApiKeyUrl(projectId: string, keyId: string): string {
+  return (
+    `${OPENAI_BASE}/v1/organization/projects/${encodeURIComponent(projectId)}` +
+    `/api_keys/${encodeURIComponent(keyId)}`
+  );
+}
+
+/** Invite an email into the OpenAI organization as a reader. */
+export async function inviteOpenAiUser(
+  ctx: ConnectorContext,
+  email: string,
+): Promise<{ inviteId: string }> {
+  const body = await openaiJson(ctx, invitesUrl(), {
+    method: "POST",
+    body: { email, role: "reader" },
+  });
+  const invite = parsePicked("openai invite response", body, {
+    object: literal("organization.invite"),
+    id: nonEmptyStr,
+  });
+  return { inviteId: invite.id as string };
+}
+
+/** Remove a user from the OpenAI organization (their org seat). */
+export async function deleteOpenAiUser(
+  ctx: ConnectorContext,
+  userId: string,
+): Promise<void> {
+  const body = await openaiJson(ctx, deleteUserUrl(userId), { method: "DELETE" });
+  const deleted = parsePicked("openai user delete response", body, {
+    object: literal("organization.user.deleted"),
+    id: nonEmptyStr,
+    deleted: isBool,
+  });
+  if (deleted.deleted !== true) {
+    throw new Error(`openai did not confirm deleting user ${userId}`);
+  }
+}
+
+/** Active (non-archived) projects - the mint flow's project picker. */
+export async function listOpenAiProjects(
+  ctx: ConnectorContext,
+): Promise<{ id: string; name: string }[]> {
+  const projects: { id: string; name: string }[] = [];
+  let after: string | null = null;
+  do {
+    const env = parseListEnvelope(
+      "openai /v1/organization/projects response",
+      await openaiJson(ctx, projectsUrl(after)),
+    );
+    for (const raw of env.data) {
+      const project = parseProject(raw);
+      if (project.status === "active") {
+        projects.push({ id: project.id, name: project.name });
+      }
+    }
+    after = env.hasMore ? env.lastId : null;
+  } while (after !== null);
+  return projects;
+}
+
+export interface MintedOpenAiKey {
+  /** The plaintext API key - shown once, never saved (spec 8). */
+  apiKey: string;
+  /** The key's vendor id - what usage rows attribute to. */
+  keyId: string;
+  serviceAccountId: string;
+  projectId: string;
+  name: string;
+}
+
+/**
+ * Mint an API key (spec 8: "OpenAI minted via API and shown once, never
+ * saved"). OpenAI's Admin API creates keys through project service
+ * accounts: the create response carries the key's plaintext value exactly
+ * once. The caller maps the key to its person and shows the value once -
+ * nothing here stores or logs it.
+ */
+export async function mintOpenAiKey(
+  ctx: ConnectorContext,
+  projectId: string,
+  name: string,
+): Promise<MintedOpenAiKey> {
+  const body = await openaiJson(ctx, serviceAccountsUrl(projectId), {
+    method: "POST",
+    body: { name },
+  });
+  const account = parsePicked("openai service account response", body, {
+    object: literal("organization.project.service_account"),
+    id: nonEmptyStr,
+    name: nonEmptyStr,
+    api_key: isObj,
+  });
+  const key = parsePicked("openai service account api key", account.api_key, {
+    object: literal("organization.project.service_account.api_key"),
+    id: nonEmptyStr,
+    value: nonEmptyStr,
+  });
+  return {
+    apiKey: key.value as string,
+    keyId: key.id as string,
+    serviceAccountId: account.id as string,
+    projectId,
+    name: account.name as string,
+  };
+}
+
+/**
+ * Delete an API key. The delete endpoint is project-scoped but identities
+ * only carry the key id, so this walks the org's projects (archived
+ * included - their keys can still bill) to locate the key first.
+ */
+export async function deleteOpenAiApiKey(
+  ctx: ConnectorContext,
+  keyId: string,
+): Promise<void> {
+  let projectAfter: string | null = null;
+  do {
+    const projectEnv = parseListEnvelope(
+      "openai /v1/organization/projects response",
+      await openaiJson(ctx, projectsUrl(projectAfter)),
+    );
+    for (const rawProject of projectEnv.data) {
+      const project = parseProject(rawProject);
+      let keyAfter: string | null = null;
+      do {
+        const keyEnv = parseListEnvelope(
+          "openai project api_keys response",
+          await openaiJson(ctx, projectApiKeysUrl(project.id, keyAfter)),
+        );
+        for (const rawKey of keyEnv.data) {
+          if (parseApiKey(rawKey).id !== keyId) continue;
+          const body = await openaiJson(ctx, deleteApiKeyUrl(project.id, keyId), {
+            method: "DELETE",
+          });
+          const deleted = parsePicked("openai api key delete response", body, {
+            object: literal("organization.project.api_key.deleted"),
+            id: nonEmptyStr,
+            deleted: isBool,
+          });
+          if (deleted.deleted !== true) {
+            throw new Error(`openai did not confirm deleting API key ${keyId}`);
+          }
+          return;
+        }
+        keyAfter = keyEnv.hasMore ? keyEnv.lastId : null;
+      } while (keyAfter !== null);
+    }
+    projectAfter = projectEnv.hasMore ? projectEnv.lastId : null;
+  } while (projectAfter !== null);
+  throw new Error(
+    `API key ${keyId} was not found in any OpenAI project - it may already be deleted`,
+  );
+}

@@ -1,7 +1,14 @@
 import { badRequest, conflict, readJson, requireAdmin, requireUser } from "@/lib/api";
 import { getPool } from "@/lib/db";
+import {
+  EMAIL_CONFIG_SETTING,
+  emailSummary,
+  setEmailConfig,
+  validateEmailConfig,
+} from "@/lib/email";
 import { unknownCurrencies } from "@/lib/fx";
 import { logger } from "@/lib/logger";
+import { ResolveError } from "@/lib/resolve";
 import {
   deleteSetting,
   getAllSettings,
@@ -18,9 +25,10 @@ import {
 export const dynamic = "force-dynamic";
 
 /**
- * All typed settings (DB values merged over the plan's defaults) plus,
- * for each secret setting (the Slack webhook), whether one is configured -
- * never the value.
+ * All typed settings (DB values merged over the plan's defaults) plus, for
+ * each secret setting (the Slack webhook, the email provider), whether one
+ * is configured - never the value. The email provider additionally reports
+ * its provider name and from address; credentials never leave the server.
  */
 export async function GET(req: Request) {
   const db = getPool();
@@ -29,6 +37,7 @@ export async function GET(req: Request) {
   return Response.json({
     settings: await getAllSettings(db),
     secrets: await secretSettingsPresence(db),
+    email: await emailSummary({ db }),
   });
 }
 
@@ -78,9 +87,10 @@ function isHttpsUrl(value: string): boolean {
 /**
  * Update settings (admin). Body = a partial object of typed keys; every key
  * is validated, and the display currency must be one we can actually convert
- * to - no fake numbers from a currency with no FX rates. Secret keys (the
- * Slack webhook, spec 9) take a string to set (encrypted at rest, never
- * echoed back) or null to clear.
+ * to - no fake numbers from a currency with no FX rates. Secret keys take a
+ * value to set (encrypted at rest, never echoed back) or null to clear: the
+ * Slack webhook (spec 9) takes an https URL, the email provider config
+ * (spec 12b) takes { provider, from, apiKey | accessKeyId+secretAccessKey+region }.
  */
 export async function PATCH(req: Request) {
   const db = getPool();
@@ -91,17 +101,28 @@ export async function PATCH(req: Request) {
   if (!body || Object.keys(body).length === 0) {
     return badRequest("pass at least one setting to change");
   }
-  for (const [key, value] of Object.entries(body)) {
-    if (isSecretSettingKey(key)) {
-      if (value !== null && !(typeof value === "string" && isHttpsUrl(value))) {
-        return badRequest(`${key} must be an https:// URL, or null to clear it`);
+  try {
+    for (const [key, value] of Object.entries(body)) {
+      if (key === EMAIL_CONFIG_SETTING) {
+        if (value !== null) validateEmailConfig(value); // throws ResolveError
+        continue;
       }
-      continue;
+      if (isSecretSettingKey(key)) {
+        if (value !== null && !(typeof value === "string" && isHttpsUrl(value))) {
+          return badRequest(`${key} must be an https:// URL, or null to clear it`);
+        }
+        continue;
+      }
+      if (!isSettingKey(key)) return badRequest(`unknown setting ${key}`);
+      if (!VALIDATORS[key](value)) {
+        return badRequest(`${key} must be ${EXPECTATIONS[key]}`);
+      }
     }
-    if (!isSettingKey(key)) return badRequest(`unknown setting ${key}`);
-    if (!VALIDATORS[key](value)) {
-      return badRequest(`${key} must be ${EXPECTATIONS[key]}`);
+  } catch (error) {
+    if (error instanceof ResolveError) {
+      return Response.json({ error: error.message }, { status: error.status });
     }
+    throw error;
   }
   if (typeof body.display_currency === "string") {
     const unknown = await unknownCurrencies([body.display_currency], db);
@@ -113,7 +134,9 @@ export async function PATCH(req: Request) {
   }
 
   for (const [key, value] of Object.entries(body)) {
-    if (isSecretSettingKey(key)) {
+    if (key === EMAIL_CONFIG_SETTING) {
+      await setEmailConfig(value === null ? null : validateEmailConfig(value), { db });
+    } else if (isSecretSettingKey(key)) {
       if (value === null) await deleteSetting(key, db);
       else await setSecretSetting(key, value as string, db);
     } else {
@@ -124,5 +147,6 @@ export async function PATCH(req: Request) {
   return Response.json({
     settings: await getAllSettings(db),
     secrets: await secretSettingsPresence(db),
+    email: await emailSummary({ db }),
   });
 }

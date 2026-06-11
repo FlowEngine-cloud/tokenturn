@@ -51,7 +51,9 @@ export function SettingsSkeleton() {
 
 interface SettingsPayload {
   settings: SettingValues;
-  secrets: { slack_webhook_url: boolean };
+  secrets: { slack_webhook_url: boolean; email_provider_config: boolean };
+  /** Provider + from of the configured email provider - never the key. */
+  email: { provider: string; from: string } | null;
 }
 
 interface UserRow {
@@ -546,6 +548,224 @@ function AlertsSection({
   );
 }
 
+// ---- Email provider (spec 12b: API key in Settings, encrypted, test-send) -
+
+function EmailSection({
+  email,
+  isAdmin,
+  onChanged,
+}: {
+  email: { provider: string; from: string } | null;
+  isAdmin: boolean;
+  onChanged: () => void;
+}) {
+  const [provider, setProvider] = useState("resend");
+  const [from, setFrom] = useState("");
+  const [apiKey, setApiKey] = useState("");
+  const [accessKeyId, setAccessKeyId] = useState("");
+  const [secretAccessKey, setSecretAccessKey] = useState("");
+  const [region, setRegion] = useState("");
+  const [to, setTo] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [testBusy, setTestBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+
+  async function patch(value: Record<string, unknown> | null) {
+    setBusy(true);
+    setError(null);
+    setNotice(null);
+    const { error: failure } = await send("/api/settings", "PATCH", {
+      email_provider_config: value,
+    });
+    setBusy(false);
+    if (failure) {
+      setError(failure);
+    } else {
+      setApiKey("");
+      setAccessKeyId("");
+      setSecretAccessKey("");
+      setNotice(value === null ? "cleared" : "saved - key encrypted at rest");
+      onChanged();
+    }
+  }
+
+  function save() {
+    const base = { provider, from: from.trim() };
+    void patch(
+      provider === "ses"
+        ? {
+            ...base,
+            accessKeyId: accessKeyId.trim(),
+            secretAccessKey: secretAccessKey.trim(),
+            region: region.trim(),
+          }
+        : { ...base, apiKey: apiKey.trim() },
+    );
+  }
+
+  async function testSend() {
+    setTestBusy(true);
+    setError(null);
+    setNotice(null);
+    const { error: failure, data } = await send("/api/email/test", "POST", {
+      to: to.trim(),
+    });
+    setTestBusy(false);
+    if (failure) setError(failure);
+    else setNotice(`test email sent via ${String(data?.provider)}`);
+  }
+
+  return (
+    <Section title="Email">
+      <div className="flex flex-wrap items-center gap-2">
+        <span
+          className={cn(
+            "h-2 w-2 shrink-0 rounded-full",
+            email ? "bg-green-600" : "bg-muted-foreground/40",
+          )}
+        />
+        <span className="text-sm">
+          {email ? `${email.provider} · from ${email.from}` : "no provider set"}
+        </span>
+        <span className="text-sm text-muted-foreground">
+          · optional - only scheduled features need it; alerts use Slack
+        </span>
+      </div>
+      {isAdmin && (
+        <>
+          <div className="flex flex-wrap items-end gap-2">
+            <div className="space-y-1">
+              <Label htmlFor="email-provider">Provider</Label>
+              <select
+                id="email-provider"
+                className="h-8 rounded-md border bg-transparent px-2 text-sm"
+                disabled={busy}
+                value={provider}
+                onChange={(e) => setProvider(e.target.value)}
+              >
+                <option value="resend">Resend</option>
+                <option value="postmark">Postmark</option>
+                <option value="ses">Amazon SES</option>
+              </select>
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="email-from">From</Label>
+              <Input
+                id="email-from"
+                type="email"
+                className="h-8 w-56"
+                placeholder="reports@acme.com"
+                disabled={busy}
+                value={from}
+                onChange={(e) => setFrom(e.target.value)}
+              />
+            </div>
+            {provider === "ses" ? (
+              <>
+                <div className="space-y-1">
+                  <Label htmlFor="email-access-key">Access key ID</Label>
+                  <Input
+                    id="email-access-key"
+                    className="h-8 w-44"
+                    disabled={busy}
+                    value={accessKeyId}
+                    onChange={(e) => setAccessKeyId(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="email-secret-key">Secret access key</Label>
+                  <Input
+                    id="email-secret-key"
+                    type="password"
+                    autoComplete="off"
+                    className="h-8 w-52"
+                    disabled={busy}
+                    value={secretAccessKey}
+                    onChange={(e) => setSecretAccessKey(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="email-region">Region</Label>
+                  <Input
+                    id="email-region"
+                    className="h-8 w-32"
+                    placeholder="us-east-1"
+                    disabled={busy}
+                    value={region}
+                    onChange={(e) => setRegion(e.target.value)}
+                  />
+                </div>
+              </>
+            ) : (
+              <div className="space-y-1">
+                <Label htmlFor="email-api-key">
+                  {provider === "postmark" ? "Server token" : "API key"}
+                </Label>
+                <Input
+                  id="email-api-key"
+                  type="password"
+                  autoComplete="off"
+                  className="h-8 w-64"
+                  disabled={busy}
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value)}
+                />
+              </div>
+            )}
+            <Button
+              size="sm"
+              disabled={
+                busy ||
+                from.trim() === "" ||
+                (provider === "ses"
+                  ? accessKeyId.trim() === "" ||
+                    secretAccessKey.trim() === "" ||
+                    region.trim() === ""
+                  : apiKey.trim() === "")
+              }
+              onClick={save}
+            >
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : email ? "Replace" : "Save"}
+            </Button>
+            {email && (
+              <ConfirmButton
+                label="Clear"
+                confirmLabel="Confirm clear"
+                disabled={busy}
+                onConfirm={() => void patch(null)}
+              />
+            )}
+          </div>
+          {email && (
+            <div className="flex flex-wrap items-center gap-2">
+              <Input
+                aria-label="Test recipient"
+                type="email"
+                className="h-8 w-56"
+                placeholder="you@acme.com"
+                disabled={testBusy}
+                value={to}
+                onChange={(e) => setTo(e.target.value)}
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={testBusy || to.trim() === ""}
+                onClick={() => void testSend()}
+              >
+                {testBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send test email"}
+              </Button>
+            </div>
+          )}
+          {notice && <p className="text-sm text-green-700">{notice}</p>}
+        </>
+      )}
+      <ErrorLine message={error} />
+    </Section>
+  );
+}
+
 // ---- Display currency + every numeric default in the plan -----------------
 
 function ConfigSection({
@@ -874,6 +1094,8 @@ export default function SettingsClient() {
         isAdmin={isAdmin}
         onChanged={reload}
       />
+
+      <EmailSection email={settingsData.email} isAdmin={isAdmin} onChanged={reload} />
 
       {/* No version key: the form itself is the live copy of these values
         * (nothing else edits them), and a remount would eat the saved notice. */}

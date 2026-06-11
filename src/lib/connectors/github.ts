@@ -200,13 +200,20 @@ const INITIAL_CURSOR: GithubCursor = { phase: "seats", page: 1, chunk: 0, users:
 
 type GhConfig = Record<string, string>;
 
-async function ghJson(ctx: ConnectorContext, url: string): Promise<unknown> {
+async function ghJson(
+  ctx: ConnectorContext,
+  url: string,
+  init?: { method: "POST" | "DELETE"; body?: Record<string, unknown> },
+): Promise<unknown> {
   const res = await ctx.fetch(url, {
+    method: init?.method ?? "GET",
     headers: {
       authorization: `Bearer ${ctx.config.token ?? ""}`,
       accept: "application/vnd.github+json",
       "x-github-api-version": GITHUB_API_VERSION,
+      ...(init?.body !== undefined ? { "content-type": "application/json" } : {}),
     },
+    ...(init?.body !== undefined ? { body: JSON.stringify(init.body) } : {}),
   });
   const body = (await res.json()) as unknown;
   if (!res.ok) {
@@ -935,3 +942,52 @@ export const githubConnector: Connector = {
     }
   },
 };
+
+// ---------------------------------------------------------------------------
+// Write operations (spec 8 people in/out): Copilot seats. NOT part of sync -
+// the connector itself only ever reads - but they live here because they
+// share the vendor auth, base URL, and verbatim-error convention. Copilot's
+// seat APIs are username-keyed, never email-keyed: callers pass the login
+// of an already-mapped GitHub user identity.
+
+export function selectedUsersRequest(org: string): string {
+  return `${GITHUB_API}/orgs/${org}/copilot/billing/selected_users`;
+}
+
+/** Assign a Copilot seat to a username. */
+export async function addCopilotSeat(
+  ctx: ConnectorContext,
+  org: string,
+  login: string,
+): Promise<void> {
+  const body = await ghJson(ctx, selectedUsersRequest(org), {
+    method: "POST",
+    body: { selected_usernames: [login] },
+  });
+  const result = parsePicked("github copilot seat add response", body, {
+    seats_created: isInt,
+  });
+  if ((result.seats_created as number) < 1) {
+    throw new Error(`github created no Copilot seat for ${login} - they may already hold one`);
+  }
+}
+
+/** Cancel a username's Copilot seat. */
+export async function removeCopilotSeat(
+  ctx: ConnectorContext,
+  org: string,
+  login: string,
+): Promise<void> {
+  const body = await ghJson(ctx, selectedUsersRequest(org), {
+    method: "DELETE",
+    body: { selected_usernames: [login] },
+  });
+  const result = parsePicked("github copilot seat cancel response", body, {
+    seats_cancelled: isInt,
+  });
+  if ((result.seats_cancelled as number) < 1) {
+    throw new Error(
+      `github cancelled no Copilot seat for ${login} - they may not hold one anymore`,
+    );
+  }
+}

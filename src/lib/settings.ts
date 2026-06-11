@@ -98,7 +98,10 @@ export async function getAllSettings(db: Db = getPool()): Promise<SettingValues>
  * connector configs go through the connect flow instead). Write-only:
  * the API only ever reports whether one is configured, never the value.
  */
-export const SECRET_SETTING_KEYS = ["slack_webhook_url"] as const;
+export const SECRET_SETTING_KEYS = [
+  "slack_webhook_url",
+  "email_provider_config",
+] as const;
 export type SecretSettingKey = (typeof SECRET_SETTING_KEYS)[number];
 
 export async function secretSettingsPresence(

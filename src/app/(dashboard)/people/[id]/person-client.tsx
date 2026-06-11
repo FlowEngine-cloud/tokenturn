@@ -2,8 +2,11 @@
 
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { DataTable, type Column } from "@/components/data-table";
+import { useLatest } from "@/components/form-utils";
+import { MintOpenAiKey } from "@/components/mint-openai-key";
+import { OffboardPanel } from "@/components/offboard-panel";
 import { RowLink, Tile } from "@/components/tile";
 import { TrendBars } from "@/components/trend-bars";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -16,6 +19,8 @@ import { useFetch } from "@/lib/use-fetch";
  * One person (spec 10 page 2 click-through): spend by vendor, outcomes,
  * $/outcome, trend, daily breakdown, keys and seats, products. Every number
  * links to the raw rows that sum to it; keys click through to /keys/[id].
+ * Admins also act from here (spec 8): mint an OpenAI key (shown once) and
+ * offboard - every key and seat removed, history kept.
  */
 
 export function PersonSkeleton() {
@@ -38,9 +43,23 @@ export default function PersonClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const range = parseRange(searchParams);
-  const { data, error } = useFetch<PersonDetail>(
-    `/api/people/${id}?from=${range.from}&to=${range.to}`,
+  // ?v= bump refetches after a write (mint, offboard). useLatest keeps the
+  // loaded page - and the shown-once minted key - on screen through the
+  // refetch; a RANGE change still shows the skeleton (the kept data is
+  // only reused while its window matches).
+  const [version, setVersion] = useState(0);
+  const reload = () => setVersion((v) => v + 1);
+  const fetched = useFetch<PersonDetail>(
+    `/api/people/${id}?from=${range.from}&to=${range.to}&v=${version}`,
   );
+  const last = useLatest(fetched.data);
+  const data =
+    last && last.from === range.from && last.to === range.to ? last : null;
+  const { error } = fetched;
+  const { data: auth } = useFetch<{ user: { role: string } | null }>(
+    "/api/auth/state",
+  );
+  const isAdmin = auth?.user?.role === "admin";
 
   // A merged-away id answers with its survivor - move the URL onto them.
   useEffect(() => {
@@ -74,7 +93,14 @@ export default function PersonClient() {
       key: "key",
       header: "Key / seat",
       render: (r) => (
-        <span className="font-mono text-sm">{r.displayName ?? r.externalId}</span>
+        <span className="flex items-center gap-2">
+          <span className="font-mono text-sm">{r.displayName ?? r.externalId}</span>
+          {r.deprovisionedAt && (
+            <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-sm text-amber-700">
+              removed
+            </span>
+          )}
+        </span>
       ),
       csv: (r) => r.displayName ?? r.externalId,
     },
@@ -154,6 +180,13 @@ export default function PersonClient() {
           <span className="text-sm text-muted-foreground">
             limit {formatCents(data.person.monthlyLimitUsdCents, "USD")}/mo
           </span>
+        )}
+        {isAdmin && (
+          <OffboardPanel
+            personId={data.person.id}
+            status={data.person.status}
+            onChanged={reload}
+          />
         )}
       </div>
 
@@ -260,6 +293,13 @@ export default function PersonClient() {
 
       <section className="space-y-2">
         <h2 className="text-sm font-medium text-muted-foreground">Keys and seats</h2>
+        {isAdmin && data.person.status === "active" && (
+          <MintOpenAiKey
+            personId={data.person.id}
+            personEmail={data.person.email}
+            onMinted={reload}
+          />
+        )}
         {data.keys.length === 0 ? (
           <p className="rounded-lg border border-dashed px-4 py-6 text-sm text-muted-foreground">
             No vendor identities map to this person yet - syncs auto-map by

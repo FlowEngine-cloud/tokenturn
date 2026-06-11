@@ -1,10 +1,15 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { Users } from "lucide-react";
+import { useState } from "react";
+import { Upload, UserPlus, Users } from "lucide-react";
 import { DataTable, type Column } from "@/components/data-table";
 import { EmptyState } from "@/components/empty-state";
+import { useLatest } from "@/components/form-utils";
+import { PeopleCsvImport } from "@/components/people-csv-import";
+import { PeopleInvite } from "@/components/people-invite";
 import { Sparkline } from "@/components/trend-bars";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCents, formatCount } from "@/lib/format";
 import type { PeopleListData, PersonListRow } from "@/lib/people";
@@ -17,6 +22,9 @@ import { useFetch } from "@/lib/use-fetch";
  * Click a person for their daily breakdown, keys and products; the
  * Unassigned row drills straight to its facts. Archived people are hidden
  * here - their history stays intact in every drill-down.
+ *
+ * Admins bring people in from here (spec 8): the CSV roster import
+ * (re-import upserts by email, never removes) and the invite fan-out.
  */
 
 export function PeopleSkeleton() {
@@ -37,9 +45,24 @@ function vendorSummary(row: PersonListRow, currency: string): string {
 export default function PeopleClient() {
   const searchParams = useSearchParams();
   const range = parseRange(searchParams);
-  const { data, error } = useFetch<PeopleListData>(
-    `/api/people?from=${range.from}&to=${range.to}`,
+  // ?v= bump refetches after an import; useLatest keeps the loaded table -
+  // and the import/invite panels' results - on screen through the refetch.
+  // A RANGE change still shows the skeleton (kept data is only reused
+  // while its window matches).
+  const [version, setVersion] = useState(0);
+  const reload = () => setVersion((v) => v + 1);
+  const fetched = useFetch<PeopleListData>(
+    `/api/people?from=${range.from}&to=${range.to}&v=${version}`,
   );
+  const last = useLatest(fetched.data);
+  const data =
+    last && last.from === range.from && last.to === range.to ? last : null;
+  const { error } = fetched;
+  const { data: auth } = useFetch<{ user: { role: string } | null }>(
+    "/api/auth/state",
+  );
+  const isAdmin = auth?.user?.role === "admin";
+  const [panel, setPanel] = useState<"import" | "invite" | null>(null);
 
   if (error) {
     return (
@@ -50,15 +73,59 @@ export default function PeopleClient() {
   }
   if (!data) return <PeopleSkeleton />;
 
+  const adminBar = isAdmin && (
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="flex-1" />
+      <Button
+        variant={panel === "import" ? "secondary" : "outline"}
+        size="sm"
+        onClick={() => setPanel(panel === "import" ? null : "import")}
+      >
+        <Upload className="h-4 w-4" />
+        Import CSV
+      </Button>
+      <Button
+        variant={panel === "invite" ? "secondary" : "outline"}
+        size="sm"
+        onClick={() => setPanel(panel === "invite" ? null : "invite")}
+      >
+        <UserPlus className="h-4 w-4" />
+        Invite
+      </Button>
+    </div>
+  );
+  const panels = isAdmin && panel !== null && (
+    <div className="rounded-lg border bg-card p-4">
+      {panel === "import" ? (
+        <PeopleCsvImport onImported={reload} />
+      ) : (
+        <PeopleInvite
+          people={data.people
+            .filter((r) => r.personId !== null && r.status === "active")
+            .map((r) => ({ personId: r.personId!, email: r.email!, name: r.name }))}
+        />
+      )}
+    </div>
+  );
+
   if (data.people.length === 0) {
     return (
-      <EmptyState
-        icon={Users}
-        title="No people yet"
-        body="Connect a vendor or import your roster - identities auto-map by email, and whatever can't be matched lands in Resolve."
-        actionHref="/settings"
-        actionLabel="Open Settings"
-      />
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <h1 className="text-lg font-semibold">People</h1>
+          {adminBar}
+        </div>
+        {panels}
+        {panel === null && (
+          <EmptyState
+            icon={Users}
+            title="No people yet"
+            body="Connect a vendor or import your roster - identities auto-map by email, and whatever can't be matched lands in Resolve."
+            actionHref="/settings"
+            actionLabel="Open Settings"
+          />
+        )}
+      </div>
     );
   }
 
@@ -141,7 +208,11 @@ export default function PeopleClient() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-lg font-semibold">People</h1>
+      <div className="flex items-center gap-2">
+        <h1 className="text-lg font-semibold">People</h1>
+        {adminBar}
+      </div>
+      {panels}
       <DataTable
         columns={columns}
         rows={data.people}

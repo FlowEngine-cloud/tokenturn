@@ -272,7 +272,7 @@ describe.runIf(TEST_DATABASE_URL)("limits + alert-channel API routes", () => {
       );
       expect(res.status).toBe(200);
       const body = await res.json();
-      expect(body.secrets).toEqual({ slack_webhook_url: true });
+      expect(body.secrets).toEqual({ slack_webhook_url: true, email_provider_config: false });
       // The value never leaves the server, and is encrypted at rest.
       expect(JSON.stringify(body)).not.toContain(url);
       const { rows } = await pool.query(
@@ -284,7 +284,7 @@ describe.runIf(TEST_DATABASE_URL)("limits + alert-channel API routes", () => {
 
       const got = await settingsGet(getJson("/api/settings", viewerCookie));
       const gotBody = await got.json();
-      expect(gotBody.secrets).toEqual({ slack_webhook_url: true });
+      expect(gotBody.secrets).toEqual({ slack_webhook_url: true, email_provider_config: false });
       expect(JSON.stringify(gotBody)).not.toContain(url);
     });
 
@@ -308,7 +308,7 @@ describe.runIf(TEST_DATABASE_URL)("limits + alert-channel API routes", () => {
       const res = await settingsPatch(
         patchJson("/api/settings", { slack_webhook_url: null }, adminCookie),
       );
-      expect((await res.json()).secrets).toEqual({ slack_webhook_url: false });
+      expect((await res.json()).secrets).toEqual({ slack_webhook_url: false, email_provider_config: false });
       expect(await getSecretSetting("slack_webhook_url", pool)).toBeNull();
     });
   });

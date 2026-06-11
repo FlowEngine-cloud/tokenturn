@@ -101,7 +101,7 @@ const EVENTS_PAGE_SIZE = 100;
 const SCOPE_PROBE_START_MS = 1_704_067_200_000;
 
 export interface CursorRequest {
-  method: "GET" | "POST";
+  method: "GET" | "POST" | "DELETE";
   url: string;
   body?: Record<string, unknown>;
 }
@@ -225,24 +225,18 @@ export function setUserSpendLimitRequest(
 }
 
 /**
- * Push a per-user monthly limit to Cursor. On Business (or any rejection)
- * the vendor's error is thrown verbatim - never pretend the hard stop
- * happened. A 2xx of any body shape is success: the write endpoint's
- * response body is undocumented, and nothing from it is stored.
+ * One vendor write. On any rejection the vendor's error is thrown verbatim;
+ * a 2xx of any body shape is success - the write endpoints' response bodies
+ * are undocumented, and nothing from them is stored.
  */
-export async function setCursorUserSpendLimit(
-  ctx: ConnectorContext,
-  userEmail: string,
-  spendLimitDollars: number,
-): Promise<void> {
-  const req = setUserSpendLimitRequest(userEmail, spendLimitDollars);
+async function cursorWrite(ctx: ConnectorContext, req: CursorRequest): Promise<void> {
   const res = await ctx.fetch(req.url, {
     method: req.method,
     headers: {
       authorization: basicAuth(ctx),
-      "content-type": "application/json",
+      ...(req.body !== undefined ? { "content-type": "application/json" } : {}),
     },
-    body: JSON.stringify(req.body),
+    ...(req.body !== undefined ? { body: JSON.stringify(req.body) } : {}),
   });
   if (!res.ok) {
     const text = await res.text();
@@ -255,6 +249,50 @@ export async function setCursorUserSpendLimit(
     }
     throw new Error(message);
   }
+}
+
+/**
+ * Push a per-user monthly limit to Cursor. On Business (or any rejection)
+ * the vendor's error is thrown verbatim - never pretend the hard stop
+ * happened (spec 9: limit writes are Enterprise only).
+ */
+export async function setCursorUserSpendLimit(
+  ctx: ConnectorContext,
+  userEmail: string,
+  spendLimitDollars: number,
+): Promise<void> {
+  await cursorWrite(ctx, setUserSpendLimitRequest(userEmail, spendLimitDollars));
+}
+
+// ---------------------------------------------------------------------------
+// Write operations (spec 8 people in/out) - same auth, base URL, and
+// verbatim-error convention as the limit write above.
+
+export function inviteMemberRequest(email: string): CursorRequest {
+  return { method: "POST", url: `${CURSOR_BASE}/teams/members`, body: { email } };
+}
+
+export function removeMemberRequest(memberId: string): CursorRequest {
+  return {
+    method: "DELETE",
+    url: `${CURSOR_BASE}/teams/members/${encodeURIComponent(memberId)}`,
+  };
+}
+
+/** Invite an email to the Cursor team. */
+export async function inviteCursorMember(
+  ctx: ConnectorContext,
+  email: string,
+): Promise<void> {
+  await cursorWrite(ctx, inviteMemberRequest(email));
+}
+
+/** Remove a member from the Cursor team (their seat). */
+export async function removeCursorMember(
+  ctx: ConnectorContext,
+  memberId: string,
+): Promise<void> {
+  await cursorWrite(ctx, removeMemberRequest(memberId));
 }
 
 export function usageEventsProbeRequest(): CursorRequest {

@@ -213,6 +213,8 @@ export interface PersonKeyRow {
   factCount: number;
   /** All-time last fact day - null = never used. */
   lastUsedDay: string | null;
+  /** Set when an offboard sweep removed it at the vendor (spec 8). */
+  deprovisionedAt: string | null;
 }
 
 export interface PersonProductRow {
@@ -381,6 +383,7 @@ export async function personDetail(
   const { rows: keyRows } = await db.query(
     `SELECT i.id, i.vendor, i.external_id AS "externalId", i.kind,
             i.display_name AS "displayName",
+            i.deprovisioned_at AS "deprovisionedAt",
             ${effectiveTagsSql("i")} AS tags,
             COALESCE(ROUND(s.cents), 0)::bigint AS cents,
             COALESCE(s.facts, 0)::int AS facts,
@@ -459,6 +462,8 @@ export async function personDetail(
       cents: Number(row.cents),
       factCount: Number(row.facts),
       lastUsedDay: row.lastUsedDay,
+      deprovisionedAt:
+        row.deprovisionedAt === null ? null : new Date(row.deprovisionedAt).toISOString(),
     })),
     products: productRows.map((row) => ({
       productId: row.productId,

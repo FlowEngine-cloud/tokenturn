@@ -7,6 +7,7 @@ import {
   isStr,
   literal,
   nonEmptyStr,
+  parsePicked,
   parseStrict,
   strOrNull,
 } from "./strict";
@@ -121,12 +122,16 @@ function bucketDay(label: string, value: unknown): string {
 async function anthropicJson(
   ctx: ConnectorContext,
   url: string,
+  init?: { method: "POST" | "DELETE"; body?: Record<string, unknown> },
 ): Promise<Record<string, unknown>> {
   const res = await ctx.fetch(url, {
+    method: init?.method ?? "GET",
     headers: {
       "x-api-key": ctx.config.adminKey ?? "",
       "anthropic-version": ANTHROPIC_VERSION,
+      ...(init?.body !== undefined ? { "content-type": "application/json" } : {}),
     },
+    ...(init?.body !== undefined ? { body: JSON.stringify(init.body) } : {}),
   });
   const body = (await res.json()) as Record<string, unknown>;
   if (!res.ok) {
@@ -695,3 +700,75 @@ export const anthropicConnector: Connector = {
     }
   },
 };
+
+// ---------------------------------------------------------------------------
+// Write operations (spec 8 people in/out). NOT part of sync - the connector
+// itself only ever reads - but they live here because they share the vendor
+// auth, base URL, and verbatim-error convention. Write responses feed no
+// ledger numbers, so they are parsed picked, not strict: only the fields we
+// consume are checked. There is NO key-creation API (spec 5/8): people mint
+// keys in the Console and the next sync auto-detects them via created_by.
+
+export function invitesWriteUrl(): string {
+  return `${ANTHROPIC_BASE}/v1/organizations/invites`;
+}
+
+export function deleteUserUrl(userId: string): string {
+  return `${ANTHROPIC_BASE}/v1/organizations/users/${encodeURIComponent(userId)}`;
+}
+
+export function updateApiKeyUrl(keyId: string): string {
+  return `${ANTHROPIC_BASE}/v1/organizations/api_keys/${encodeURIComponent(keyId)}`;
+}
+
+/** Invite an email into the Anthropic organization as a user. */
+export async function inviteAnthropicUser(
+  ctx: ConnectorContext,
+  email: string,
+): Promise<{ inviteId: string }> {
+  const body = await anthropicJson(ctx, invitesWriteUrl(), {
+    method: "POST",
+    body: { email, role: "user" },
+  });
+  const invite = parsePicked("anthropic invite response", body, {
+    type: literal("invite"),
+    id: nonEmptyStr,
+  });
+  return { inviteId: invite.id as string };
+}
+
+/** Remove a user from the Anthropic organization (their org seat). */
+export async function deleteAnthropicUser(
+  ctx: ConnectorContext,
+  userId: string,
+): Promise<void> {
+  const body = await anthropicJson(ctx, deleteUserUrl(userId), { method: "DELETE" });
+  parsePicked("anthropic user delete response", body, {
+    type: literal("user_deleted"),
+    id: nonEmptyStr,
+  });
+}
+
+/**
+ * Archive an API key - Anthropic has no key-delete API; archived is the
+ * vendor's terminal "disabled" state and the strongest removal it offers.
+ */
+export async function archiveAnthropicApiKey(
+  ctx: ConnectorContext,
+  keyId: string,
+): Promise<void> {
+  const body = await anthropicJson(ctx, updateApiKeyUrl(keyId), {
+    method: "POST",
+    body: { status: "archived" },
+  });
+  const key = parsePicked("anthropic api key update response", body, {
+    type: literal("api_key"),
+    id: nonEmptyStr,
+    status: nonEmptyStr,
+  });
+  if (key.status !== "archived") {
+    throw new Error(
+      `anthropic did not archive API key ${keyId} (status: ${String(key.status)})`,
+    );
+  }
+}
