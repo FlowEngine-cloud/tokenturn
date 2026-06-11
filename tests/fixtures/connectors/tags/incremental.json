@@ -1,0 +1,18 @@
+[
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.acme.test/v1/usage?since=2026-06-04&until=2026-06-11"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "records": [
+          { "id": "t_devin_2", "day": "2026-06-05", "user_email": null, "key_id": "key_devin", "key_name": "devin", "owner_email": "dana@acme.com", "model": "claude-opus-4", "tokens": 5000, "amount_cents": 800, "currency": "USD" },
+          { "id": "t_agent2_1", "day": "2026-06-10", "user_email": null, "key_id": "key_agent2", "key_name": "devin", "owner_email": "rob@acme.com", "model": "claude-opus-4", "tokens": 6000, "amount_cents": 900, "currency": "USD" }
+        ],
+        "next_page": null
+      }
+    }
+  }
+]

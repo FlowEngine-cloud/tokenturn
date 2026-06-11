@@ -1,0 +1,23 @@
+[
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.acme.test/v1/usage?since=2026-05-11&until=2026-06-11"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "records": [
+          { "id": "t_dana_u1", "day": "2026-05-20", "user_email": "dana@acme.com", "key_id": null, "key_name": null, "model": "claude-sonnet-4", "tokens": 1000, "amount_cents": 100, "currency": "USD" },
+          { "id": "t_exp_1", "day": "2026-05-18", "user_email": null, "key_id": "key_exp", "key_name": "cli-experiments", "owner_email": "dana@acme.com", "model": "claude-sonnet-4", "tokens": 2000, "amount_cents": 300, "currency": "USD" },
+          { "id": "t_exp_2", "day": "2026-06-01", "user_email": null, "key_id": "key_exp", "key_name": "cli-experiments", "owner_email": "dana@acme.com", "model": "claude-sonnet-4", "tokens": 1500, "amount_cents": 200, "currency": "USD" },
+          { "id": "t_batch_d1", "day": "2026-05-21", "user_email": null, "key_id": "key_batch_d", "key_name": "batch-processing", "owner_email": "dana@acme.com", "model": "claude-haiku-4", "tokens": 9000, "amount_cents": 500, "currency": "USD" },
+          { "id": "t_batch_r1", "day": "2026-05-22", "user_email": null, "key_id": "key_batch_r", "key_name": "batch-processing", "owner_email": "rob@acme.com", "model": "claude-haiku-4", "tokens": 5000, "amount_cents": 250, "currency": "USD" },
+          { "id": "t_devin_1", "day": "2026-05-15", "user_email": null, "key_id": "key_devin", "key_name": "devin", "owner_email": "dana@acme.com", "model": "claude-opus-4", "tokens": 4000, "amount_cents": 700, "currency": "USD" },
+          { "id": "t_devin_2", "day": "2026-06-05", "user_email": null, "key_id": "key_devin", "key_name": "devin", "owner_email": "dana@acme.com", "model": "claude-opus-4", "tokens": 5000, "amount_cents": 800, "currency": "USD" }
+        ],
+        "next_page": null
+      }
+    }
+  }
+]

@@ -3,6 +3,7 @@ import type { Pool, PoolClient } from "pg";
 import { getPool } from "../db";
 import { logger } from "../logger";
 import { getSetting } from "../settings";
+import { applyTagRouting } from "../tags";
 import { buildContext, connectedRow, getConnectorConfig } from "./connect";
 import { getConnector } from "./registry";
 import type {
@@ -382,12 +383,35 @@ async function commitPage(
   await db.query("BEGIN");
   try {
     const idMap = new Map<string, ResolvedIdentity>();
+    const described: ResolvedIdentity[] = [];
     for (const identity of page.identities) {
       const resolved = await upsertIdentity(db, vendor, identity);
       idMap.set(identityMapKey(identity.externalId, identity.kind), resolved);
+      described.push(resolved);
+    }
+
+    // Tag -> product routing (spec 7b): a tag pointing at a product routes
+    // every key carrying it - burn lands on the product, never a person
+    // (the agent convention). Applied before facts land, so this page's
+    // rows carry the routing, and before the history sweep, so a key that
+    // just gained a routed tag (rename, new key) re-routes retroactively.
+    if (described.length > 0) {
+      const routed = await applyTagRouting(db, {
+        identityIds: described.map((r) => r.id),
+      });
+      const byId = new Map(described.map((r) => [r.id, r]));
+      for (const r of routed) {
+        const resolved = byId.get(r.id)!;
+        resolved.personId = null;
+        resolved.productId = r.productId;
+      }
+    }
+
+    for (const resolved of described) {
       if (resolved.personId !== null || resolved.productId !== null) {
         // The upsert may have just auto-matched (a person imported after the
-        // identity's history synced): pull the full history in (spec 4).
+        // identity's history synced) or the routing just landed: pull the
+        // full history in (spec 4).
         await reattributeIdentityHistory(db, resolved);
       }
     }

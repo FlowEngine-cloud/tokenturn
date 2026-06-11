@@ -37,6 +37,9 @@ interface AcmeUsageRecord {
   user_email: string | null;
   key_id: string | null;
   key_name: string | null;
+  /** Optional: who minted the key - mirrors real vendors' created_by
+   * auto-map (spec 5). Old recordings omit it. */
+  owner_email?: string | null;
   model: string;
   tokens: number;
   amount_cents: number;
@@ -49,6 +52,7 @@ const RECORD_FIELDS: Record<keyof AcmeUsageRecord, (v: unknown) => boolean> = {
   user_email: (v) => v === null || typeof v === "string",
   key_id: (v) => v === null || typeof v === "string",
   key_name: (v) => v === null || typeof v === "string",
+  owner_email: (v) => v === undefined || v === null || typeof v === "string",
   model: (v) => typeof v === "string",
   tokens: (v) => typeof v === "number" && Number.isInteger(v),
   amount_cents: (v) => typeof v === "number" && Number.isInteger(v),
@@ -115,11 +119,13 @@ function toPage(body: Record<string, unknown>): ConnectorPage {
     } else if (record.key_id !== null) {
       identity = { externalId: record.key_id, kind: "api_key" };
       if (record.key_name !== null) {
-        // Key names become tags (spec 7b). Nameless keys are left for the
-        // framework to auto-discover as stubs.
+        // Key names become tags (spec 7b); owner_email auto-maps the key to
+        // its minter (spec 5). Nameless keys are left for the framework to
+        // auto-discover as stubs.
         identities.set(`api_key:${record.key_id}`, {
           externalId: record.key_id,
           kind: "api_key",
+          email: record.owner_email ?? undefined,
           displayName: record.key_name,
           tags: [record.key_name],
         });

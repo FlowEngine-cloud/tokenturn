@@ -184,7 +184,7 @@ export interface Reattributed {
   rollups: { from: string | null; to: string | null };
 }
 
-interface Touched extends Omit<Reattributed, "rollups"> {
+export interface Touched extends Omit<Reattributed, "rollups"> {
   from: string | null;
   to: string | null;
 }
@@ -194,8 +194,9 @@ interface Touched extends Omit<Reattributed, "rollups"> {
  * or at Unassigned (personId null) - and, when a product is given, route its
  * facts there. Only rows that disagree are touched, so re-runs are no-ops.
  * Returns the changed row counts and the UTC day span they cover.
+ * (Also used by tag->product routing, spec 7b - see lib/tags.ts.)
  */
-async function reattribute(
+export async function reattribute(
   db: PoolClient,
   identityId: string,
   personId: string | null,

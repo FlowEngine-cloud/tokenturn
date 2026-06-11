@@ -1,6 +1,7 @@
 import type { Pool } from "pg";
 import { getPool } from "./db";
 import { logger } from "./logger";
+import { countsPersonalSql } from "./tag-sql";
 
 /**
  * Daily rollup recompute. rollup_daily / rollup_outcomes_daily power every
@@ -38,7 +39,9 @@ const FX_EXPR = `
   END
 `;
 
-function fxExpr(currencyExpr: string, dayExpr: string): string {
+/** USD-per-unit rate expression for a (currency, day) pair - the one FX
+ * conversion every USD figure in the app goes through. */
+export function fxExpr(currencyExpr: string, dayExpr: string): string {
   return FX_EXPR.replaceAll("%CURRENCY%", currencyExpr).replaceAll(
     "%DAY%",
     dayExpr,
@@ -128,11 +131,15 @@ export async function recomputeRollups(
       [from, to],
     );
 
+    // counts_personal: the per-tag toggle (spec 7b) flows into the rollup
+    // grain - a fact stops counting toward personal usage when any of its
+    // identity's effective tags is toggled off. Attribution is untouched.
     const spend = await client.query(
       `INSERT INTO rollup_daily
-         (day, person_id, product_id, vendor, cost_basis,
+         (day, person_id, product_id, vendor, cost_basis, counts_personal,
           tokens, amount_usd_cents, fact_count)
        SELECT f.day, f.person_id, f.product_id, f.vendor, f.cost_basis,
+              cp.counts_personal,
               SUM(f.tokens)::bigint,
               ROUND(SUM(f.amount_cents * fx.usd_rate))::bigint,
               COUNT(*)::int
@@ -140,8 +147,12 @@ export async function recomputeRollups(
        CROSS JOIN LATERAL (
          SELECT ${fxExpr("f.currency", "f.day")} AS usd_rate
        ) fx
+       CROSS JOIN LATERAL (
+         SELECT ${countsPersonalSql("f")} AS counts_personal
+       ) cp
        WHERE f.day BETWEEN $1::date AND $2::date
-       GROUP BY f.day, f.person_id, f.product_id, f.vendor, f.cost_basis`,
+       GROUP BY f.day, f.person_id, f.product_id, f.vendor, f.cost_basis,
+                cp.counts_personal`,
       [from, to],
     );
 
