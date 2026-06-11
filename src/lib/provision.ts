@@ -28,6 +28,7 @@ import {
   openaiConnector,
 } from "./connectors/openai";
 import type { Connector, ConnectorContext } from "./connectors/types";
+import { audit, type AuditActor } from "./audit";
 import { getPool, type Db } from "./db";
 import { logger } from "./logger";
 import { ResolveError } from "./resolve";
@@ -482,7 +483,7 @@ const ITEM_COLUMNS = `id, person_id AS "personId", identity_id AS "identityId",
  */
 export async function runOffboard(
   personId: string,
-  opts: ConnectorOpts = {},
+  opts: ConnectorOpts & { actor?: AuditActor } = {},
 ): Promise<OffboardOverview> {
   const db = opts.db ?? getPool();
   await loadPerson(personId, db); // 404 unknown / 409 merged-away
@@ -512,13 +513,27 @@ export async function runOffboard(
     await executeItem(item, opts);
   }
   logger.info("offboard sweep finished", { personId, items: pending.length });
-  return offboardOverview(personId, db);
+  const overview = await offboardOverview(personId, db);
+  // Every sweep lands in the audit log (spec 11), whoever fired it - the
+  // offboard button or an Okta leaver event.
+  await audit(
+    opts.actor ?? "system",
+    "offboard.sweep",
+    {
+      personId,
+      email: overview.person.email,
+      removed: overview.items.filter((i) => i.status === "removed").length,
+      failed: overview.items.filter((i) => i.status === "failed").length,
+    },
+    db,
+  );
+  return overview;
 }
 
 /** Retry one failed (or stuck-pending) item - spec 8: one by one. */
 export async function retryOffboardItem(
   itemId: string,
-  opts: ConnectorOpts = {},
+  opts: ConnectorOpts & { actor?: AuditActor } = {},
 ): Promise<OffboardRow> {
   const db = opts.db ?? getPool();
   const { rows } = await db.query(
@@ -529,5 +544,17 @@ export async function retryOffboardItem(
   if (rows[0].status === "removed") {
     throw new ResolveError("already removed - nothing to retry", 409);
   }
-  return executeItem(rows[0] as ItemRow, opts);
+  const result = await executeItem(rows[0] as ItemRow, opts);
+  await audit(
+    opts.actor ?? "system",
+    "offboard.retry",
+    {
+      personId: (rows[0] as ItemRow).personId,
+      vendor: result.vendor,
+      externalId: result.externalId,
+      status: result.status,
+    },
+    db,
+  );
+  return result;
 }

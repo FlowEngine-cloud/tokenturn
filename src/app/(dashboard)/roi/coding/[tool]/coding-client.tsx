@@ -1,54 +1,44 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { Wrench } from "lucide-react";
 import { DataTable, type Column } from "@/components/data-table";
 import { EmptyState } from "@/components/empty-state";
 import { RowLink, Tile } from "@/components/tile";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatCents, formatCount, formatPct } from "@/lib/format";
+import { formatCents, formatCount, formatPct, toolLabel } from "@/lib/format";
 import { parseRange, withRange, type DateRange } from "@/lib/range";
 import type { ToolPersonRow, ToolsData, ToolSummary } from "@/lib/tools";
 import { useFetch } from "@/lib/use-fetch";
 
 /**
- * Tools (spec 10 page 4): cost per merged PR per tool per person, accept
- * rates, revert rates - side by side. Every cell links to the raw rows
- * behind it: vendor facts, the vendor's own usage counters, or the routed
- * product's spend - each labeled for what it is.
+ * One built-in coding-tool ROI (spec 10 page 3 click-through): cost per
+ * merged PR per person, accept and revert rates, survival once the engine
+ * exists. Every cell links to the raw rows behind it: vendor facts, the
+ * vendor's own usage counters, or the routed spend - each labeled for what
+ * it is.
  */
 
-export function ToolsSkeleton() {
+export function CodingToolSkeleton() {
   return (
     <div className="space-y-4">
       <Skeleton className="h-7 w-40" />
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        <Skeleton className="h-44" />
-        <Skeleton className="h-44" />
-        <Skeleton className="h-44" />
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <Skeleton className="h-32" />
+        <Skeleton className="h-32" />
+        <Skeleton className="h-32" />
+        <Skeleton className="h-32" />
       </div>
       <Skeleton className="h-96" />
     </div>
   );
 }
 
-const TOOL_LABELS: Record<string, string> = {
-  claude_code: "Claude Code",
-  cursor: "Cursor",
-  copilot: "Copilot",
-  devin: "Devin",
-  codex: "Codex",
-};
-
-export function toolLabel(tool: string): string {
-  return TOOL_LABELS[tool] ?? tool;
-}
-
 const SPEND_BASIS: Record<string, string> = {
   vendor: "vendor billing",
   metric: "vendor estimate",
-  product: "product spend",
+  product: "routed spend",
 };
 
 /** The drill link for a (tool, person) spend cell - or for the tool total
@@ -107,80 +97,9 @@ function acceptHref(
   );
 }
 
-function ToolCard({
-  summary,
-  range,
-  currency,
-}: {
-  summary: ToolSummary;
-  range: DateRange;
-  currency: string;
-}) {
-  const money = (cents: number) => formatCents(cents, currency);
-  const headline =
-    summary.costPerMergeCents !== null
-      ? `${money(summary.costPerMergeCents)} / merge`
-      : summary.spendCents !== null
-        ? money(summary.spendCents)
-        : `${formatCount(summary.merges)} merges`;
-  const headlineHref =
-    summary.costPerMergeCents !== null
-      ? mergesHref(summary.tool, range)
-      : (spendHref(summary, range) ?? mergesHref(summary.tool, range));
-
-  return (
-    <Tile title={toolLabel(summary.tool)}>
-      <Link href={headlineHref} className="text-3xl font-semibold tabular-nums">
-        {headline}
-      </Link>
-      <div className="mt-2 space-y-0.5 text-sm">
-        {summary.spendCents !== null && summary.spendSource !== null && (
-          <RowLink
-            href={spendHref(summary, range)!}
-            label="Spend"
-            sub={
-              summary.spendSource.type === "product"
-                ? `product: ${summary.spendSource.productName}`
-                : SPEND_BASIS[summary.spendSource.type]
-            }
-            value={money(summary.spendCents)}
-          />
-        )}
-        <RowLink
-          href={mergesHref(summary.tool, range)}
-          label="Merged PRs"
-          sub={
-            summary.peopleCount > 0
-              ? `${formatCount(summary.peopleCount)} people`
-              : undefined
-          }
-          value={formatCount(summary.merges)}
-        />
-        {summary.acceptRatePct !== null && (
-          <RowLink
-            href={acceptHref(summary, range)!}
-            label="Accept rate"
-            value={formatPct(summary.acceptRatePct)}
-          />
-        )}
-        {summary.revertRatePct !== null && (
-          <RowLink
-            href={mergesHref(summary.tool, range)}
-            label="Revert rate"
-            sub={
-              summary.reverted > 0
-                ? `${formatCount(summary.reverted)} reverted`
-                : undefined
-            }
-            value={formatPct(summary.revertRatePct)}
-          />
-        )}
-      </div>
-    </Tile>
-  );
-}
-
-export default function ToolsClient() {
+export default function CodingToolClient() {
+  const params = useParams<{ tool: string }>();
+  const tool = params.tool;
   const searchParams = useSearchParams();
   const range = parseRange(searchParams);
   const { data, error } = useFetch<ToolsData>(
@@ -194,14 +113,15 @@ export default function ToolsClient() {
       </div>
     );
   }
-  if (!data) return <ToolsSkeleton />;
+  if (!data) return <CodingToolSkeleton />;
 
-  if (data.tools.length === 0) {
+  const summary = data.tools.find((t) => t.tool === tool);
+  if (!summary) {
     return (
       <EmptyState
         icon={Wrench}
-        title="No tool activity in range"
-        body="Connect GitHub for merged PRs and revert rates, Anthropic for Claude Code analytics, Cursor or Copilot for per-user usage - the comparison builds itself."
+        title={`No ${toolLabel(tool)} activity in range`}
+        body="Connect GitHub for merged PRs and revert rates, Anthropic for Claude Code analytics, Cursor or Copilot for per-user usage."
         actionHref="/settings"
         actionLabel="Open Settings"
       />
@@ -210,15 +130,9 @@ export default function ToolsClient() {
 
   const ccy = data.displayCurrency;
   const money = (cents: number) => formatCents(cents, ccy);
-  const summaries = new Map(data.tools.map((t) => [t.tool, t]));
+  const rows = data.rows.filter((r) => r.tool === tool);
 
   const columns: Column<ToolPersonRow>[] = [
-    {
-      key: "tool",
-      header: "Tool",
-      render: (r) => toolLabel(r.tool),
-      csv: (r) => r.tool,
-    },
     {
       key: "person",
       header: "Person",
@@ -238,7 +152,7 @@ export default function ToolsClient() {
       align: "right",
       render: (r) => {
         if (r.spendCents === null) return "–";
-        const href = spendHref(summaries.get(r.tool)!, range, r.personId);
+        const href = spendHref(summary, range, r.personId);
         return href ? (
           <Link href={href} className="tabular-nums hover:underline">
             {money(r.spendCents)}
@@ -256,7 +170,7 @@ export default function ToolsClient() {
       render: (r) =>
         r.merges > 0 || r.reverted > 0 ? (
           <Link
-            href={mergesHref(r.tool, range, r.personId)}
+            href={mergesHref(tool, range, r.personId)}
             className="tabular-nums hover:underline"
           >
             {formatCount(r.merges)}
@@ -280,7 +194,7 @@ export default function ToolsClient() {
       align: "right",
       render: (r) => {
         if (r.acceptRatePct === null) return "–";
-        const href = acceptHref(summaries.get(r.tool)!, range, r.personId);
+        const href = acceptHref(summary, range, r.personId);
         return href ? (
           <Link href={href} className="tabular-nums hover:underline">
             {formatPct(r.acceptRatePct)}
@@ -298,7 +212,7 @@ export default function ToolsClient() {
       render: (r) =>
         r.reverted > 0 ? (
           <Link
-            href={mergesHref(r.tool, range, r.personId)}
+            href={mergesHref(tool, range, r.personId)}
             className="tabular-nums text-amber-700 hover:underline"
           >
             {formatCount(r.reverted)}
@@ -312,19 +226,82 @@ export default function ToolsClient() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-lg font-semibold">Tools</h1>
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {data.tools.map((summary) => (
-          <ToolCard key={summary.tool} summary={summary} range={range} currency={ccy} />
-        ))}
+      <h1 className="text-lg font-semibold">{toolLabel(tool)}</h1>
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <Tile title="Spend" href={spendHref(summary, range) ?? undefined}>
+          {summary.spendCents !== null && summary.spendSource !== null ? (
+            <>
+              <Link
+                href={spendHref(summary, range)!}
+                className="text-3xl font-semibold tabular-nums"
+              >
+                {money(summary.spendCents)}
+              </Link>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {summary.spendSource.type === "product"
+                  ? `via ${summary.spendSource.productName}`
+                  : SPEND_BASIS[summary.spendSource.type]}
+                {summary.tokens > 0 && ` · ${formatCount(summary.tokens)} tokens`}
+              </p>
+            </>
+          ) : (
+            <p className="text-3xl font-semibold text-muted-foreground">–</p>
+          )}
+        </Tile>
+        <Tile title="Merged PRs" href={mergesHref(tool, range)}>
+          <Link
+            href={mergesHref(tool, range)}
+            className="text-3xl font-semibold tabular-nums"
+          >
+            {formatCount(summary.merges)}
+          </Link>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {summary.costPerMergeCents !== null &&
+              `${money(summary.costPerMergeCents)} / merge`}
+            {summary.peopleCount > 0 &&
+              `${summary.costPerMergeCents !== null ? " · " : ""}${formatCount(summary.peopleCount)} people`}
+          </p>
+        </Tile>
+        <Tile title="Accept rate" href={acceptHref(summary, range) ?? undefined}>
+          {summary.acceptRatePct !== null ? (
+            <Link
+              href={acceptHref(summary, range)!}
+              className="text-3xl font-semibold tabular-nums"
+            >
+              {formatPct(summary.acceptRatePct)}
+            </Link>
+          ) : (
+            <p className="text-3xl font-semibold text-muted-foreground">–</p>
+          )}
+        </Tile>
+        <Tile title="Revert rate">
+          {summary.revertRatePct !== null ? (
+            <>
+              <RowLink
+                href={mergesHref(tool, range)}
+                label="Reverted"
+                value={formatPct(summary.revertRatePct)}
+              />
+              {summary.reverted > 0 && (
+                <p className="mt-1 px-1 text-sm text-amber-700">
+                  {formatCount(summary.reverted)} reverted
+                </p>
+              )}
+            </>
+          ) : (
+            <p className="text-3xl font-semibold text-muted-foreground">–</p>
+          )}
+        </Tile>
       </div>
+
       <section className="space-y-2">
         <h2 className="text-sm font-medium text-muted-foreground">Per person</h2>
         <DataTable
           columns={columns}
-          rows={data.rows}
-          rowKey={(r) => `${r.tool}:${r.personId ?? "unassigned"}`}
-          csvName="ai-pnl-tools.csv"
+          rows={rows}
+          rowKey={(r) => r.personId ?? "unassigned"}
+          csvName={`ai-pnl-roi-${tool}.csv`}
         />
       </section>
     </div>

@@ -1,0 +1,23 @@
+[
+  {
+    "id": "00u3yzabCDEFghij0x7",
+    "status": "ACTIVE",
+    "created": "2025-09-01T07:00:00.000Z",
+    "activated": "2025-09-01T07:01:00.000Z",
+    "statusChanged": "2025-09-01T07:01:00.000Z",
+    "lastLogin": "2026-06-08T12:00:00.000Z",
+    "lastUpdated": "2026-06-08T12:00:00.000Z",
+    "passwordChanged": "2026-03-01T10:00:00.000Z",
+    "type": { "id": "oty1typedefault000" },
+    "profile": {
+      "firstName": "",
+      "lastName": "",
+      "mobilePhone": null,
+      "secondEmail": null,
+      "login": "svc-reports@acme.com",
+      "email": "svc-reports@acme.com"
+    },
+    "credentials": { "provider": { "type": "OKTA", "name": "OKTA" } },
+    "_links": { "self": { "href": "https://acme.okta.com/api/v1/users/00u3yzabCDEFghij0x7" } }
+  }
+]

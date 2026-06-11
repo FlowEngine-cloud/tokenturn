@@ -267,11 +267,11 @@ export default function PersonClient() {
             ))}
           </div>
         </Tile>
-        <Tile title="Products">
+        <Tile title="ROI">
           <div className="space-y-1">
             {data.products.length === 0 && (
               <p className="py-2 text-sm text-muted-foreground">
-                No product-attributed spend or outcomes in this range.
+                No spend in any ROI in this range.
               </p>
             )}
             {data.products.map((p) => (

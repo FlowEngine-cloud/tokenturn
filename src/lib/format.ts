@@ -28,6 +28,41 @@ export function formatCount(n: number): string {
   return new Intl.NumberFormat("en-US").format(n);
 }
 
+/** UI names for the AI authorship tags - shared by every page showing
+ * coding tools (client-safe: the server readers import from here too). */
+export const TOOL_LABELS: Record<string, string> = {
+  claude_code: "Claude Code",
+  cursor: "Cursor",
+  copilot: "Copilot",
+  devin: "Devin",
+  codex: "Codex",
+};
+
+export function toolLabel(tool: string): string {
+  return TOOL_LABELS[tool] ?? tool;
+}
+
+/** "$2.10 / merge", "$9.00 / active user" - or an honest dash. Shared by the
+ * ROI table and the Report (spec 7: unit cost in the row's own unit; no
+ * success defined = cost per active user, never a fake ROI). */
+export function unitCostLabel(
+  row: {
+    unit: string | null;
+    unitCostCents: number | null;
+    costPerUserCents: number | null;
+  },
+  currency: string,
+): string {
+  if (row.unit !== null) {
+    return row.unitCostCents === null
+      ? "–"
+      : `${formatCents(row.unitCostCents, currency)} / ${row.unit}`;
+  }
+  return row.costPerUserCents === null
+    ? "–"
+    : `${formatCents(row.costPerUserCents, currency)} / active user`;
+}
+
 /** "2026-06-05" -> "Jun 5" (UTC; day buckets are UTC everywhere). */
 export function shortDay(day: string): string {
   return new Date(`${day}T00:00:00Z`).toLocaleDateString("en-US", {

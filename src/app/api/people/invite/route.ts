@@ -1,4 +1,5 @@
 import { badRequest, cleanUuid, readJson, requireAdmin } from "@/lib/api";
+import { audit } from "@/lib/audit";
 import { getPool } from "@/lib/db";
 import { inviteFanout, INVITE_VENDORS } from "@/lib/provision";
 import { ResolveError } from "@/lib/resolve";
@@ -31,6 +32,17 @@ export async function POST(req: Request) {
 
   try {
     const results = await inviteFanout(personIds, tools, { db });
+    await audit(
+      admin,
+      "people.invite",
+      {
+        people: personIds.length,
+        vendors: tools,
+        ok: results.filter((r) => r.ok).length,
+        failed: results.filter((r) => !r.ok).length,
+      },
+      db,
+    );
     return Response.json({ vendors: INVITE_VENDORS, results });
   } catch (error) {
     if (error instanceof ResolveError) {

@@ -1,5 +1,5 @@
 import { badRequest, cleanName, cleanPassword, conflict, readJson, tooManyRequests } from "@/lib/api";
-import { createSession, isClaimed, jsonWithSession } from "@/lib/auth";
+import { createSession, isClaimed, jsonWithSession, lockClaim } from "@/lib/auth";
 import { getPool } from "@/lib/db";
 import { logger } from "@/lib/logger";
 import { startOnboarding } from "@/lib/onboarding";
@@ -24,6 +24,11 @@ export async function POST(req: Request) {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
+    // Serialized claim: a concurrent double-claim loses here with the 409.
+    if (!(await lockClaim(client))) {
+      await client.query("ROLLBACK");
+      return conflict("instance already claimed");
+    }
     const { rows } = await client.query(
       `INSERT INTO users (name, role, password_hash)
        VALUES ($1, 'admin', $2) RETURNING id, name, role`,

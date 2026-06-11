@@ -10,7 +10,8 @@ import { getSetting } from "./settings";
 import { effectiveTagsSql } from "./tag-sql";
 
 /**
- * Products = cost centers (spec section 7). A product is anything that
+ * Products = the user-defined ROI rows (spec section 7; the table keeps
+ * its name, only the language changed). A product is anything that
  * spends AI money: a name, where its spend comes from (a connector, a
  * key/project, the SDK, or manual entry), and its success metric - or none.
  *
@@ -728,7 +729,7 @@ export async function productDetail(
   };
 }
 
-// ---- the Products page (spec 10 page 3): every cost center at a glance ----
+// ---- the ROI list (spec 10 page 3): every user-defined row at a glance ----
 
 export interface ProductViewRow {
   id: string;
@@ -739,6 +740,10 @@ export interface ProductViewRow {
    * sum to the whole ledger - spec 4: rows leave views, never totals). */
   archived: boolean;
   spendCents: number;
+  /** Tokens behind the spend, from the same rollup rows. */
+  tokens: number;
+  /** The vendors the spend came from in range - the ROI page's vendor filter. */
+  vendors: string[];
   factCount: number;
   /** Live outcomes in range; reverted ones never count (spec 5). */
   outcomeCount: number;
@@ -764,7 +769,7 @@ export interface ProductsViewData {
 }
 
 /**
- * Per cost center over the range: spend and its own metric in its own unit
+ * Per ROI row over the range: spend and its own metric in its own unit
  * ($/merge, $/ticket, $/user) - manual products included. Archived products
  * leave this view (spec 4); their history stays in every drill-down. The
  * Report asks for them back (includeArchived) so a month's total never loses
@@ -795,6 +800,8 @@ export async function productsView(
   const { rows: spendRows } = await db.query(
     `SELECT r.product_id AS "productId",
             ROUND(SUM(d.cents))::bigint AS cents,
+            SUM(r.tokens)::bigint AS tokens,
+            array_agg(DISTINCT r.vendor) AS vendors,
             SUM(r.fact_count)::int AS facts,
             COUNT(DISTINCT r.person_id) FILTER (WHERE r.person_id IS NOT NULL)::int
               AS users,
@@ -896,6 +903,8 @@ export async function productsView(
       outcomeKind: product.outcomeKind,
       archived: product.archivedAt !== null,
       spendCents,
+      tokens: spend ? Number(spend.tokens) : 0,
+      vendors: spend ? ((spend.vendors as string[]) ?? []) : [],
       factCount: spend ? Number(spend.facts) : 0,
       outcomeCount: stats.outcomes,
       revertedCount: stats.reverted,

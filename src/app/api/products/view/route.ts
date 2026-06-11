@@ -7,7 +7,7 @@ import { ResolveError } from "@/lib/resolve";
 export const dynamic = "force-dynamic";
 
 /**
- * Products (spec 10 page 3): every cost center over the range - spend and
+ * The user-defined ROI rows (spec 10 page 3) over the range - spend and
  * its own metric in its own unit ($/merge, $/ticket, $/user), manual
  * products included. Archived products leave this view; their history
  * stays drillable.

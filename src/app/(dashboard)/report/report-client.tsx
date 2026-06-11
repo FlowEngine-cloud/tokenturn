@@ -6,18 +6,17 @@ import { ChevronLeft, ChevronRight, Download, FileText, Printer } from "lucide-r
 import { EmptyState } from "@/components/empty-state";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatCents, formatCount } from "@/lib/format";
+import { formatCents, formatCount, unitCostLabel } from "@/lib/format";
 import { addMonths, currentMonth } from "@/lib/range";
 import type { ReportData, ReportRow } from "@/lib/report";
 import { useFetch } from "@/lib/use-fetch";
 import { cn } from "@/lib/utils";
-import { unitCostLabel } from "../products/products-client";
 
 /**
- * Report (spec 10 page 6): one printable CFO page per month - spend by cost
- * center, unit costs, ROI where defined, month over month - with CSV and
- * FOCUS 1.4 export. On screen every number drills to its raw rows; on paper
- * the chrome disappears (print:hidden) and the sheet stands alone.
+ * Report (spec 10 page 6): one printable CFO page per month - spend by ROI
+ * and by person, unit costs, ROI where defined, month over month - with CSV
+ * and FOCUS 1.4 export. On screen every number drills to its raw rows; on
+ * paper the chrome disappears (print:hidden) and the sheet stands alone.
  */
 
 export function ReportSkeleton() {
@@ -148,7 +147,7 @@ export default function ReportClient() {
           <table className="w-full text-sm">
             <thead>
               <tr>
-                {["Cost center", "Spend", "Last month", "MoM", "Outcomes", "Unit cost", "ROI"].map(
+                {["ROI", "Spend", "Last month", "MoM", "Successes", "Unit cost", "ROI ×"].map(
                   (header, i) => (
                     <th
                       key={header}
@@ -233,6 +232,50 @@ export default function ReportClient() {
               </tr>
             </tbody>
           </table>
+
+          {data.people.length > 0 && (
+            <section>
+              <h3 className="mb-2 text-sm font-medium text-muted-foreground">By person</h3>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr>
+                    {["Person", "Spend", "Last month", "MoM"].map((header, i) => (
+                      <th
+                        key={header}
+                        className={cn(
+                          "border-b-2 px-3 py-2 font-medium text-muted-foreground",
+                          i === 0 ? "text-left" : "text-right",
+                        )}
+                      >
+                        {header}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.people.map((p) => (
+                    <tr key={p.personId ?? "unassigned"}>
+                      <td className={CELL}>
+                        {p.personId === null ? (
+                          <span className="text-muted-foreground">{p.name}</span>
+                        ) : (
+                          <Link
+                            href={`/people/${p.personId}?from=${data.from}&to=${data.to}`}
+                            className="hover:underline"
+                          >
+                            {p.name}
+                          </Link>
+                        )}
+                      </td>
+                      <td className={NUM}>{money(p.spendCents)}</td>
+                      <td className={NUM}>{money(p.prevSpendCents)}</td>
+                      <td className={NUM}>{momLabel(p.momPct)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </section>
+          )}
 
           <section>
             <h3 className="mb-2 text-sm font-medium text-muted-foreground">

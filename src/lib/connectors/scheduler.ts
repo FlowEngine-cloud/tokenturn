@@ -4,6 +4,7 @@ import { emitEvent } from "../events";
 import { fxTick } from "../fx";
 import { checkBurnAlerts, type BurnCheckResult } from "../limits";
 import { logger } from "../logger";
+import { retentionTick } from "../retention";
 import { getSetting } from "../settings";
 import { listConnectedRows } from "./connect";
 import { getConnector } from "./registry";
@@ -130,6 +131,22 @@ export async function schedulerTick(
 
 let ticker: NodeJS.Timeout | null = null;
 
+/**
+ * The enterprise ticks ride the same ticker. Each is fully self-gating
+ * (license, then config, then cadence) and a no-op on free instances; they
+ * load lazily so the OSS scheduler never pays for ee/ at import time.
+ */
+async function eeTick(): Promise<void> {
+  const [{ oktaTick }, { googleTick }, { scheduledReportsTick }] = await Promise.all([
+    import("@ee/lib/okta"),
+    import("@ee/lib/google"),
+    import("@ee/lib/scheduled-reports"),
+  ]);
+  await oktaTick();
+  await googleTick();
+  await scheduledReportsTick();
+}
+
 /** Boot the ticker (idempotent). Returns a stop function. */
 export function startScheduler(): () => void {
   if (!ticker) {
@@ -142,6 +159,14 @@ export function startScheduler(): () => void {
       // independent of the ECB feed.
       fxTick().catch((err) => {
         logger.error("fx tick failed", { error: err });
+      });
+      // Spec 4 retention: raw facts keep N months, rollups forever. Runs
+      // at most once per UTC day (alert_state dedupe).
+      retentionTick().catch((err) => {
+        logger.error("retention tick failed", { error: err });
+      });
+      eeTick().catch((err) => {
+        logger.error("ee tick failed", { error: err });
       });
     };
     ticker = setInterval(run, TICK_EVERY_MS);

@@ -1,0 +1,36 @@
+{
+  "kind": "admin#directory#users",
+  "etag": "\"fixture-etag-1\"",
+  "users": [
+    {
+      "kind": "admin#directory#user",
+      "id": "103241556985762837421",
+      "etag": "\"fixture-user-1\"",
+      "primaryEmail": "dana@acme.com",
+      "name": { "givenName": "Dana", "familyName": "Levi", "fullName": "Dana Levi" },
+      "isAdmin": false,
+      "isDelegatedAdmin": false,
+      "lastLoginTime": "2026-06-09T16:02:11.000Z",
+      "creationTime": "2025-02-10T08:30:00.000Z",
+      "suspended": false,
+      "archived": false,
+      "orgUnitPath": "/Engineering",
+      "isMailboxSetup": true
+    },
+    {
+      "kind": "admin#directory#user",
+      "id": "118273645592837465920",
+      "etag": "\"fixture-user-2\"",
+      "primaryEmail": "suspended@acme.com",
+      "name": { "givenName": "Sus", "familyName": "Pended", "fullName": "Sus Pended" },
+      "isAdmin": false,
+      "isDelegatedAdmin": false,
+      "creationTime": "2024-01-01T00:00:00.000Z",
+      "suspended": true,
+      "archived": false,
+      "orgUnitPath": "/",
+      "isMailboxSetup": true
+    }
+  ],
+  "nextPageToken": "fixture-page-2"
+}

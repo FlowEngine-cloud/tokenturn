@@ -638,3 +638,40 @@ export async function keyDetail(id: string, db: Db = getPool()): Promise<KeyDeta
     models,
   };
 }
+
+// ---------------------------------------------------------------------------
+// GDPR hard-delete (spec 4's one exception to "nothing hard-deletes")
+
+export interface HardDeleteResult {
+  identitiesScrubbed: number;
+}
+
+/**
+ * Hard-delete a person on request. The people row goes (sessions of the
+ * ledger's USERS are unrelated; person_emails and resolve memory cascade
+ * with it); FKs detach their facts/metrics/outcomes to NULL, so the spend
+ * stays on the ledger as Unassigned and rollups keep the aggregate - no
+ * total ever changes. Their identities' vendor rows survive as unmapped
+ * ledger data, but the personal fields (vendor email, user display name)
+ * are scrubbed so nothing can re-identify or auto-rematch them. Key names
+ * stay - they are infrastructure tags, not personal data.
+ */
+export async function hardDeletePerson(
+  personId: string,
+  db: Db = getPool(),
+): Promise<HardDeleteResult> {
+  const { rows } = await db.query("SELECT id FROM people WHERE id = $1", [personId]);
+  if (rows.length === 0) throw new ResolveError("no such person", 404);
+
+  const scrubbed = await db.query(
+    `UPDATE identities
+     SET person_id = NULL,
+         email = NULL,
+         display_name = CASE WHEN kind = 'user' THEN NULL ELSE display_name END,
+         updated_at = now()
+     WHERE person_id = $1`,
+    [personId],
+  );
+  await db.query("DELETE FROM people WHERE id = $1", [personId]);
+  return { identitiesScrubbed: scrubbed.rowCount ?? 0 };
+}

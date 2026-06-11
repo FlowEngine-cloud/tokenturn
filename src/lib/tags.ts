@@ -27,6 +27,13 @@ import { effectiveTagsSql, factTagFilterSql } from "./tag-sql";
  * identity and every query here joins facts to their identity.
  */
 
+/** A usable tag name, or null: trimmed, 1-200 chars (matches the
+ * tag_settings CHECK; key names are vendor-side and arbitrary beyond that). */
+export function cleanTag(raw: string): string | null {
+  const tag = raw.trim();
+  return tag.length >= 1 && tag.length <= 200 ? tag : null;
+}
+
 export interface TagSummary {
   tag: string;
   countsPersonal: boolean;
@@ -38,12 +45,16 @@ export interface TagSummary {
   amountUsdCents: number;
 }
 
-/** Every tag in use, with its settings and the spend behind it. */
+/** Every tag in use, with its settings and the spend behind it. Tags added
+ * ahead of their keys (tag_settings rows nothing carries yet) are listed
+ * with zero keys - they fill up when a key named after them syncs in. */
 export async function listTags(db: Db = getPool()): Promise<TagSummary[]> {
   const { rows } = await db.query(
     `WITH tags AS (
        SELECT DISTINCT t.tag
        FROM identities i, LATERAL unnest(${effectiveTagsSql("i")}) AS t(tag)
+       UNION
+       SELECT s.tag FROM tag_settings s
      )
      SELECT tg.tag,
             COALESCE(ts.counts_personal, true) AS "countsPersonal",
@@ -70,7 +81,31 @@ export async function listTags(db: Db = getPool()): Promise<TagSummary[]> {
      ) spend
      ORDER BY tg.tag`,
   );
-  return rows.map((row) => ({ ...row, amountUsdCents: Number(row.amountUsdCents) }));
+  return rows.map((row) => ({
+    ...row,
+    vendors: (row.vendors as string[] | null) ?? [],
+    amountUsdCents: Number(row.amountUsdCents),
+  }));
+}
+
+/**
+ * Add a tag ahead of its keys (the ROI filter bar's "Add a tag", spec 7b):
+ * a tag_settings row with defaults, so the tag shows up everywhere tags are
+ * listed. Naming a key after it in the vendor console puts spend under it on
+ * the next sync - the convention, nothing more. Idempotent: an existing tag
+ * (carried or added before) is left untouched.
+ */
+export async function addTag(
+  tag: string,
+  db: Db = getPool(),
+): Promise<{ tag: string; created: boolean }> {
+  const { rowCount } = await db.query(
+    "INSERT INTO tag_settings (tag) VALUES ($1) ON CONFLICT (tag) DO NOTHING",
+    [tag],
+  );
+  const created = (rowCount ?? 0) > 0;
+  if (created) logger.info("tag added ahead of its keys", { tag });
+  return { tag, created };
 }
 
 export interface TagIdentity {

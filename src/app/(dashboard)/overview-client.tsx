@@ -61,10 +61,10 @@ export default function OverviewClient() {
     let cancelled = false;
     fetch(url)
       .then(async (res) => {
-        const body = await res.json();
+        const body = await res.json().catch(() => null);
         if (cancelled) return;
-        if (!res.ok) {
-          setState({ url, data: null, error: body.error ?? `request failed (${res.status})` });
+        if (!res.ok || body === null) {
+          setState({ url, data: null, error: body?.error ?? `request failed (${res.status})` });
         } else {
           setState({ url, data: body, error: null });
         }
@@ -222,11 +222,11 @@ export default function OverviewClient() {
           </div>
         </Tile>
 
-        <Tile title="Top products">
+        <Tile title="Top ROI">
           <div className="space-y-1">
             {data.topProducts.length === 0 && (
               <p className="py-2 text-sm text-muted-foreground">
-                No product spend in this range.
+                No ROI spend in this range.
               </p>
             )}
             {data.topProducts.map((p) => (

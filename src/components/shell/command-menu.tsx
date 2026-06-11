@@ -4,19 +4,19 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Dialog } from "radix-ui";
 import { CornerDownLeft, Search } from "lucide-react";
-import { NAV_ITEMS } from "@/components/shell/nav";
+import { HELP_ITEM, NAV_ITEMS } from "@/components/shell/nav";
 import { parseRange, withRange } from "@/lib/range";
 import { cn } from "@/lib/utils";
 
 /**
- * Cmd-K search to any person, product, or vendor (spec 10), plus the pages.
+ * Cmd-K search to any person, ROI, or vendor (spec 10), plus the pages.
  * Entity hits land on the drill-down filtered to that entity over the
  * active date range.
  */
 
 interface Item {
   key: string;
-  group: "Pages" | "People" | "Products" | "Vendors";
+  group: "Pages" | "People" | "ROI" | "Vendors";
   label: string;
   sub?: string;
   href: string;
@@ -68,7 +68,7 @@ export function CommandMenu() {
   }, [q, open]);
 
   const items = useMemo<Item[]>(() => {
-    const pages: Item[] = NAV_ITEMS.filter((n) =>
+    const pages: Item[] = [...NAV_ITEMS, HELP_ITEM].filter((n) =>
       n.label.toLowerCase().includes(q.toLowerCase()),
     ).map((n) => ({
       key: `page:${n.href}`,
@@ -91,7 +91,7 @@ export function CommandMenu() {
       ...results.products.map(
         (p): Item => ({
           key: `product:${p.id}`,
-          group: "Products",
+          group: "ROI",
           label: p.name,
           sub: p.archived ? "archived" : undefined,
           href: withRange(`/products/${p.id}`, range),
@@ -155,7 +155,7 @@ export function CommandMenu() {
                 setActive(0);
               }}
               onKeyDown={onInputKey}
-              placeholder="Person, product, vendor, page…"
+              placeholder="Person, ROI, vendor, page…"
               className="h-11 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
             />
           </div>

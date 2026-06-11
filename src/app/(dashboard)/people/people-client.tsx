@@ -7,7 +7,7 @@ import { DataTable, type Column } from "@/components/data-table";
 import { EmptyState } from "@/components/empty-state";
 import { useLatest } from "@/components/form-utils";
 import { PeopleCsvImport } from "@/components/people-csv-import";
-import { PeopleInvite } from "@/components/people-invite";
+import { PeopleAdd } from "@/components/people-invite";
 import { Sparkline } from "@/components/trend-bars";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -62,7 +62,7 @@ export default function PeopleClient() {
     "/api/auth/state",
   );
   const isAdmin = auth?.user?.role === "admin";
-  const [panel, setPanel] = useState<"import" | "invite" | null>(null);
+  const [panel, setPanel] = useState<"import" | "add" | null>(null);
 
   if (error) {
     return (
@@ -85,12 +85,12 @@ export default function PeopleClient() {
         Import CSV
       </Button>
       <Button
-        variant={panel === "invite" ? "secondary" : "outline"}
+        variant={panel === "add" ? "secondary" : "outline"}
         size="sm"
-        onClick={() => setPanel(panel === "invite" ? null : "invite")}
+        onClick={() => setPanel(panel === "add" ? null : "add")}
       >
         <UserPlus className="h-4 w-4" />
-        Invite
+        Add
       </Button>
     </div>
   );
@@ -99,11 +99,7 @@ export default function PeopleClient() {
       {panel === "import" ? (
         <PeopleCsvImport onImported={reload} />
       ) : (
-        <PeopleInvite
-          people={data.people
-            .filter((r) => r.personId !== null && r.status === "active")
-            .map((r) => ({ personId: r.personId!, email: r.email!, name: r.name }))}
-        />
+        <PeopleAdd onAdded={reload} />
       )}
     </div>
   );

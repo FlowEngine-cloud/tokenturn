@@ -1,5 +1,20 @@
+import {
+  getScheduledReportsConfig,
+  SCHEDULED_REPORTS_SETTING,
+  setScheduledReportsConfig,
+  validateScheduledReportsConfig,
+} from "@ee/lib/scheduled-reports";
 import { badRequest, conflict, readJson, requireAdmin, requireUser } from "@/lib/api";
+import { audit } from "@/lib/audit";
 import { getPool } from "@/lib/db";
+import {
+  clearLicenseFile,
+  LICENSE_SETTING,
+  LicenseError,
+  licenseStatus,
+  requireEeFeature,
+  setLicenseFile,
+} from "@/lib/license";
 import {
   EMAIL_CONFIG_SETTING,
   emailSummary,
@@ -38,6 +53,8 @@ export async function GET(req: Request) {
     settings: await getAllSettings(db),
     secrets: await secretSettingsPresence(db),
     email: await emailSummary({ db }),
+    license: await licenseStatus(db),
+    scheduledReports: await getScheduledReportsConfig(db),
   });
 }
 
@@ -103,6 +120,21 @@ export async function PATCH(req: Request) {
   }
   try {
     for (const [key, value] of Object.entries(body)) {
+      if (key === LICENSE_SETTING) {
+        // Verified offline against the pinned key (spec 11); a file that
+        // does not verify is rejected before anything is stored.
+        if (value !== null && typeof value !== "string") {
+          return badRequest("license_file must be the license file text, or null to clear it");
+        }
+        continue;
+      }
+      if (key === SCHEDULED_REPORTS_SETTING) {
+        // Enterprise (spec 11): writing the schedule needs the license.
+        const locked = await requireEeFeature("scheduled_reports", db);
+        if (locked) return locked;
+        validateScheduledReportsConfig(value); // throws ResolveError
+        continue;
+      }
       if (key === EMAIL_CONFIG_SETTING) {
         if (value !== null) validateEmailConfig(value); // throws ResolveError
         continue;
@@ -133,20 +165,44 @@ export async function PATCH(req: Request) {
     }
   }
 
+  const audited: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(body)) {
-    if (key === EMAIL_CONFIG_SETTING) {
+    if (key === LICENSE_SETTING) {
+      try {
+        if (value === null) {
+          await clearLicenseFile(db);
+          audited[key] = "cleared";
+        } else {
+          const payload = await setLicenseFile(value as string, db);
+          audited[key] = { org: payload.org, expiresAt: payload.expires_at };
+        }
+      } catch (error) {
+        if (error instanceof LicenseError) return badRequest(error.message);
+        throw error;
+      }
+    } else if (key === SCHEDULED_REPORTS_SETTING) {
+      await setScheduledReportsConfig(validateScheduledReportsConfig(value), db);
+      audited[key] = value;
+    } else if (key === EMAIL_CONFIG_SETTING) {
       await setEmailConfig(value === null ? null : validateEmailConfig(value), { db });
+      audited[key] = value === null ? "cleared" : "replaced";
     } else if (isSecretSettingKey(key)) {
       if (value === null) await deleteSetting(key, db);
       else await setSecretSetting(key, value as string, db);
+      // Secrets never reach the audit detail - presence only.
+      audited[key] = value === null ? "cleared" : "replaced";
     } else {
       await setSetting(key as SettingKey, value as SettingValues[SettingKey], db);
+      audited[key] = value;
     }
   }
   logger.info("settings updated", { keys: Object.keys(body) });
+  await audit(admin, "settings.update", audited, db);
   return Response.json({
     settings: await getAllSettings(db),
     secrets: await secretSettingsPresence(db),
     email: await emailSummary({ db }),
+    license: await licenseStatus(db),
+    scheduledReports: await getScheduledReportsConfig(db),
   });
 }

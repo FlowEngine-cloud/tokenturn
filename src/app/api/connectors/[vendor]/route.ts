@@ -1,4 +1,5 @@
 import { requireAdmin, requireUser } from "@/lib/api";
+import { audit } from "@/lib/audit";
 import { connectorHealth, disconnectConnector, getConnector } from "@/lib/connectors";
 import { getPool } from "@/lib/db";
 import { logger } from "@/lib/logger";
@@ -43,5 +44,6 @@ export async function DELETE(
     return Response.json({ error: "not connected" }, { status: 404 });
   }
   logger.info("connector disconnected via api", { connector: vendor, by: admin.id });
+  await audit(admin, "connector.disconnect", { vendor }, db);
   return Response.json({ ok: true });
 }

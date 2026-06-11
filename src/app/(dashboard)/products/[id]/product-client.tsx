@@ -6,6 +6,7 @@ import { DataTable, type Column } from "@/components/data-table";
 import { RowLink, Tile } from "@/components/tile";
 import { TrendBars } from "@/components/trend-bars";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ATTRIBUTION_LABELS, OUTCOME_LABELS } from "@/components/product-form";
 import { formatCents, formatCount, shortDay } from "@/lib/format";
 import type {
   ManualEntry,
@@ -135,7 +136,7 @@ export default function ProductClient() {
     },
     {
       key: "value",
-      header: "Value / outcome",
+      header: "Value / success",
       align: "right",
       render: (r) =>
         r.valueCents === null ? "–" : formatCents(r.valueCents, r.valueCurrency ?? "USD"),
@@ -175,9 +176,9 @@ export default function ProductClient() {
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <h1 className="text-lg font-semibold">{data.product.name}</h1>
         <span className="text-sm text-muted-foreground">
-          {data.product.attribution} spend
+          {ATTRIBUTION_LABELS[data.product.attribution]}
           {data.product.outcomeKind !== "none" &&
-            ` · ${data.product.outcomeKind} outcomes`}
+            ` · ${OUTCOME_LABELS[data.product.outcomeKind]}`}
         </span>
         {data.product.archivedAt !== null && (
           <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-sm font-medium text-amber-700">
@@ -192,7 +193,7 @@ export default function ProductClient() {
               data.product.defaultValueCents,
               data.product.defaultValueCurrency ?? "USD",
             )}
-            /outcome
+            /success
           </span>
         )}
       </div>
@@ -329,7 +330,7 @@ export default function ProductClient() {
             columns={keyColumns}
             rows={data.keys}
             rowKey={(r) => r.id}
-            csvName="ai-pnl-product-keys.csv"
+            csvName="ai-pnl-roi-keys.csv"
             rowHref={(r) => withRange(`/keys/${r.id}`, range)}
             maxHeightClass="max-h-96"
           />
@@ -345,7 +346,7 @@ export default function ProductClient() {
             columns={entryColumns}
             rows={data.manualEntries}
             rowKey={(r) => r.id}
-            csvName="ai-pnl-product-manual-entries.csv"
+            csvName="ai-pnl-roi-manual-entries.csv"
             rowHref={(r) =>
               r.kind === "cost"
                 ? `/drill?product=${data.product.id}&vendor=manual&day=${r.month}-01&from=${r.month}-01&to=${r.month}-01`
@@ -362,7 +363,7 @@ export default function ProductClient() {
           columns={dailyColumns}
           rows={data.daily}
           rowKey={(r) => `${r.day}:${r.vendor}`}
-          csvName="ai-pnl-product-daily.csv"
+          csvName="ai-pnl-roi-daily.csv"
           rowHref={(r) => drill(`&day=${r.day}&vendor=${r.vendor}`)}
           maxHeightClass="max-h-96"
         />

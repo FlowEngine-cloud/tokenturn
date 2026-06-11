@@ -1,4 +1,5 @@
 import { badRequest, readJson, requireAdmin } from "@/lib/api";
+import { audit } from "@/lib/audit";
 import { connectConnector, getConnector, runSync } from "@/lib/connectors";
 import { getPool } from "@/lib/db";
 import { logger } from "@/lib/logger";
@@ -44,6 +45,8 @@ export async function POST(
     return Response.json({ error: message }, { status: 422 });
   }
   logger.info("connector connected via api", { connector: vendor, by: admin.id });
+  // Credentials never reach the audit detail - the vendor and scopes do.
+  await audit(admin, "connector.connect", { vendor, scopes: row.scopes }, db);
 
   // Kick off the first backfill; the caller polls health for progress.
   void runSync(vendor).catch((err) => {

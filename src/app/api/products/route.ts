@@ -22,7 +22,7 @@ export async function GET(req: Request) {
   return Response.json({ products: await listProducts({ includeArchived }, db) });
 }
 
-/** Create a product = a cost center (admin, spec 7). */
+/** Create a product row = a user-defined ROI (admin, spec 7). */
 export async function POST(req: Request) {
   const db = getPool();
   const admin = await requireAdmin(req, db);

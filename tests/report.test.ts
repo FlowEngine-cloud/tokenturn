@@ -11,7 +11,7 @@ import { productsView } from "../src/lib/products";
 import {
   FOCUS_COLUMNS,
   focusCsv,
-  NO_COST_CENTER,
+  NO_ROI,
   reportCsv,
   reportData,
 } from "../src/lib/report";
@@ -42,7 +42,7 @@ const MIGRATIONS_DIR = path.resolve(__dirname, "..", "migrations");
  *   Old, "Tool" (ARCHIVED): June 999 - on the report (flagged archived,
  *     money never leaves a total), absent from the Products page.
  *   idle (sdk, none): all-zero roster row - dropped from the report.
- *   No cost center: June 700 unassigned, May 250 -> MoM +180%.
+ *   No ROI: June 700 unassigned, May 250 -> MoM +180%.
  */
 
 const JUNE = "2026-06";
@@ -182,12 +182,12 @@ describe.runIf(TEST_DATABASE_URL)("CFO report (spec 10.6)", () => {
       "brain", // 2,300
       "support", // 1,500
       'Old, "Tool"', // 999
-      NO_COST_CENTER, // 700
+      NO_ROI, // 700
       "coding", // 600
     ]);
     const byName = new Map(data.rows.map((r) => [r.name, r]));
     expect(byName.get('Old, "Tool"')!.archived).toBe(true);
-    expect(byName.get(NO_COST_CENTER)!.productId).toBeNull();
+    expect(byName.get(NO_ROI)!.productId).toBeNull();
     // The all-zero roster row says nothing - dropped.
     expect(byName.has("idle")).toBe(false);
 
@@ -240,7 +240,7 @@ describe.runIf(TEST_DATABASE_URL)("CFO report (spec 10.6)", () => {
     expect(brainRow.costPerUserCents).toBe(2_300); // dana is the only user
     expect(brainRow.momPct).toBeNull(); // May zero - no fake percent
 
-    expect(byName.get(NO_COST_CENTER)!.momPct).toBe(180); // 250 -> 700
+    expect(byName.get(NO_ROI)!.momPct).toBe(180); // 250 -> 700
 
     // The report's per-product math is the Products page's math, verbatim.
     const view = await productsView(JUNE_RANGE, pool, { includeArchived: true });
@@ -279,8 +279,8 @@ describe.runIf(TEST_DATABASE_URL)("CFO report (spec 10.6)", () => {
     const csv = reportCsv(data);
     const lines = csv.split("\n");
     expect(lines[0]).toBe(
-      "Month,Cost center,Status,Spend (USD),Last month (USD),MoM %,Outcomes,Unit," +
-        "Unit cost (USD),Value (USD),ROI,Active users,Cost per active user (USD)",
+      "Month,ROI,Status,Spend (USD),Last month (USD),MoM %,Successes,Unit," +
+        "Unit cost (USD),Value (USD),ROI multiple,Active users,Cost per active user (USD)",
     );
     expect(lines).toHaveLength(1 + data.rows.length + 1); // header + rows + total
     expect(lines).toContain(

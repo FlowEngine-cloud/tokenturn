@@ -15,7 +15,8 @@ services:
     restart: unless-stopped
 
   db:
-    image: postgres:16-alpine
+    # Pinned by digest (spec 12) - postgres:16-alpine
+    image: postgres:16-alpine@sha256:16bc17c64a573ef34162af9298258d1aec548232985b33ed7b1eac33ba35c229
     environment:
       POSTGRES_USER: aipnl
       POSTGRES_PASSWORD: aipnl

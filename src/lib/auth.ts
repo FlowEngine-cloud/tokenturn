@@ -31,6 +31,20 @@ export async function isClaimed(db: Db = getPool()): Promise<boolean> {
   return rows.length > 0;
 }
 
+/**
+ * Serialize the first-boot claim. The one-admin unique index used to break
+ * the double-claim race at the DB level; it is gone since migration 013
+ * (more admins is a licensed feature, spec 11), so the claim transaction
+ * takes this advisory lock and re-checks - the race loser sees the winner's
+ * committed admin and gets the 409. Call inside an open transaction; the
+ * lock releases on commit/rollback. Returns false when already claimed.
+ */
+const CLAIM_LOCK_KEY = 0x61_69_70_6e; // "aipn", arbitrary app-wide constant
+export async function lockClaim(client: Db): Promise<boolean> {
+  await client.query("SELECT pg_advisory_xact_lock($1)", [CLAIM_LOCK_KEY]);
+  return !(await isClaimed(client));
+}
+
 export async function createSession(
   userId: string,
   db: Db = getPool(),

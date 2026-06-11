@@ -94,10 +94,16 @@ describe.runIf(TEST_DATABASE_URL)("auth flows", () => {
     expect(res.status).toBe(409);
   });
 
-  it("the database itself refuses a second admin", async () => {
-    await expect(
-      pool.query("INSERT INTO users (name, role) VALUES ('Other', 'admin')"),
-    ).rejects.toMatchObject({ code: "23505" });
+  it("a second admin is an enterprise feature - the API refuses unlicensed", async () => {
+    // The DB-level one-admin index is gone (more admins is licensed, spec
+    // 11); the enforcing layer is the license wall on the users API.
+    const res = await createUser(
+      postJson("/api/users", { name: "Other", password: "longpassword", role: "admin" }, adminCookie),
+    );
+    expect(res.status).toBe(403);
+    expect((await res.json()).error).toBe(
+      "Enterprise feature - contact hi@flowengine.cloud",
+    );
   });
 
   it("password login: wrong creds 401, right creds open a session", async () => {

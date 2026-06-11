@@ -185,6 +185,25 @@ export function OffboardPanel({
               History stays intact - spend and outcomes keep their drill-downs.
             </span>
           </div>
+          <div className="flex flex-wrap items-center gap-2 border-t pt-3">
+            <ConfirmButton
+              label="Delete person (GDPR)"
+              confirmLabel="Confirm - delete forever"
+              disabled={busy || retrying !== null}
+              onConfirm={() => {
+                void fetchJson(`/api/people/${personId}`, { method: "DELETE" }).then(
+                  ({ error: failure }) => {
+                    if (failure) setError(failure);
+                    else window.location.href = "/people";
+                  },
+                );
+              }}
+            />
+            <span className="text-sm text-muted-foreground">
+              Irreversible - scrubs their personal data; their spend stays on
+              the ledger as Unassigned and totals never change.
+            </span>
+          </div>
         </>
       )}
       <ErrorLine message={error} />

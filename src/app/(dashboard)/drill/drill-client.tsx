@@ -84,7 +84,7 @@ function FactsView({ query, chips }: { query: string; chips: string[] }) {
     },
     {
       key: "product",
-      header: "Product",
+      header: "ROI",
       render: (r) => r.productName ?? "–",
       csv: (r) => r.productName,
     },
@@ -170,7 +170,7 @@ function OutcomesView({ query, chips }: { query: string; chips: string[] }) {
     },
     {
       key: "product",
-      header: "Product",
+      header: "ROI",
       render: (r) => r.productName,
       csv: (r) => r.productName,
     },
@@ -496,7 +496,7 @@ export default function DrillClient() {
     if (!value) continue;
     query.set(key, value);
     if (key === "person" && value === "unassigned") chips.push("Unassigned");
-    else if (key === "product" && value === "none") chips.push("No product");
+    else if (key === "product" && value === "none") chips.push("No ROI");
     else if (key === "model" && value === "none") chips.push("No model");
     else if (key === "metric") chips.push(value);
     else chips.push(`${key}: ${value.length > 12 ? `${value.slice(0, 8)}…` : value}`);

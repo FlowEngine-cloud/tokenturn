@@ -1,6 +1,6 @@
 import type { RegistrationResponseJSON } from "@simplewebauthn/server";
 import { badRequest, cleanName, conflict, readJson, tooManyRequests } from "@/lib/api";
-import { createSession, isClaimed, jsonWithSession } from "@/lib/auth";
+import { createSession, isClaimed, jsonWithSession, lockClaim } from "@/lib/auth";
 import { getPool } from "@/lib/db";
 import { logger } from "@/lib/logger";
 import { startOnboarding } from "@/lib/onboarding";
@@ -16,8 +16,8 @@ export const dynamic = "force-dynamic";
 
 /**
  * First boot: verify the passkey attestation and claim the instance as the
- * one admin. The single-admin unique index makes a concurrent double-claim
- * impossible - the loser gets a 409.
+ * one admin. The claim transaction holds an advisory lock and re-checks, so
+ * a concurrent double-claim is impossible - the loser gets a 409.
  */
 export async function POST(req: Request) {
   if (!rateLimit(clientKey(req, "claim"))) return tooManyRequests();
@@ -47,6 +47,11 @@ export async function POST(req: Request) {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
+    // Serialized claim: a concurrent double-claim loses here with the 409.
+    if (!(await lockClaim(client))) {
+      await client.query("ROLLBACK");
+      return conflict("instance already claimed");
+    }
     const { rows } = await client.query(
       "INSERT INTO users (name, role) VALUES ($1, 'admin') RETURNING id, name, role",
       [name],

@@ -1,0 +1,45 @@
+[
+  {
+    "id": "00u1abcDEFGHijkl0x7",
+    "status": "ACTIVE",
+    "created": "2025-02-10T08:30:00.000Z",
+    "activated": "2025-02-10T08:31:00.000Z",
+    "statusChanged": "2025-02-10T08:31:00.000Z",
+    "lastLogin": "2026-06-09T16:02:11.000Z",
+    "lastUpdated": "2026-05-01T09:00:00.000Z",
+    "passwordChanged": "2026-01-15T10:00:00.000Z",
+    "type": { "id": "oty1typedefault000" },
+    "profile": {
+      "firstName": "Dana",
+      "lastName": "Levi",
+      "mobilePhone": null,
+      "secondEmail": null,
+      "login": "dana@acme.com",
+      "email": "dana@acme.com"
+    },
+    "credentials": { "provider": { "type": "OKTA", "name": "OKTA" } },
+    "_links": { "self": { "href": "https://acme.okta.com/api/v1/users/00u1abcDEFGHijkl0x7" } }
+  },
+  {
+    "id": "00u2mnopQRSTuvwx0x7",
+    "status": "ACTIVE",
+    "created": "2026-06-10T11:00:00.000Z",
+    "activated": "2026-06-10T11:01:00.000Z",
+    "statusChanged": "2026-06-10T11:01:00.000Z",
+    "lastLogin": null,
+    "lastUpdated": "2026-06-10T11:01:00.000Z",
+    "passwordChanged": null,
+    "type": { "id": "oty1typedefault000" },
+    "profile": {
+      "firstName": "Noa",
+      "lastName": "Stern",
+      "displayName": "Noa Stern",
+      "mobilePhone": null,
+      "secondEmail": null,
+      "login": "noa@acme.com",
+      "email": "noa@acme.com"
+    },
+    "credentials": { "provider": { "type": "OKTA", "name": "OKTA" } },
+    "_links": { "self": { "href": "https://acme.okta.com/api/v1/users/00u2mnopQRSTuvwx0x7" } }
+  }
+]

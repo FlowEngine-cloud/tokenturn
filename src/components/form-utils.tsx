@@ -32,6 +32,22 @@ export function ErrorLine({ message }: { message: string | null }) {
   return <p className="text-sm text-destructive">{message}</p>;
 }
 
+/** One titled settings card. */
+export function Section({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="space-y-3 rounded-lg border bg-card p-4">
+      <h2 className="text-sm font-medium text-muted-foreground">{title}</h2>
+      {children}
+    </section>
+  );
+}
+
 /** Two-step destructive button: first click arms, second fires. */
 export function ConfirmButton({
   label,

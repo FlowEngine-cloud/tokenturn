@@ -183,10 +183,53 @@ export function signSesSendEmail(
 // ---------------------------------------------------------------------------
 // Send
 
+export interface EmailAttachment {
+  filename: string;
+  contentType: string;
+  /** Base64-encoded content. */
+  content: string;
+}
+
 export interface EmailMessage {
   to: string;
   subject: string;
   text: string;
+  /** Optional attachments (the scheduled monthly report PDF, spec 11). */
+  attachments?: EmailAttachment[];
+}
+
+/**
+ * RFC 2045 multipart/mixed body for SES, which takes attachments only as a
+ * raw MIME message. Deterministic (fixed boundary) so tests pin bytes.
+ */
+export function buildMimeMessage(from: string, message: EmailMessage): string {
+  const boundary = "=_ai-pnl-mime-boundary";
+  const wrap = (b64: string) => b64.replace(/(.{76})/g, "$1\r\n");
+  const parts = [
+    `From: ${from}`,
+    `To: ${message.to}`,
+    `Subject: ${message.subject}`,
+    "MIME-Version: 1.0",
+    `Content-Type: multipart/mixed; boundary="${boundary}"`,
+    "",
+    `--${boundary}`,
+    'Content-Type: text/plain; charset="UTF-8"',
+    "Content-Transfer-Encoding: base64",
+    "",
+    wrap(Buffer.from(message.text, "utf8").toString("base64")),
+  ];
+  for (const att of message.attachments ?? []) {
+    parts.push(
+      `--${boundary}`,
+      `Content-Type: ${att.contentType}; name="${att.filename}"`,
+      "Content-Transfer-Encoding: base64",
+      `Content-Disposition: attachment; filename="${att.filename}"`,
+      "",
+      wrap(att.content),
+    );
+  }
+  parts.push(`--${boundary}--`, "");
+  return parts.join("\r\n");
 }
 
 async function providerError(res: Response, fallback: string): Promise<string> {
@@ -231,6 +274,15 @@ export async function sendEmail(
         to: [message.to],
         subject: message.subject,
         text: message.text,
+        ...(message.attachments?.length
+          ? {
+              attachments: message.attachments.map((a) => ({
+                filename: a.filename,
+                content: a.content,
+                content_type: a.contentType,
+              })),
+            }
+          : {}),
       }),
     });
   } else if (config.provider === "postmark") {
@@ -247,6 +299,15 @@ export async function sendEmail(
         Subject: message.subject,
         TextBody: message.text,
         MessageStream: "outbound",
+        ...(message.attachments?.length
+          ? {
+              Attachments: message.attachments.map((a) => ({
+                Name: a.filename,
+                Content: a.content,
+                ContentType: a.contentType,
+              })),
+            }
+          : {}),
       }),
     });
   } else {
@@ -259,12 +320,22 @@ export async function sendEmail(
       JSON.stringify({
         FromEmailAddress: config.from,
         Destination: { ToAddresses: [message.to] },
-        Content: {
-          Simple: {
-            Subject: { Data: message.subject },
-            Body: { Text: { Data: message.text } },
-          },
-        },
+        // SES v2 takes attachments only as a raw MIME message.
+        Content: message.attachments?.length
+          ? {
+              Raw: {
+                Data: Buffer.from(
+                  buildMimeMessage(config.from, message),
+                  "utf8",
+                ).toString("base64"),
+              },
+            }
+          : {
+              Simple: {
+                Subject: { Data: message.subject },
+                Body: { Text: { Data: message.text } },
+              },
+            },
       }),
       opts.now ?? new Date(),
     );

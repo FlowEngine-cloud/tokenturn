@@ -6,7 +6,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { POST as notPersonRoute } from "../src/app/api/resolve/[id]/not-person/route";
 import { GET as resolveRoute } from "../src/app/api/resolve/route";
 import { GET as tagRoute, PATCH as tagPatchRoute } from "../src/app/api/tags/[tag]/route";
-import { GET as tagsRoute } from "../src/app/api/tags/route";
+import { GET as tagsRoute, POST as tagsPostRoute } from "../src/app/api/tags/route";
 import { createSession, SESSION_COOKIE } from "../src/lib/auth";
 import { connectConnector } from "../src/lib/connectors/connect";
 import { clearConnectors, registerConnector } from "../src/lib/connectors/registry";
@@ -504,5 +504,43 @@ describe.runIf(TEST_DATABASE_URL)("tags (spec 7b)", () => {
         )
       ).status,
     ).toBe(403);
+    expect(
+      (await tagsPostRoute(postJson("/api/tags", { tag: "x" }, viewerCookie))).status,
+    ).toBe(403);
+  });
+
+  it("a tag added ahead of its keys is listed with zero keys, idempotently", async () => {
+    // The ROI filter bar's "Add a tag" (spec 7b): the tag exists before any
+    // key carries it - naming a key after it puts spend under it on sync.
+    const created = await tagsPostRoute(
+      postJson("/api/tags", { tag: "future-agent" }, adminCookie),
+    );
+    expect(created.status).toBe(201);
+    expect(await created.json()).toEqual({ tag: "future-agent", created: true });
+
+    const again = await tagsPostRoute(
+      postJson("/api/tags", { tag: "future-agent" }, adminCookie),
+    );
+    expect(again.status).toBe(200);
+    expect(await again.json()).toEqual({ tag: "future-agent", created: false });
+
+    const tags = await listTags();
+    const future = tags.find((t: { tag: string }) => t.tag === "future-agent");
+    expect(future).toMatchObject({
+      countsPersonal: true,
+      productId: null,
+      identityCount: 0,
+      vendors: [],
+      factCount: 0,
+      amountUsdCents: 0,
+    });
+    // An existing carried tag stays untouched by a duplicate add.
+    const carried = tags.find((t: { tag: string }) => t.tag === "devin");
+    expect(carried.identityCount).toBeGreaterThan(0);
+
+    const blank = await tagsPostRoute(postJson("/api/tags", { tag: "  " }, adminCookie));
+    expect(blank.status).toBe(400);
+    const notString = await tagsPostRoute(postJson("/api/tags", { tag: 7 }, adminCookie));
+    expect(notString.status).toBe(400);
   });
 });

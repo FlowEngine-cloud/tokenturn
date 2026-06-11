@@ -7,8 +7,8 @@ import { readMonth } from "./params";
 export const dynamic = "force-dynamic";
 
 /**
- * The CFO report for one month (spec 10 page 6): spend by cost center -
- * archived products and the no-cost-center bucket included, so the page
+ * The CFO report for one month (spec 10 page 6): spend by ROI and person -
+ * archived rows and the no-ROI bucket included, so the page
  * sums to the whole ledger - unit costs, ROI where defined, and the
  * trailing month-over-month trend.
  */

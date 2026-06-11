@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { NAV_ITEMS, RESOLVE_CHANGED_EVENT } from "@/components/shell/nav";
+import { HELP_ITEM, NAV_ITEMS, RESOLVE_CHANGED_EVENT } from "@/components/shell/nav";
 import { DAY_RE } from "@/lib/range";
 import { cn } from "@/lib/utils";
 
@@ -58,7 +58,11 @@ export function Sidebar() {
       <nav className="flex-1 space-y-1 p-3">
         {NAV_ITEMS.map((item) => {
           const active =
-            item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+            item.href === "/"
+              ? pathname === "/"
+              : pathname.startsWith(item.href) ||
+                // ROI detail routes kept their original paths (spec 10.3).
+                (item.href === "/roi" && pathname.startsWith("/products"));
           return (
             <Link
               key={item.href}
@@ -81,6 +85,20 @@ export function Sidebar() {
           );
         })}
       </nav>
+      <div className="border-t p-3">
+        <Link
+          href={`${HELP_ITEM.href}${rangeQuery}`}
+          className={cn(
+            "flex items-center gap-3 rounded-md px-3 py-2 text-sm",
+            pathname.startsWith(HELP_ITEM.href)
+              ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
+              : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+          )}
+        >
+          <HELP_ITEM.icon className="h-4 w-4" />
+          {HELP_ITEM.label}
+        </Link>
+      </div>
     </aside>
   );
 }

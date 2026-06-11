@@ -35,7 +35,7 @@ export async function POST(
   }
 
   try {
-    return Response.json({ item: await retryOffboardItem(itemId, { db }) });
+    return Response.json({ item: await retryOffboardItem(itemId, { db, actor: admin }) });
   } catch (error) {
     if (error instanceof ResolveError) {
       return Response.json({ error: error.message }, { status: error.status });

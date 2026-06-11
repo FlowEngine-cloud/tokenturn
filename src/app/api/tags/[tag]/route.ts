@@ -1,14 +1,9 @@
 import { badRequest, cleanUuid, readJson, requireAdmin, requireUser } from "@/lib/api";
 import { getPool } from "@/lib/db";
 import { ResolveError } from "@/lib/resolve";
-import { tagDetail, updateTag, type TagUpdate } from "@/lib/tags";
+import { cleanTag, tagDetail, updateTag, type TagUpdate } from "@/lib/tags";
 
 export const dynamic = "force-dynamic";
-
-function cleanTag(raw: string): string | null {
-  const tag = raw.trim();
-  return tag.length >= 1 && tag.length <= 200 ? tag : null;
-}
 
 /** One tag: its settings, the keys carrying it, and the vendor rows behind it. */
 export async function GET(

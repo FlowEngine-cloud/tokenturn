@@ -4,15 +4,19 @@ import Link from "next/link";
 import { useState } from "react";
 import { Check, Copy, Loader2 } from "lucide-react";
 import { ConnectorCard } from "@/components/connector-card";
+import { EnterpriseSections, LicenseSection } from "@/components/ee-settings";
 import {
   ConfirmButton,
   ErrorLine,
+  Section,
   send,
   toCents,
   useLatest,
 } from "@/components/form-utils";
 import {
+  ATTRIBUTION_LABELS,
   NewProductForm,
+  OUTCOME_LABELS,
   ProductFields,
   productBody,
   type ProductFieldsValue,
@@ -22,6 +26,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ConnectorHealth } from "@/lib/connectors/health";
+import { EE_LOCKED_COPY, type LicenseStatus } from "@/lib/ee";
 import { formatCents, formatCount, timeAgo } from "@/lib/format";
 import type { IngestKey } from "@/lib/ingest";
 import type { ProductListItem } from "@/lib/products";
@@ -30,10 +35,10 @@ import { useFetch } from "@/lib/use-fetch";
 import { cn } from "@/lib/utils";
 
 /**
- * Settings (spec 10 page 7): connectors, products, alert channels, display
+ * Settings (spec 10 page 7): connectors, ROI rows, alert channels, display
  * currency, license - and every numeric default in the plan (revert window,
  * anomaly thresholds, retention) editable. Plus the two key surfaces specs 6
- * and 11 put here: ingest keys (minted per product, shown once) and the
+ * and 11 put here: ingest keys (minted per ROI, shown once) and the
  * admin's view-only users. Writes are admin-only; the server's word comes
  * back verbatim.
  */
@@ -54,6 +59,8 @@ interface SettingsPayload {
   secrets: { slack_webhook_url: boolean; email_provider_config: boolean };
   /** Provider + from of the configured email provider - never the key. */
   email: { provider: string; from: string } | null;
+  license: LicenseStatus;
+  scheduledReports: { enabled: boolean; recipients: string[] };
 }
 
 interface UserRow {
@@ -64,22 +71,7 @@ interface UserRow {
   has_password: boolean;
 }
 
-function Section({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="space-y-3 rounded-lg border bg-card p-4">
-      <h2 className="text-sm font-medium text-muted-foreground">{title}</h2>
-      {children}
-    </section>
-  );
-}
-
-// ---- Products = cost centers (spec 7) -------------------------------------
+// ---- ROI rows (spec 7; DB keeps the products table name) ------------------
 
 function ManualEntryForm({ product, onChanged }: { product: ProductListItem; onChanged: () => void }) {
   const canCost = product.attribution === "manual";
@@ -284,9 +276,9 @@ function ProductRow({
           {product.name}
         </Link>
         <span className="text-sm text-muted-foreground">
-          {product.attribution} · {product.outcomeKind}
+          {ATTRIBUTION_LABELS[product.attribution]} · {OUTCOME_LABELS[product.outcomeKind]}
           {product.defaultValueCents !== null &&
-            ` · ${formatCents(product.defaultValueCents, product.defaultValueCurrency ?? "USD")}/outcome`}
+            ` · ${formatCents(product.defaultValueCents, product.defaultValueCurrency ?? "USD")}/success`}
           {archived && " · archived"}
         </span>
         <span className="flex-1" />
@@ -339,7 +331,7 @@ function ProductRow({
 }
 
 
-// ---- Ingest keys (spec 6: minted in Settings, shown once, per product) ----
+// ---- Ingest keys (spec 6: minted in Settings, shown once, per ROI) --------
 
 function IngestKeysSection({
   keys,
@@ -365,13 +357,13 @@ function IngestKeysSection({
       {isAdmin && (
         <div className="flex flex-wrap items-center gap-2">
           <select
-            aria-label="Product"
+            aria-label="ROI"
             className="h-8 rounded-md border bg-transparent px-2 text-sm"
             disabled={busy}
             value={productId}
             onChange={(e) => setProductId(e.target.value)}
           >
-            <option value="">Mint for product…</option>
+            <option value="">Mint for ROI…</option>
             {live.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name}
@@ -430,7 +422,7 @@ function IngestKeysSection({
       <ErrorLine message={error} />
       {keys.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          No keys yet. The SDK authenticates with an ingest key scoped to one product.
+          No keys yet. The SDK authenticates with an ingest key scoped to one ROI.
         </p>
       ) : (
         <ul className="divide-y">
@@ -913,19 +905,25 @@ function ConfigSection({
   );
 }
 
-// ---- View-only users (spec 11: one admin, who can add view-only users) ----
+// ---- Users (spec 11: one admin + view-only users; more admins = ee) -------
 
 function UsersSection({
   users,
+  moreAdminsLicensed,
   onChanged,
 }: {
   users: UserRow[];
+  moreAdminsLicensed: boolean;
   onChanged: () => void;
 }) {
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
+  const [role, setRole] = useState<"viewer" | "admin">("viewer");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const adminLocked = role === "admin" && !moreAdminsLicensed;
+  const admins = users.filter((u) => u.role === "admin").length;
 
   return (
     <Section title="Users">
@@ -944,7 +942,7 @@ function UsersSection({
                 .join(" + ") || "no credentials"}
             </span>
             <span className="flex-1" />
-            {user.role === "viewer" && (
+            {(user.role === "viewer" || admins > 1) && (
               <ConfirmButton
                 label="Remove"
                 confirmLabel="Confirm remove"
@@ -962,15 +960,15 @@ function UsersSection({
       </ul>
       <div className="flex flex-wrap items-center gap-2">
         <Input
-          aria-label="Viewer name"
+          aria-label="User name"
           className="h-8 w-40"
-          placeholder="viewer name"
+          placeholder="name"
           disabled={busy}
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
         <Input
-          aria-label="Viewer password"
+          aria-label="User password"
           type="password"
           autoComplete="new-password"
           className="h-8 w-40"
@@ -979,15 +977,26 @@ function UsersSection({
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
+        <select
+          aria-label="Role"
+          className="h-8 rounded-md border bg-transparent px-2 text-sm"
+          disabled={busy}
+          value={role}
+          onChange={(e) => setRole(e.target.value as "viewer" | "admin")}
+        >
+          <option value="viewer">viewer</option>
+          <option value="admin">admin</option>
+        </select>
         <Button
           size="sm"
-          disabled={busy || name.trim() === "" || password.length < 8}
+          disabled={busy || adminLocked || name.trim() === "" || password.length < 8}
           onClick={async () => {
             setBusy(true);
             setError(null);
             const { error: failure } = await send("/api/users", "POST", {
               name: name.trim(),
               password,
+              role,
             });
             setBusy(false);
             if (failure) {
@@ -995,12 +1004,16 @@ function UsersSection({
             } else {
               setName("");
               setPassword("");
+              setRole("viewer");
               onChanged();
             }
           }}
         >
-          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add viewer"}
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add user"}
         </Button>
+        {adminLocked && (
+          <span className="text-sm text-muted-foreground">{EE_LOCKED_COPY}</span>
+        )}
       </div>
       <ErrorLine message={error} />
     </Section>
@@ -1050,6 +1063,10 @@ export default function SettingsClient() {
     return <SettingsSkeleton />;
   }
   const isAdmin = auth?.user?.role === "admin";
+  // An expired license still reports its feature list (for the status line),
+  // but unlocks nothing - expiry locks ee features, data stays readable.
+  const eeFeatures =
+    settingsData.license.state === "valid" ? settingsData.license.features : [];
 
   return (
     <div className="space-y-6">
@@ -1063,7 +1080,7 @@ export default function SettingsClient() {
         </div>
       </Section>
 
-      <Section title="Products">
+      <Section title="ROI">
         {isAdmin && <NewProductForm onChanged={reload} />}
         <div className="space-y-2">
           {productData.products.map((product) => (
@@ -1076,7 +1093,7 @@ export default function SettingsClient() {
           ))}
           {productData.products.length === 0 && (
             <p className="text-sm text-muted-foreground">
-              No products yet. A product is a cost center - anything that spends AI money.
+              No ROI yet. An ROI is a slice of spend and a definition of success.
             </p>
           )}
         </div>
@@ -1101,20 +1118,27 @@ export default function SettingsClient() {
         * (nothing else edits them), and a remount would eat the saved notice. */}
       <ConfigSection settings={settingsData.settings} isAdmin={isAdmin} onChanged={reload} />
 
-      {userData && <UsersSection users={userData.users} onChanged={reload} />}
+      {userData && (
+        <UsersSection
+          users={userData.users}
+          moreAdminsLicensed={eeFeatures.includes("more_admins")}
+          onChanged={reload}
+        />
+      )}
 
-      <Section title="License">
-        <p className="text-sm">
-          Free · sustainable-use license - all v1 connectors, the SDK, the full
-          dashboard, limits and alerts. One admin plus view-only users, single org
-          per vendor.
-        </p>
-        <p className="text-sm text-muted-foreground">
-          Enterprise (Okta sync, Google Workspace roster, more admins, audit log,
-          multi-org rollup, scheduled reports) is licensed per deal and verified
-          offline - contact hi@flowengine.cloud.
-        </p>
-      </Section>
+      <LicenseSection
+        license={settingsData.license}
+        isAdmin={isAdmin}
+        onChanged={reload}
+      />
+
+      <EnterpriseSections
+        features={eeFeatures}
+        isAdmin={isAdmin}
+        scheduledReports={settingsData.scheduledReports}
+        emailConfigured={settingsData.email !== null}
+        onChanged={reload}
+      />
     </div>
   );
 }

@@ -46,7 +46,7 @@ export async function POST(
   const id = cleanUuid((await params).id);
   if (!id) return badRequest("invalid person id");
   try {
-    return Response.json(await runOffboard(id, { db }));
+    return Response.json(await runOffboard(id, { db, actor: admin }));
   } catch (error) {
     if (error instanceof ResolveError) {
       return Response.json({ error: error.message }, { status: error.status });

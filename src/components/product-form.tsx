@@ -7,11 +7,34 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-/** Product (= cost center, spec 7) form fields + create form. Shared by
- * Settings and Onboarding. */
+/** The Add ROI form (spec 7): name + spend slice + success definition +
+ * optional value per success. Shared by the ROI page, Settings and
+ * Onboarding. (The DB keeps the products table name; only the language
+ * changed.) */
 
 export const ATTRIBUTION_OPTIONS = ["connector", "key", "sdk", "manual"] as const;
 export const OUTCOME_OPTIONS = ["none", "github_pr", "sdk_event", "manual"] as const;
+
+/** Raw enums mean nothing to a CFO - label them, and say how the chosen
+ * slice actually feeds the ROI (spec 7). */
+export const ATTRIBUTION_LABELS: Record<string, string> = {
+  connector: "Whole vendor",
+  key: "Tagged keys",
+  sdk: "SDK",
+  manual: "Manual entry",
+};
+const ATTRIBUTION_HINTS: Record<string, string> = {
+  connector: "Everything one vendor bills routes here.",
+  key: "Keys named after it route here.",
+  sdk: "wrap(client, { product }) sends spend; track() sends successes.",
+  manual: "You enter monthly cost - and successes - by hand.",
+};
+export const OUTCOME_LABELS: Record<string, string> = {
+  none: "None - cost only",
+  github_pr: "Merged PRs",
+  sdk_event: "track() events",
+  manual: "Manual",
+};
 
 export type ProductFieldsValue = {
   name: string;
@@ -34,6 +57,7 @@ export function ProductFields({
 }) {
   const set = (patch: Partial<ProductFieldsValue>) => onChange({ ...value, ...patch });
   return (
+    <div className="space-y-2">
     <div className="flex flex-wrap items-end gap-2">
       <div className="space-y-1">
         <Label htmlFor={`${idPrefix}-name`}>Name</Label>
@@ -46,7 +70,7 @@ export function ProductFields({
         />
       </div>
       <div className="space-y-1">
-        <Label htmlFor={`${idPrefix}-attribution`}>Spend from</Label>
+        <Label htmlFor={`${idPrefix}-attribution`}>Spend slice</Label>
         <select
           id={`${idPrefix}-attribution`}
           className="h-8 rounded-md border bg-transparent px-2 text-sm"
@@ -56,13 +80,13 @@ export function ProductFields({
         >
           {ATTRIBUTION_OPTIONS.map((a) => (
             <option key={a} value={a}>
-              {a}
+              {ATTRIBUTION_LABELS[a]}
             </option>
           ))}
         </select>
       </div>
       <div className="space-y-1">
-        <Label htmlFor={`${idPrefix}-outcome`}>Outcomes</Label>
+        <Label htmlFor={`${idPrefix}-outcome`}>Success</Label>
         <select
           id={`${idPrefix}-outcome`}
           className="h-8 rounded-md border bg-transparent px-2 text-sm"
@@ -72,13 +96,13 @@ export function ProductFields({
         >
           {OUTCOME_OPTIONS.map((k) => (
             <option key={k} value={k}>
-              {k}
+              {OUTCOME_LABELS[k]}
             </option>
           ))}
         </select>
       </div>
       <div className="space-y-1">
-        <Label htmlFor={`${idPrefix}-value`}>Value per outcome</Label>
+        <Label htmlFor={`${idPrefix}-value`}>Value per success</Label>
         <div className="flex gap-1">
           <Input
             id={`${idPrefix}-value`}
@@ -100,6 +124,8 @@ export function ProductFields({
         </div>
       </div>
     </div>
+    <p className="text-sm text-muted-foreground">{ATTRIBUTION_HINTS[value.attribution]}</p>
+    </div>
   );
 }
 
@@ -113,7 +139,7 @@ export function productBody(value: ProductFieldsValue): Record<string, unknown> 
   };
   if (value.defaultValue.trim() !== "") {
     const cents = toCents(value.defaultValue);
-    if (cents === null) return "value per outcome must be a non-negative amount";
+    if (cents === null) return "value per success must be a non-negative amount";
     body.defaultValueCents = cents;
     body.defaultValueCurrency = value.defaultCurrency || "USD";
   } else {
@@ -165,7 +191,7 @@ export function NewProductForm({ onChanged }: { onChanged: () => void }) {
             }
           }}
         >
-          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create"}
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add"}
         </Button>
       </div>
       <ErrorLine message={error} />

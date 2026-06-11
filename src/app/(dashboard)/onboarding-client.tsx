@@ -45,12 +45,7 @@ function StartPopup({ onChanged }: { onChanged: () => void }) {
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-foreground/25 p-4">
       <div className="w-full max-w-lg space-y-5 rounded-xl border bg-card p-8 shadow-xl">
-        <div className="space-y-1">
-          <h1 className="text-xl font-semibold">{"Welcome to AI P&L"}</h1>
-          <p className="text-sm text-muted-foreground">
-            Per-employee AI spend and what it returned. Pick a starting point.
-          </p>
-        </div>
+        <h1 className="text-xl font-semibold">{"Welcome to AI P&L"}</h1>
         <div className="grid gap-3">
           <button
             type="button"
@@ -65,9 +60,6 @@ function StartPopup({ onChanged }: { onChanged: () => void }) {
                 <Users className="h-4 w-4" />
               )}
               Import employees
-            </span>
-            <span className="mt-1 block text-sm text-muted-foreground">
-              Upload your people CSV, then connect vendors.
             </span>
           </button>
           <button
@@ -85,8 +77,7 @@ function StartPopup({ onChanged }: { onChanged: () => void }) {
               Start with demo data
             </span>
             <span className="mt-1 block text-sm text-muted-foreground">
-              Six months of realistic people, products and spend - wiped the
-              moment a real vendor connects.
+              Wiped when a real vendor connects.
             </span>
           </button>
         </div>
@@ -202,14 +193,13 @@ function SetupScreen({
 
       {state.demo.present && (
         <p className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-700">
-          Demo data is on - every page already looks alive. It is wiped the
-          moment a real vendor connects.
+          Demo data - wiped when a real vendor connects.
         </p>
       )}
       {backfilling?.inProgress && (
         <p className="rounded-md border border-green-700/30 bg-green-600/10 px-3 py-2 text-sm text-green-700">
           {backfilling.displayName} backfilling {backfilling.inProgress.since} →{" "}
-          {backfilling.inProgress.until} - this becomes your Overview when it lands.
+          {backfilling.inProgress.until}
         </p>
       )}
 
@@ -237,13 +227,10 @@ function SetupScreen({
 
       <Step
         n={3}
-        title="Name a product"
+        title="Add an ROI"
         done={products > 0}
-        caption={products > 0 ? counted(products, "product", "products") : null}
+        caption={products > 0 ? counted(products, "ROI", "ROIs") : null}
       >
-        <p className="text-sm text-muted-foreground">
-          A product is a cost center - anything that spends AI money.
-        </p>
         <NewProductForm onChanged={onChanged} />
       </Step>
 

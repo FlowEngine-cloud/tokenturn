@@ -155,7 +155,7 @@ export default function KeyClient() {
             </Link>
           )}
         </Tile>
-        <Tile title="Product">
+        <Tile title="ROI">
           {data.product ? (
             <Link
               href={withRange(`/drill?product=${data.product.id}`, span)}

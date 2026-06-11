@@ -244,7 +244,7 @@ function QueueCard({
             onChange={(e) => setProductId(e.target.value)}
             className="h-8 rounded-md border bg-transparent px-2 text-sm"
           >
-            <option value="">Route to product…</option>
+            <option value="">Route to ROI…</option>
             {products.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name}

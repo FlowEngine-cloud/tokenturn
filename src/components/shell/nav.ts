@@ -1,11 +1,11 @@
 import {
+  CircleHelp,
   FileText,
   GitMerge,
   LayoutDashboard,
-  Package,
   Settings,
+  TrendingUp,
   Users,
-  Wrench,
   type LucideIcon,
 } from "lucide-react";
 
@@ -24,9 +24,11 @@ export interface NavItem {
 export const NAV_ITEMS: NavItem[] = [
   { href: "/", label: "Overview", icon: LayoutDashboard },
   { href: "/people", label: "People", icon: Users },
-  { href: "/products", label: "Products", icon: Package },
-  { href: "/tools", label: "Tools", icon: Wrench },
+  { href: "/roi", label: "ROI", icon: TrendingUp },
   { href: "/resolve", label: "Resolve", icon: GitMerge },
   { href: "/report", label: "Report", icon: FileText },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
+
+/** Pinned to the bottom of the sidebar, below the page list. */
+export const HELP_ITEM: NavItem = { href: "/help", label: "Help", icon: CircleHelp };

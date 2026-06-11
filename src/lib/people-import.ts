@@ -137,10 +137,13 @@ export interface PeopleImportResult {
  * Commit importable rows: upsert by lower(email) - names never regress to
  * null, nobody is ever removed - then sweep unmatched identities for new
  * email matches and re-attribute their full history. All-or-nothing.
+ * The directory syncs (ee: Okta, Google Workspace) reuse this with their
+ * own source label; the in-flow semantics are identical to the CSV's.
  */
 export async function importPeople(
   rows: PersonCsvRow[],
   pool: Pool = getPool(),
+  source: "csv" | "okta" | "google" | "manual" = "csv",
 ): Promise<PeopleImportResult> {
   const importable = rows.filter(
     (row): row is PersonCsvRow & { email: string } => row.error === null && row.email !== null,
@@ -157,13 +160,13 @@ export async function importPeople(
     const imported: ImportedPersonRow[] = [];
     for (const row of importable) {
       const { rows: upserted } = await client.query(
-        `INSERT INTO people (email, name, source) VALUES ($1, $2, 'csv')
+        `INSERT INTO people (email, name, source) VALUES ($1, $2, $3)
          ON CONFLICT ((lower(email))) DO UPDATE SET
            name = COALESCE(EXCLUDED.name, people.name),
-           source = 'csv',
+           source = $3,
            updated_at = now()
          RETURNING id, name, (xmax = 0) AS created`,
-        [row.email, row.name],
+        [row.email, row.name, source],
       );
       imported.push({
         line: row.line,

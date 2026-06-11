@@ -9,20 +9,21 @@ export { addMonths, currentMonth, monthBounds } from "./range";
 
 /**
  * The CFO report (spec 10 page 6): one printable page per calendar month -
- * spend by cost center, unit costs, ROI where defined, month over month -
- * plus the two exports: a summary CSV of the same table, and a FOCUS 1.4
- * file with one row per raw spend fact (the FinOps Open Cost & Usage
- * Specification, focus.finops.org), so the export IS the drill-down.
+ * spend by ROI and by person, unit costs, ROI where defined, month over
+ * month - plus the two exports: a summary CSV of the same table, and a
+ * FOCUS 1.4 file with one row per raw spend fact (the FinOps Open Cost &
+ * Usage Specification, focus.finops.org), so the export IS the drill-down.
  *
- * Every number reuses the Products-page reader (productsView) with archived
- * products included: a cost center that was archived mid-quarter leaves the
- * dashboards but can never leave a month's total (spec 4 - history stays
- * intact). Spend on no product at all shows as its own visible row, so the
- * page always sums to the whole ledger - no fake numbers, nothing hidden.
+ * Every number reuses the ROI-page reader (productsView - the products
+ * table keeps its name, only the language changed) with archived rows
+ * included: an ROI archived mid-quarter leaves the dashboards but can never
+ * leave a month's total (spec 4 - history stays intact). Spend in no ROI at
+ * all shows as its own visible row, so the page always sums to the whole
+ * ledger - no fake numbers, nothing hidden.
  */
 
 export interface ReportRow {
-  /** null = spend routed to no cost center (people's personal tool use). */
+  /** null = spend routed to no ROI (people's personal tool use). */
   productId: string | null;
   name: string;
   archived: boolean;
@@ -39,6 +40,15 @@ export interface ReportRow {
   costPerUserCents: number | null;
 }
 
+export interface ReportPersonRow {
+  /** null = the Unassigned bucket - spend nobody owns, never hidden. */
+  personId: string | null;
+  name: string;
+  spendCents: number;
+  prevSpendCents: number;
+  momPct: number | null;
+}
+
 export interface ReportData {
   displayCurrency: string;
   /** The report month, YYYY-MM, and its day bounds (UTC, inclusive). */
@@ -47,6 +57,7 @@ export interface ReportData {
   from: string;
   to: string;
   rows: ReportRow[];
+  people: ReportPersonRow[];
   totals: { spendCents: number; prevSpendCents: number; momPct: number | null };
   /** Trailing months ending at the report month, zero-filled - the
    * month-over-month trend. */
@@ -55,7 +66,7 @@ export interface ReportData {
 
 export const TREND_MONTHS = 6;
 
-export const NO_COST_CENTER = "No cost center";
+export const NO_ROI = "No ROI";
 
 function momPct(cur: number, prev: number): number | null {
   if (prev === 0) return null;
@@ -84,7 +95,7 @@ export async function reportData(
   const prev = monthBounds(prevMonth);
   const displayCurrency = await getSetting("display_currency", db);
 
-  // Cost centers, archived included, for both months. productsView already
+  // ROI rows, archived included, for both months. productsView already
   // owns unit-cost/ROI math and the drill-equality guarantee.
   const curView = await productsView(cur, db, { includeArchived: true });
   const prevView = await productsView(prev, db, { includeArchived: true });
@@ -138,7 +149,7 @@ export async function reportData(
   if (bucketCur !== 0 || bucketPrev !== 0) {
     rows.push({
       productId: null,
-      name: NO_COST_CENTER,
+      name: NO_ROI,
       archived: false,
       spendCents: bucketCur,
       prevSpendCents: bucketPrev,
@@ -156,6 +167,36 @@ export async function reportData(
 
   const spendCents = rows.reduce((sum, r) => sum + r.spendCents, 0);
   const prevSpendCents = rows.reduce((sum, r) => sum + r.prevSpendCents, 0);
+
+  // Per person, both months in one scan. Merged people resolved to their
+  // target; person-less spend = the visible Unassigned row.
+  const { rows: personRows } = await db.query(
+    `SELECT COALESCE(p.merged_into, r.person_id) AS person_id,
+            COALESCE(MAX(COALESCE(pt.name, pt.email, p.name, p.email)), 'Unassigned') AS name,
+            COALESCE(ROUND(SUM(d.cents) FILTER (
+              WHERE r.day BETWEEN $2::date AND $3::date)), 0)::bigint AS cur,
+            COALESCE(ROUND(SUM(d.cents) FILTER (
+              WHERE r.day BETWEEN $4::date AND $5::date)), 0)::bigint AS prev,
+            COALESCE(BOOL_OR(d.cents IS NULL), false) AS fx_missing
+     FROM rollup_daily r
+     ${displayLateral("r")}
+     LEFT JOIN people p ON p.id = r.person_id
+     LEFT JOIN people pt ON pt.id = p.merged_into
+     WHERE r.day BETWEEN $4::date AND $3::date
+     GROUP BY 1`,
+    [displayCurrency, cur.from, cur.to, prev.from, prev.to],
+  );
+  if (personRows.some((row) => row.fx_missing)) throw FX_MISSING(displayCurrency);
+  const people: ReportPersonRow[] = personRows
+    .map((row) => ({
+      personId: row.person_id as string | null,
+      name: row.name as string,
+      spendCents: Number(row.cur),
+      prevSpendCents: Number(row.prev),
+      momPct: momPct(Number(row.cur), Number(row.prev)),
+    }))
+    .filter((row) => row.spendCents !== 0 || row.prevSpendCents !== 0)
+    .sort((a, b) => b.spendCents - a.spendCents || a.name.localeCompare(b.name));
 
   // Month-over-month trend: total spend per trailing month, zero-filled.
   const firstMonth = addMonths(month, -(TREND_MONTHS - 1));
@@ -184,6 +225,7 @@ export async function reportData(
     from: cur.from,
     to: cur.to,
     rows,
+    people,
     totals: { spendCents, prevSpendCents, momPct: momPct(spendCents, prevSpendCents) },
     months,
   };
@@ -209,16 +251,16 @@ export function reportCsv(data: ReportData): string {
   const lines = [
     csvLine([
       "Month",
-      "Cost center",
+      "ROI",
       "Status",
       `Spend (${ccy})`,
       `Last month (${ccy})`,
       "MoM %",
-      "Outcomes",
+      "Successes",
       "Unit",
       `Unit cost (${ccy})`,
       `Value (${ccy})`,
-      "ROI",
+      "ROI multiple",
       "Active users",
       `Cost per active user (${ccy})`,
     ]),

@@ -1,0 +1,33 @@
+AI P&L Commercial License (the "Commercial License")
+
+Copyright (c) 2026 FlowEngine.
+
+This directory ("ee/") and everything beneath it is NOT covered by the
+license at the root of this repository. It is source-available, not open
+source.
+
+1. Grant. Subject to a valid, unexpired license file issued by FlowEngine
+   for your organization, FlowEngine grants you a non-exclusive,
+   non-transferable, non-sublicensable right to use, copy, and modify the
+   software in this directory, solely for your organization's internal
+   business purposes and solely as part of AI P&L.
+
+2. Without a license file. You may view the source in this directory and
+   compile it as part of building AI P&L, but you may not use the features
+   it implements in production, and you may not remove, bypass, or
+   interfere with the license check that gates them.
+
+3. Restrictions. You may not (a) provide the software in this directory to
+   third parties as a hosted or managed service, (b) redistribute it other
+   than as an unmodified part of the AI P&L source tree, or (c) use it
+   beyond the expiry date or feature scope named in your license file.
+
+4. Expiry. When your license file expires, the rights in section 1 end.
+   Data produced while licensed remains yours and remains readable in
+   AI P&L.
+
+5. No warranty. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY
+   KIND, EXPRESS OR IMPLIED. IN NO EVENT SHALL FLOWENGINE BE LIABLE FOR ANY
+   CLAIM, DAMAGES OR OTHER LIABILITY ARISING FROM THE USE OF THE SOFTWARE.
+
+Licenses are sold direct. Contact hi@flowengine.cloud.

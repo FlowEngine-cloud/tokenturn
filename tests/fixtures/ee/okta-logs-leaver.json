@@ -1,0 +1,64 @@
+[
+  {
+    "uuid": "a1b2c3d4-0001-4f00-9000-000000000001",
+    "published": "2026-06-11T09:15:00.000Z",
+    "eventType": "user.lifecycle.deactivate",
+    "version": "0",
+    "severity": "INFO",
+    "displayMessage": "Deactivate Okta user",
+    "actor": {
+      "id": "00uADMIN00000000007",
+      "type": "User",
+      "alternateId": "it-admin@acme.com",
+      "displayName": "IT Admin"
+    },
+    "outcome": { "result": "SUCCESS" },
+    "target": [
+      {
+        "id": "00u1abcDEFGHijkl0x7",
+        "type": "User",
+        "alternateId": "dana@acme.com",
+        "displayName": "Dana Levi"
+      }
+    ]
+  },
+  {
+    "uuid": "a1b2c3d4-0002-4f00-9000-000000000002",
+    "published": "2026-06-11T09:20:00.000Z",
+    "eventType": "user.session.start",
+    "version": "0",
+    "severity": "INFO",
+    "displayMessage": "User login to Okta",
+    "actor": {
+      "id": "00u2mnopQRSTuvwx0x7",
+      "type": "User",
+      "alternateId": "noa@acme.com",
+      "displayName": "Noa Stern"
+    },
+    "outcome": { "result": "SUCCESS" },
+    "target": []
+  },
+  {
+    "uuid": "a1b2c3d4-0003-4f00-9000-000000000003",
+    "published": "2026-06-11T09:25:00.000Z",
+    "eventType": "user.lifecycle.suspend",
+    "version": "0",
+    "severity": "INFO",
+    "displayMessage": "Suspend Okta user",
+    "actor": {
+      "id": "00uADMIN00000000007",
+      "type": "User",
+      "alternateId": "it-admin@acme.com",
+      "displayName": "IT Admin"
+    },
+    "outcome": { "result": "SUCCESS" },
+    "target": [
+      {
+        "id": "00uGONE0000000000007",
+        "type": "User",
+        "alternateId": "ghost@acme.com",
+        "displayName": "Ghost User"
+      }
+    ]
+  }
+]
