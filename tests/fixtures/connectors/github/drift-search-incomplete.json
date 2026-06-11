@@ -1,0 +1,380 @@
+[
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/metrics/reports/users-1-day?day=2026-05-15"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "download_links": [],
+        "report_day": "2026-05-15"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/metrics/reports/users-1-day?day=2026-05-16"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "download_links": [],
+        "report_day": "2026-05-16"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/metrics/reports/users-1-day?day=2026-05-17"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "download_links": [],
+        "report_day": "2026-05-17"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/metrics/reports/users-1-day?day=2026-05-18"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "download_links": [],
+        "report_day": "2026-05-18"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/metrics/reports/users-1-day?day=2026-05-19"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "download_links": [],
+        "report_day": "2026-05-19"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/metrics/reports/users-1-day?day=2026-05-20"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "download_links": [],
+        "report_day": "2026-05-20"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/metrics/reports/users-1-day?day=2026-05-21"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "download_links": [],
+        "report_day": "2026-05-21"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/metrics/reports/users-1-day?day=2026-05-22"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "download_links": [],
+        "report_day": "2026-05-22"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/metrics/reports/users-1-day?day=2026-05-23"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "download_links": [],
+        "report_day": "2026-05-23"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/metrics/reports/users-1-day?day=2026-05-24"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "download_links": [],
+        "report_day": "2026-05-24"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/metrics/reports/users-1-day?day=2026-05-25"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "download_links": [],
+        "report_day": "2026-05-25"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/metrics/reports/users-1-day?day=2026-05-26"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "download_links": [],
+        "report_day": "2026-05-26"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/metrics/reports/users-1-day?day=2026-05-27"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "download_links": [],
+        "report_day": "2026-05-27"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/metrics/reports/users-1-day?day=2026-05-28"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "download_links": [],
+        "report_day": "2026-05-28"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/metrics/reports/users-1-day?day=2026-05-29"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "download_links": [],
+        "report_day": "2026-05-29"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/metrics/reports/users-1-day?day=2026-05-30"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "download_links": [],
+        "report_day": "2026-05-30"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/metrics/reports/users-1-day?day=2026-05-31"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "download_links": [],
+        "report_day": "2026-05-31"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/metrics/reports/users-1-day?day=2026-06-01"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "download_links": [],
+        "report_day": "2026-06-01"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/metrics/reports/users-1-day?day=2026-06-02"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "download_links": [],
+        "report_day": "2026-06-02"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/metrics/reports/users-1-day?day=2026-06-03"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "download_links": [],
+        "report_day": "2026-06-03"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/metrics/reports/users-1-day?day=2026-06-04"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "download_links": [],
+        "report_day": "2026-06-04"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/metrics/reports/users-1-day?day=2026-06-05"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "download_links": [],
+        "report_day": "2026-06-05"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/metrics/reports/users-1-day?day=2026-06-06"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "download_links": [],
+        "report_day": "2026-06-06"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/metrics/reports/users-1-day?day=2026-06-07"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "download_links": [],
+        "report_day": "2026-06-07"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/metrics/reports/users-1-day?day=2026-06-08"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "download_links": [],
+        "report_day": "2026-06-08"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/metrics/reports/users-1-day?day=2026-06-09"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "download_links": [],
+        "report_day": "2026-06-09"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/metrics/reports/users-1-day?day=2026-06-10"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "download_links": [],
+        "report_day": "2026-06-10"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/metrics/reports/users-1-day?day=2026-06-11"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "download_links": [],
+        "report_day": "2026-06-11"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/search/issues?q=org%3Aacme%20is%3Apr%20is%3Amerged%20merged%3A2026-03-13..2026-04-11&sort=created&order=asc&per_page=100&page=1"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "total_count": 2,
+        "incomplete_results": true,
+        "items": []
+      }
+    }
+  }
+]

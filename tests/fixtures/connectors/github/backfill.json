@@ -1,0 +1,3406 @@
+[
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/billing/seats?page=1&per_page=100"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "total_seats": 3,
+        "seats": [
+          {
+            "assignee": {
+              "id": 9001,
+              "login": "danacodes",
+              "email": "dana@acme.com",
+              "name": "Dana",
+              "node_id": "U_9001",
+              "avatar_url": "https://avatars.githubusercontent.com/u/9001",
+              "type": "User",
+              "site_admin": false
+            },
+            "created_at": "2025-11-01T00:00:00Z",
+            "updated_at": "2026-06-01T00:00:00Z",
+            "pending_cancellation_date": null,
+            "last_activity_at": "2026-06-10T18:22:00Z",
+            "last_activity_editor": "vscode/1.100",
+            "plan_type": "business"
+          },
+          {
+            "assignee": {
+              "id": 9002,
+              "login": "omarbuilds",
+              "email": null,
+              "name": null,
+              "node_id": "U_9002",
+              "avatar_url": "https://avatars.githubusercontent.com/u/9002",
+              "type": "User",
+              "site_admin": false
+            },
+            "created_at": "2025-11-01T00:00:00Z",
+            "updated_at": "2026-06-01T00:00:00Z",
+            "pending_cancellation_date": null,
+            "last_activity_at": "2026-06-10T18:22:00Z",
+            "last_activity_editor": "vscode/1.100",
+            "plan_type": "business"
+          },
+          {
+            "assignee": {
+              "id": 9003,
+              "login": "evehacks",
+              "email": null,
+              "name": "Eve H",
+              "node_id": "U_9003",
+              "avatar_url": "https://avatars.githubusercontent.com/u/9003",
+              "type": "User",
+              "site_admin": false
+            },
+            "created_at": "2025-11-01T00:00:00Z",
+            "updated_at": "2026-06-01T00:00:00Z",
+            "pending_cancellation_date": null,
+            "last_activity_at": "2026-06-10T18:22:00Z",
+            "last_activity_editor": "vscode/1.100",
+            "plan_type": "business"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/organizations/acme/settings/billing/ai_credit/usage?year=2026&month=3"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "timePeriod": {
+          "year": 2026,
+          "month": 3
+        },
+        "organization": "acme",
+        "usageItems": []
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/organizations/acme/settings/billing/ai_credit/usage?year=2026&month=4"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "timePeriod": {
+          "year": 2026,
+          "month": 4
+        },
+        "organization": "acme",
+        "usageItems": []
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/organizations/acme/settings/billing/ai_credit/usage?year=2026&month=5"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "timePeriod": {
+          "year": 2026,
+          "month": 5
+        },
+        "organization": "acme",
+        "usageItems": [
+          {
+            "product": "Copilot",
+            "sku": "Copilot AI Credits",
+            "model": "GPT-5",
+            "unitType": "credits",
+            "pricePerUnit": 0.01,
+            "grossQuantity": 450,
+            "grossAmount": 4.5,
+            "discountQuantity": 0,
+            "discountAmount": 0,
+            "netQuantity": 450,
+            "netAmount": 4.5
+          },
+          {
+            "product": "Copilot",
+            "sku": "Copilot AI Credits",
+            "model": "Claude Sonnet 4.5",
+            "unitType": "credits",
+            "pricePerUnit": 0.01,
+            "grossQuantity": 250,
+            "grossAmount": 2.5,
+            "discountQuantity": 0,
+            "discountAmount": 0,
+            "netQuantity": 250,
+            "netAmount": 2.5
+          }
+        ]
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/organizations/acme/settings/billing/ai_credit/usage?year=2026&month=5&user=danacodes"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "timePeriod": {
+          "year": 2026,
+          "month": 5
+        },
+        "organization": "acme",
+        "user": "danacodes",
+        "usageItems": [
+          {
+            "product": "Copilot",
+            "sku": "Copilot AI Credits",
+            "model": "GPT-5",
+            "unitType": "credits",
+            "pricePerUnit": 0.01,
+            "grossQuantity": 400,
+            "grossAmount": 4,
+            "discountQuantity": 0,
+            "discountAmount": 0,
+            "netQuantity": 400,
+            "netAmount": 4
+          }
+        ]
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/organizations/acme/settings/billing/ai_credit/usage?year=2026&month=5&user=evehacks"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "timePeriod": {
+          "year": 2026,
+          "month": 5
+        },
+        "organization": "acme",
+        "user": "evehacks",
+        "usageItems": []
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/organizations/acme/settings/billing/ai_credit/usage?year=2026&month=5&user=omarbuilds"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "timePeriod": {
+          "year": 2026,
+          "month": 5
+        },
+        "organization": "acme",
+        "user": "omarbuilds",
+        "usageItems": [
+          {
+            "product": "Copilot",
+            "sku": "Copilot AI Credits",
+            "model": "Claude Sonnet 4.5",
+            "unitType": "credits",
+            "pricePerUnit": 0.01,
+            "grossQuantity": 250,
+            "grossAmount": 2.5,
+            "discountQuantity": 0,
+            "discountAmount": 0,
+            "netQuantity": 250,
+            "netAmount": 2.5
+          }
+        ]
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/organizations/acme/settings/billing/ai_credit/usage?year=2026&month=6"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "timePeriod": {
+          "year": 2026,
+          "month": 6
+        },
+        "organization": "acme",
+        "usageItems": [
+          {
+            "product": "Copilot",
+            "sku": "Copilot AI Credits",
+            "model": "GPT-5",
+            "unitType": "credits",
+            "pricePerUnit": 0.01,
+            "grossQuantity": 1234,
+            "grossAmount": 12.34,
+            "discountQuantity": 0,
+            "discountAmount": 0,
+            "netQuantity": 1234,
+            "netAmount": 12.34
+          }
+        ]
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/organizations/acme/settings/billing/ai_credit/usage?year=2026&month=6&user=danacodes"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "timePeriod": {
+          "year": 2026,
+          "month": 6
+        },
+        "organization": "acme",
+        "user": "danacodes",
+        "usageItems": [
+          {
+            "product": "Copilot",
+            "sku": "Copilot AI Credits",
+            "model": "GPT-5",
+            "unitType": "credits",
+            "pricePerUnit": 0.01,
+            "grossQuantity": 1234,
+            "grossAmount": 12.34,
+            "discountQuantity": 0,
+            "discountAmount": 0,
+            "netQuantity": 1234,
+            "netAmount": 12.34
+          }
+        ]
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/organizations/acme/settings/billing/ai_credit/usage?year=2026&month=6&user=evehacks"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "timePeriod": {
+          "year": 2026,
+          "month": 6
+        },
+        "organization": "acme",
+        "user": "evehacks",
+        "usageItems": []
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/organizations/acme/settings/billing/ai_credit/usage?year=2026&month=6&user=omarbuilds"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "timePeriod": {
+          "year": 2026,
+          "month": 6
+        },
+        "organization": "acme",
+        "user": "omarbuilds",
+        "usageItems": []
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/metrics/reports/users-1-day?day=2026-05-15"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "download_links": [],
+        "report_day": "2026-05-15"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/metrics/reports/users-1-day?day=2026-05-16"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "download_links": [],
+        "report_day": "2026-05-16"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/metrics/reports/users-1-day?day=2026-05-17"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "download_links": [],
+        "report_day": "2026-05-17"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/metrics/reports/users-1-day?day=2026-05-18"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "download_links": [],
+        "report_day": "2026-05-18"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/metrics/reports/users-1-day?day=2026-05-19"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "download_links": [],
+        "report_day": "2026-05-19"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/metrics/reports/users-1-day?day=2026-05-20"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "download_links": [],
+        "report_day": "2026-05-20"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/metrics/reports/users-1-day?day=2026-05-21"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "download_links": [],
+        "report_day": "2026-05-21"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/metrics/reports/users-1-day?day=2026-05-22"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "download_links": [],
+        "report_day": "2026-05-22"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/metrics/reports/users-1-day?day=2026-05-23"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "download_links": [],
+        "report_day": "2026-05-23"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/metrics/reports/users-1-day?day=2026-05-24"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "download_links": [],
+        "report_day": "2026-05-24"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/metrics/reports/users-1-day?day=2026-05-25"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "download_links": [],
+        "report_day": "2026-05-25"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/metrics/reports/users-1-day?day=2026-05-26"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "download_links": [],
+        "report_day": "2026-05-26"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/metrics/reports/users-1-day?day=2026-05-27"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "download_links": [],
+        "report_day": "2026-05-27"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/metrics/reports/users-1-day?day=2026-05-28"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "download_links": [],
+        "report_day": "2026-05-28"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/metrics/reports/users-1-day?day=2026-05-29"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "download_links": [],
+        "report_day": "2026-05-29"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/metrics/reports/users-1-day?day=2026-05-30"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "download_links": [],
+        "report_day": "2026-05-30"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/metrics/reports/users-1-day?day=2026-05-31"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "download_links": [],
+        "report_day": "2026-05-31"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/metrics/reports/users-1-day?day=2026-06-01"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "download_links": [],
+        "report_day": "2026-06-01"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/metrics/reports/users-1-day?day=2026-06-02"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "download_links": [],
+        "report_day": "2026-06-02"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/metrics/reports/users-1-day?day=2026-06-03"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "download_links": [],
+        "report_day": "2026-06-03"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/metrics/reports/users-1-day?day=2026-06-04"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "download_links": [],
+        "report_day": "2026-06-04"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/metrics/reports/users-1-day?day=2026-06-05"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "download_links": [],
+        "report_day": "2026-06-05"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/metrics/reports/users-1-day?day=2026-06-06"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "download_links": [],
+        "report_day": "2026-06-06"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/metrics/reports/users-1-day?day=2026-06-07"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "download_links": [],
+        "report_day": "2026-06-07"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/metrics/reports/users-1-day?day=2026-06-08"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "download_links": [],
+        "report_day": "2026-06-08"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/metrics/reports/users-1-day?day=2026-06-09"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "download_links": [
+          "https://gh-usage-reports.example/copilot/2026-06-09-0.ndjson"
+        ],
+        "report_day": "2026-06-09"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://gh-usage-reports.example/copilot/2026-06-09-0.ndjson"
+    },
+    "response": {
+      "status": 200,
+      "text": "{\"report_start_day\":\"2026-06-09\",\"report_end_day\":\"2026-06-09\",\"day\":\"2026-06-09\",\"user_id\":9001,\"user_login\":\"danacodes\",\"product\":\"copilot\",\"user_initiated_interaction_count\":14,\"code_generation_activity_count\":52,\"code_acceptance_activity_count\":31,\"loc_suggested_to_add_sum\":420,\"loc_added_sum\":388,\"chat_panel_agent_mode\":6,\"used_agent\":true,\"used_chat\":true}\n{\"report_start_day\":\"2026-06-09\",\"report_end_day\":\"2026-06-09\",\"day\":\"2026-06-09\",\"user_id\":9002,\"user_login\":\"omarbuilds\",\"product\":\"copilot\",\"user_initiated_interaction_count\":9,\"code_generation_activity_count\":30,\"code_acceptance_activity_count\":12,\"loc_suggested_to_add_sum\":150,\"loc_added_sum\":95,\"chat_panel_agent_mode\":1,\"used_agent\":true,\"used_chat\":true}\n"
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/metrics/reports/users-1-day?day=2026-06-10"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "download_links": [
+          "https://gh-usage-reports.example/copilot/2026-06-10-0.ndjson"
+        ],
+        "report_day": "2026-06-10"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://gh-usage-reports.example/copilot/2026-06-10-0.ndjson"
+    },
+    "response": {
+      "status": 200,
+      "text": "{\"report_start_day\":\"2026-06-10\",\"report_end_day\":\"2026-06-10\",\"day\":\"2026-06-10\",\"user_id\":9001,\"user_login\":\"danacodes\",\"product\":\"copilot\",\"user_initiated_interaction_count\":7,\"code_generation_activity_count\":25,\"code_acceptance_activity_count\":16,\"loc_suggested_to_add_sum\":210,\"loc_added_sum\":180,\"chat_panel_agent_mode\":2,\"used_agent\":true,\"used_chat\":true}\n"
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/metrics/reports/users-1-day?day=2026-06-11"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "download_links": [],
+        "report_day": "2026-06-11"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/search/issues?q=org%3Aacme%20is%3Apr%20is%3Amerged%20merged%3A2026-03-13..2026-04-11&sort=created&order=asc&per_page=100&page=1"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "total_count": 1,
+        "incomplete_results": false,
+        "items": [
+          {
+            "number": 45,
+            "title": "Adds exponential backoff to the queue wo",
+            "state": "closed",
+            "html_url": "https://github.com/acme/web/pull/45",
+            "repository_url": "https://api.github.com/repos/acme/web",
+            "user": {
+              "id": 9002,
+              "login": "omarbuilds",
+              "type": "User",
+              "node_id": "U_9002"
+            },
+            "labels": [],
+            "created_at": "2026-03-18T09:00:00Z",
+            "closed_at": "2026-03-20T15:00:00Z",
+            "pull_request": {
+              "url": "https://api.github.com/repos/acme/web/pulls/45",
+              "merged_at": "2026-03-20T15:00:00Z"
+            }
+          }
+        ]
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/search/issues?q=org%3Aacme%20is%3Apr%20is%3Amerged%20merged%3A2026-04-12..2026-05-11&sort=created&order=asc&per_page=100&page=1"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "total_count": 1,
+        "incomplete_results": false,
+        "items": [
+          {
+            "number": 41,
+            "title": "Reworks the billing reconciliation job.",
+            "state": "closed",
+            "html_url": "https://github.com/acme/web/pull/41",
+            "repository_url": "https://api.github.com/repos/acme/web",
+            "user": {
+              "id": 9001,
+              "login": "danacodes",
+              "type": "User",
+              "node_id": "U_9001"
+            },
+            "labels": [],
+            "created_at": "2026-04-18T08:00:00Z",
+            "closed_at": "2026-04-20T10:00:00Z",
+            "pull_request": {
+              "url": "https://api.github.com/repos/acme/web/pulls/41",
+              "merged_at": "2026-04-20T10:00:00Z"
+            }
+          }
+        ]
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/search/issues?q=org%3Aacme%20is%3Apr%20is%3Amerged%20merged%3A2026-05-12..2026-06-10&sort=created&order=asc&per_page=100&page=1"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "total_count": 7,
+        "incomplete_results": false,
+        "items": [
+          {
+            "number": 52,
+            "title": "Reverts acme/web#45\n\nThe backoff melts t",
+            "state": "closed",
+            "html_url": "https://github.com/acme/web/pull/52",
+            "repository_url": "https://api.github.com/repos/acme/web",
+            "user": {
+              "id": 9001,
+              "login": "danacodes",
+              "type": "User",
+              "node_id": "U_9001"
+            },
+            "labels": [],
+            "created_at": "2026-05-15T08:30:00Z",
+            "closed_at": "2026-05-15T09:00:00Z",
+            "pull_request": {
+              "url": "https://api.github.com/repos/acme/web/pulls/52",
+              "merged_at": "2026-05-15T09:00:00Z"
+            }
+          },
+          {
+            "number": 7,
+            "title": "Implements webhook retries as requested ",
+            "state": "closed",
+            "html_url": "https://github.com/acme/api/pull/7",
+            "repository_url": "https://api.github.com/repos/acme/api",
+            "user": {
+              "id": 555001,
+              "login": "devin-ai-integration[bot]",
+              "type": "Bot",
+              "node_id": "U_555001"
+            },
+            "labels": [],
+            "created_at": "2026-05-19T22:00:00Z",
+            "closed_at": "2026-05-20T08:00:00Z",
+            "pull_request": {
+              "url": "https://api.github.com/repos/acme/api/pulls/7",
+              "merged_at": "2026-05-20T08:00:00Z"
+            }
+          },
+          {
+            "number": 58,
+            "title": "Switches sessions to short-lived tokens.",
+            "state": "closed",
+            "html_url": "https://github.com/acme/web/pull/58",
+            "repository_url": "https://api.github.com/repos/acme/web",
+            "user": {
+              "id": 9001,
+              "login": "danacodes",
+              "type": "User",
+              "node_id": "U_9001"
+            },
+            "labels": [],
+            "created_at": "2026-05-24T10:00:00Z",
+            "closed_at": "2026-05-25T14:00:00Z",
+            "pull_request": {
+              "url": "https://api.github.com/repos/acme/web/pulls/58",
+              "merged_at": "2026-05-25T14:00:00Z"
+            }
+          },
+          {
+            "number": 9,
+            "title": "PR 9",
+            "state": "closed",
+            "html_url": "https://github.com/acme/api/pull/9",
+            "repository_url": "https://api.github.com/repos/acme/api",
+            "user": {
+              "id": 9002,
+              "login": "omarbuilds",
+              "type": "User",
+              "node_id": "U_9002"
+            },
+            "labels": [],
+            "created_at": "2026-06-05T15:00:00Z",
+            "closed_at": "2026-06-05T16:00:00Z",
+            "pull_request": {
+              "url": "https://api.github.com/repos/acme/api/pulls/9",
+              "merged_at": "2026-06-05T16:00:00Z"
+            }
+          },
+          {
+            "number": 60,
+            "title": "Adds the export endpoint.",
+            "state": "closed",
+            "html_url": "https://github.com/acme/web/pull/60",
+            "repository_url": "https://api.github.com/repos/acme/web",
+            "user": {
+              "id": 9002,
+              "login": "omarbuilds",
+              "type": "User",
+              "node_id": "U_9002"
+            },
+            "labels": [],
+            "created_at": "2026-06-08T12:00:00Z",
+            "closed_at": "2026-06-09T11:00:00Z",
+            "pull_request": {
+              "url": "https://api.github.com/repos/acme/web/pulls/60",
+              "merged_at": "2026-06-09T11:00:00Z"
+            }
+          },
+          {
+            "number": 61,
+            "title": "Fixes the date-range picker timezone bug",
+            "state": "closed",
+            "html_url": "https://github.com/acme/web/pull/61",
+            "repository_url": "https://api.github.com/repos/acme/web",
+            "user": {
+              "id": 9003,
+              "login": "evehacks",
+              "type": "User",
+              "node_id": "U_9003"
+            },
+            "labels": [],
+            "created_at": "2026-06-09T16:00:00Z",
+            "closed_at": "2026-06-10T09:30:00Z",
+            "pull_request": {
+              "url": "https://api.github.com/repos/acme/web/pulls/61",
+              "merged_at": "2026-06-10T09:30:00Z"
+            }
+          },
+          {
+            "number": 62,
+            "title": "Bumps lodash from 4.17.20 to 4.17.21.",
+            "state": "closed",
+            "html_url": "https://github.com/acme/api/pull/62",
+            "repository_url": "https://api.github.com/repos/acme/api",
+            "user": {
+              "id": 49699333,
+              "login": "dependabot[bot]",
+              "type": "Bot",
+              "node_id": "U_49699333"
+            },
+            "labels": [],
+            "created_at": "2026-06-10T04:00:00Z",
+            "closed_at": "2026-06-10T12:00:00Z",
+            "pull_request": {
+              "url": "https://api.github.com/repos/acme/api/pulls/62",
+              "merged_at": "2026-06-10T12:00:00Z"
+            }
+          }
+        ]
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/search/issues?q=org%3Aacme%20is%3Apr%20is%3Amerged%20merged%3A2026-06-11..2026-06-11&sort=created&order=asc&per_page=100&page=1"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "total_count": 0,
+        "incomplete_results": false,
+        "items": []
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/repos/acme/web/pulls/45"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "number": 45,
+        "state": "closed",
+        "title": "Adds exponential backoff to the queue wo",
+        "body": "Adds exponential backoff to the queue worker.",
+        "html_url": "https://github.com/acme/web/pull/45",
+        "user": {
+          "id": 9002,
+          "login": "omarbuilds",
+          "type": "User",
+          "node_id": "U_9002"
+        },
+        "merged": true,
+        "merged_at": "2026-03-20T15:00:00Z",
+        "merge_commit_sha": "aa45000000000000000000000000000000000000",
+        "merged_by": {
+          "id": 9001,
+          "login": "danacodes",
+          "type": "User"
+        },
+        "created_at": "2026-03-18T09:00:00Z",
+        "additions": 120,
+        "deletions": 14,
+        "commits": 1
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/repos/acme/web/pulls/45/commits?per_page=100&page=1"
+    },
+    "response": {
+      "status": 200,
+      "body": [
+        {
+          "sha": "bb45000000000000000000000000000000000000",
+          "node_id": "C_bb450000",
+          "commit": {
+            "message": "Add retry logic to the queue worker",
+            "author": {
+              "name": "omarbuilds",
+              "email": "redacted@acme.com",
+              "date": "2026-03-20T15:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9002,
+            "login": "omarbuilds",
+            "type": "User"
+          },
+          "parents": []
+        }
+      ]
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/repos/acme/web/pulls/41"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "number": 41,
+        "state": "closed",
+        "title": "Reworks the billing reconciliation job.",
+        "body": "Reworks the billing reconciliation job.",
+        "html_url": "https://github.com/acme/web/pull/41",
+        "user": {
+          "id": 9001,
+          "login": "danacodes",
+          "type": "User",
+          "node_id": "U_9001"
+        },
+        "merged": true,
+        "merged_at": "2026-04-20T10:00:00Z",
+        "merge_commit_sha": "aa41000000000000000000000000000000000000",
+        "merged_by": {
+          "id": 9001,
+          "login": "danacodes",
+          "type": "User"
+        },
+        "created_at": "2026-04-18T08:00:00Z",
+        "additions": 120,
+        "deletions": 14,
+        "commits": 103
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/repos/acme/web/pulls/41/commits?per_page=100&page=1"
+    },
+    "response": {
+      "status": 200,
+      "body": [
+        {
+          "sha": "ba411a0000000000000000000000000000000000",
+          "node_id": "C_ba411a00",
+          "commit": {
+            "message": "wip checkpoint 1",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba412a0000000000000000000000000000000000",
+          "node_id": "C_ba412a00",
+          "commit": {
+            "message": "wip checkpoint 2",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba413a0000000000000000000000000000000000",
+          "node_id": "C_ba413a00",
+          "commit": {
+            "message": "wip checkpoint 3",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba414a0000000000000000000000000000000000",
+          "node_id": "C_ba414a00",
+          "commit": {
+            "message": "wip checkpoint 4",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba415a0000000000000000000000000000000000",
+          "node_id": "C_ba415a00",
+          "commit": {
+            "message": "wip checkpoint 5",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba416a0000000000000000000000000000000000",
+          "node_id": "C_ba416a00",
+          "commit": {
+            "message": "wip checkpoint 6",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba417a0000000000000000000000000000000000",
+          "node_id": "C_ba417a00",
+          "commit": {
+            "message": "wip checkpoint 7",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba418a0000000000000000000000000000000000",
+          "node_id": "C_ba418a00",
+          "commit": {
+            "message": "wip checkpoint 8",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba419a0000000000000000000000000000000000",
+          "node_id": "C_ba419a00",
+          "commit": {
+            "message": "wip checkpoint 9",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4110a000000000000000000000000000000000",
+          "node_id": "C_ba4110a0",
+          "commit": {
+            "message": "wip checkpoint 10",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4111a000000000000000000000000000000000",
+          "node_id": "C_ba4111a0",
+          "commit": {
+            "message": "wip checkpoint 11",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4112a000000000000000000000000000000000",
+          "node_id": "C_ba4112a0",
+          "commit": {
+            "message": "wip checkpoint 12",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4113a000000000000000000000000000000000",
+          "node_id": "C_ba4113a0",
+          "commit": {
+            "message": "wip checkpoint 13",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4114a000000000000000000000000000000000",
+          "node_id": "C_ba4114a0",
+          "commit": {
+            "message": "wip checkpoint 14",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4115a000000000000000000000000000000000",
+          "node_id": "C_ba4115a0",
+          "commit": {
+            "message": "wip checkpoint 15",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4116a000000000000000000000000000000000",
+          "node_id": "C_ba4116a0",
+          "commit": {
+            "message": "wip checkpoint 16",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4117a000000000000000000000000000000000",
+          "node_id": "C_ba4117a0",
+          "commit": {
+            "message": "wip checkpoint 17",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4118a000000000000000000000000000000000",
+          "node_id": "C_ba4118a0",
+          "commit": {
+            "message": "wip checkpoint 18",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4119a000000000000000000000000000000000",
+          "node_id": "C_ba4119a0",
+          "commit": {
+            "message": "wip checkpoint 19",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4120a000000000000000000000000000000000",
+          "node_id": "C_ba4120a0",
+          "commit": {
+            "message": "wip checkpoint 20",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4121a000000000000000000000000000000000",
+          "node_id": "C_ba4121a0",
+          "commit": {
+            "message": "wip checkpoint 21",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4122a000000000000000000000000000000000",
+          "node_id": "C_ba4122a0",
+          "commit": {
+            "message": "wip checkpoint 22",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4123a000000000000000000000000000000000",
+          "node_id": "C_ba4123a0",
+          "commit": {
+            "message": "wip checkpoint 23",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4124a000000000000000000000000000000000",
+          "node_id": "C_ba4124a0",
+          "commit": {
+            "message": "wip checkpoint 24",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4125a000000000000000000000000000000000",
+          "node_id": "C_ba4125a0",
+          "commit": {
+            "message": "wip checkpoint 25",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4126a000000000000000000000000000000000",
+          "node_id": "C_ba4126a0",
+          "commit": {
+            "message": "wip checkpoint 26",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4127a000000000000000000000000000000000",
+          "node_id": "C_ba4127a0",
+          "commit": {
+            "message": "wip checkpoint 27",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4128a000000000000000000000000000000000",
+          "node_id": "C_ba4128a0",
+          "commit": {
+            "message": "wip checkpoint 28",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4129a000000000000000000000000000000000",
+          "node_id": "C_ba4129a0",
+          "commit": {
+            "message": "wip checkpoint 29",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4130a000000000000000000000000000000000",
+          "node_id": "C_ba4130a0",
+          "commit": {
+            "message": "wip checkpoint 30",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4131a000000000000000000000000000000000",
+          "node_id": "C_ba4131a0",
+          "commit": {
+            "message": "wip checkpoint 31",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4132a000000000000000000000000000000000",
+          "node_id": "C_ba4132a0",
+          "commit": {
+            "message": "wip checkpoint 32",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4133a000000000000000000000000000000000",
+          "node_id": "C_ba4133a0",
+          "commit": {
+            "message": "wip checkpoint 33",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4134a000000000000000000000000000000000",
+          "node_id": "C_ba4134a0",
+          "commit": {
+            "message": "wip checkpoint 34",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4135a000000000000000000000000000000000",
+          "node_id": "C_ba4135a0",
+          "commit": {
+            "message": "wip checkpoint 35",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4136a000000000000000000000000000000000",
+          "node_id": "C_ba4136a0",
+          "commit": {
+            "message": "wip checkpoint 36",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4137a000000000000000000000000000000000",
+          "node_id": "C_ba4137a0",
+          "commit": {
+            "message": "wip checkpoint 37",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4138a000000000000000000000000000000000",
+          "node_id": "C_ba4138a0",
+          "commit": {
+            "message": "wip checkpoint 38",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4139a000000000000000000000000000000000",
+          "node_id": "C_ba4139a0",
+          "commit": {
+            "message": "wip checkpoint 39",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4140a000000000000000000000000000000000",
+          "node_id": "C_ba4140a0",
+          "commit": {
+            "message": "wip checkpoint 40",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4141a000000000000000000000000000000000",
+          "node_id": "C_ba4141a0",
+          "commit": {
+            "message": "wip checkpoint 41",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4142a000000000000000000000000000000000",
+          "node_id": "C_ba4142a0",
+          "commit": {
+            "message": "wip checkpoint 42",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4143a000000000000000000000000000000000",
+          "node_id": "C_ba4143a0",
+          "commit": {
+            "message": "wip checkpoint 43",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4144a000000000000000000000000000000000",
+          "node_id": "C_ba4144a0",
+          "commit": {
+            "message": "wip checkpoint 44",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4145a000000000000000000000000000000000",
+          "node_id": "C_ba4145a0",
+          "commit": {
+            "message": "wip checkpoint 45",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4146a000000000000000000000000000000000",
+          "node_id": "C_ba4146a0",
+          "commit": {
+            "message": "wip checkpoint 46",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4147a000000000000000000000000000000000",
+          "node_id": "C_ba4147a0",
+          "commit": {
+            "message": "wip checkpoint 47",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4148a000000000000000000000000000000000",
+          "node_id": "C_ba4148a0",
+          "commit": {
+            "message": "wip checkpoint 48",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4149a000000000000000000000000000000000",
+          "node_id": "C_ba4149a0",
+          "commit": {
+            "message": "wip checkpoint 49",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4150a000000000000000000000000000000000",
+          "node_id": "C_ba4150a0",
+          "commit": {
+            "message": "wip checkpoint 50",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4151a000000000000000000000000000000000",
+          "node_id": "C_ba4151a0",
+          "commit": {
+            "message": "wip checkpoint 51",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4152a000000000000000000000000000000000",
+          "node_id": "C_ba4152a0",
+          "commit": {
+            "message": "wip checkpoint 52",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4153a000000000000000000000000000000000",
+          "node_id": "C_ba4153a0",
+          "commit": {
+            "message": "wip checkpoint 53",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4154a000000000000000000000000000000000",
+          "node_id": "C_ba4154a0",
+          "commit": {
+            "message": "wip checkpoint 54",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4155a000000000000000000000000000000000",
+          "node_id": "C_ba4155a0",
+          "commit": {
+            "message": "wip checkpoint 55",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4156a000000000000000000000000000000000",
+          "node_id": "C_ba4156a0",
+          "commit": {
+            "message": "wip checkpoint 56",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4157a000000000000000000000000000000000",
+          "node_id": "C_ba4157a0",
+          "commit": {
+            "message": "wip checkpoint 57",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4158a000000000000000000000000000000000",
+          "node_id": "C_ba4158a0",
+          "commit": {
+            "message": "wip checkpoint 58",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4159a000000000000000000000000000000000",
+          "node_id": "C_ba4159a0",
+          "commit": {
+            "message": "wip checkpoint 59",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4160a000000000000000000000000000000000",
+          "node_id": "C_ba4160a0",
+          "commit": {
+            "message": "wip checkpoint 60",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4161a000000000000000000000000000000000",
+          "node_id": "C_ba4161a0",
+          "commit": {
+            "message": "wip checkpoint 61",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4162a000000000000000000000000000000000",
+          "node_id": "C_ba4162a0",
+          "commit": {
+            "message": "wip checkpoint 62",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4163a000000000000000000000000000000000",
+          "node_id": "C_ba4163a0",
+          "commit": {
+            "message": "wip checkpoint 63",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4164a000000000000000000000000000000000",
+          "node_id": "C_ba4164a0",
+          "commit": {
+            "message": "wip checkpoint 64",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4165a000000000000000000000000000000000",
+          "node_id": "C_ba4165a0",
+          "commit": {
+            "message": "wip checkpoint 65",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4166a000000000000000000000000000000000",
+          "node_id": "C_ba4166a0",
+          "commit": {
+            "message": "wip checkpoint 66",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4167a000000000000000000000000000000000",
+          "node_id": "C_ba4167a0",
+          "commit": {
+            "message": "wip checkpoint 67",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4168a000000000000000000000000000000000",
+          "node_id": "C_ba4168a0",
+          "commit": {
+            "message": "wip checkpoint 68",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4169a000000000000000000000000000000000",
+          "node_id": "C_ba4169a0",
+          "commit": {
+            "message": "wip checkpoint 69",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4170a000000000000000000000000000000000",
+          "node_id": "C_ba4170a0",
+          "commit": {
+            "message": "wip checkpoint 70",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4171a000000000000000000000000000000000",
+          "node_id": "C_ba4171a0",
+          "commit": {
+            "message": "wip checkpoint 71",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4172a000000000000000000000000000000000",
+          "node_id": "C_ba4172a0",
+          "commit": {
+            "message": "wip checkpoint 72",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4173a000000000000000000000000000000000",
+          "node_id": "C_ba4173a0",
+          "commit": {
+            "message": "wip checkpoint 73",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4174a000000000000000000000000000000000",
+          "node_id": "C_ba4174a0",
+          "commit": {
+            "message": "wip checkpoint 74",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4175a000000000000000000000000000000000",
+          "node_id": "C_ba4175a0",
+          "commit": {
+            "message": "wip checkpoint 75",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4176a000000000000000000000000000000000",
+          "node_id": "C_ba4176a0",
+          "commit": {
+            "message": "wip checkpoint 76",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4177a000000000000000000000000000000000",
+          "node_id": "C_ba4177a0",
+          "commit": {
+            "message": "wip checkpoint 77",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4178a000000000000000000000000000000000",
+          "node_id": "C_ba4178a0",
+          "commit": {
+            "message": "wip checkpoint 78",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4179a000000000000000000000000000000000",
+          "node_id": "C_ba4179a0",
+          "commit": {
+            "message": "wip checkpoint 79",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4180a000000000000000000000000000000000",
+          "node_id": "C_ba4180a0",
+          "commit": {
+            "message": "wip checkpoint 80",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4181a000000000000000000000000000000000",
+          "node_id": "C_ba4181a0",
+          "commit": {
+            "message": "wip checkpoint 81",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4182a000000000000000000000000000000000",
+          "node_id": "C_ba4182a0",
+          "commit": {
+            "message": "wip checkpoint 82",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4183a000000000000000000000000000000000",
+          "node_id": "C_ba4183a0",
+          "commit": {
+            "message": "wip checkpoint 83",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4184a000000000000000000000000000000000",
+          "node_id": "C_ba4184a0",
+          "commit": {
+            "message": "wip checkpoint 84",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4185a000000000000000000000000000000000",
+          "node_id": "C_ba4185a0",
+          "commit": {
+            "message": "wip checkpoint 85",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4186a000000000000000000000000000000000",
+          "node_id": "C_ba4186a0",
+          "commit": {
+            "message": "wip checkpoint 86",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4187a000000000000000000000000000000000",
+          "node_id": "C_ba4187a0",
+          "commit": {
+            "message": "wip checkpoint 87",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4188a000000000000000000000000000000000",
+          "node_id": "C_ba4188a0",
+          "commit": {
+            "message": "wip checkpoint 88",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4189a000000000000000000000000000000000",
+          "node_id": "C_ba4189a0",
+          "commit": {
+            "message": "wip checkpoint 89",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4190a000000000000000000000000000000000",
+          "node_id": "C_ba4190a0",
+          "commit": {
+            "message": "wip checkpoint 90",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4191a000000000000000000000000000000000",
+          "node_id": "C_ba4191a0",
+          "commit": {
+            "message": "wip checkpoint 91",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4192a000000000000000000000000000000000",
+          "node_id": "C_ba4192a0",
+          "commit": {
+            "message": "wip checkpoint 92",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4193a000000000000000000000000000000000",
+          "node_id": "C_ba4193a0",
+          "commit": {
+            "message": "wip checkpoint 93",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4194a000000000000000000000000000000000",
+          "node_id": "C_ba4194a0",
+          "commit": {
+            "message": "wip checkpoint 94",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4195a000000000000000000000000000000000",
+          "node_id": "C_ba4195a0",
+          "commit": {
+            "message": "wip checkpoint 95",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4196a000000000000000000000000000000000",
+          "node_id": "C_ba4196a0",
+          "commit": {
+            "message": "wip checkpoint 96",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4197a000000000000000000000000000000000",
+          "node_id": "C_ba4197a0",
+          "commit": {
+            "message": "wip checkpoint 97",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4198a000000000000000000000000000000000",
+          "node_id": "C_ba4198a0",
+          "commit": {
+            "message": "wip checkpoint 98",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba4199a000000000000000000000000000000000",
+          "node_id": "C_ba4199a0",
+          "commit": {
+            "message": "wip checkpoint 99",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "ba41100a00000000000000000000000000000000",
+          "node_id": "C_ba41100a",
+          "commit": {
+            "message": "wip checkpoint 100",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        }
+      ]
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/repos/acme/web/pulls/41/commits?per_page=100&page=2"
+    },
+    "response": {
+      "status": 200,
+      "body": [
+        {
+          "sha": "bb41a00000000000000000000000000000000000",
+          "node_id": "C_bb41a000",
+          "commit": {
+            "message": "Tighten reconciliation invariants",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "bb41b00000000000000000000000000000000000",
+          "node_id": "C_bb41b000",
+          "commit": {
+            "message": "Add fixtures for edge cases",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "bb41c00000000000000000000000000000000000",
+          "node_id": "C_bb41c000",
+          "commit": {
+            "message": "Finish reconciliation rework\n\nCo-Authored-By: Claude <noreply@anthropic.com>",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-04-20T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        }
+      ]
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/repos/acme/web/pulls/52"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "number": 52,
+        "state": "closed",
+        "title": "Reverts acme/web#45\n\nThe backoff melts t",
+        "body": "Reverts acme/web#45\n\nThe backoff melts the queue under load.",
+        "html_url": "https://github.com/acme/web/pull/52",
+        "user": {
+          "id": 9001,
+          "login": "danacodes",
+          "type": "User",
+          "node_id": "U_9001"
+        },
+        "merged": true,
+        "merged_at": "2026-05-15T09:00:00Z",
+        "merge_commit_sha": "aa52000000000000000000000000000000000000",
+        "merged_by": {
+          "id": 9001,
+          "login": "danacodes",
+          "type": "User"
+        },
+        "created_at": "2026-05-15T08:30:00Z",
+        "additions": 120,
+        "deletions": 14,
+        "commits": 1
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/repos/acme/web/pulls/52/commits?per_page=100&page=1"
+    },
+    "response": {
+      "status": 200,
+      "body": [
+        {
+          "sha": "bb52000000000000000000000000000000000000",
+          "node_id": "C_bb520000",
+          "commit": {
+            "message": "Revert \"Add retry logic to the queue worker\"\n\nThis reverts commit aa45000000000000000000000000000000000000.",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-05-15T09:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        }
+      ]
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/repos/acme/api/pulls/7"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "number": 7,
+        "state": "closed",
+        "title": "Implements webhook retries as requested ",
+        "body": "Implements webhook retries as requested in DEV-214.",
+        "html_url": "https://github.com/acme/api/pull/7",
+        "user": {
+          "id": 555001,
+          "login": "devin-ai-integration[bot]",
+          "type": "Bot",
+          "node_id": "U_555001"
+        },
+        "merged": true,
+        "merged_at": "2026-05-20T08:00:00Z",
+        "merge_commit_sha": "aa07000000000000000000000000000000000000",
+        "merged_by": {
+          "id": 9001,
+          "login": "danacodes",
+          "type": "User"
+        },
+        "created_at": "2026-05-19T22:00:00Z",
+        "additions": 120,
+        "deletions": 14,
+        "commits": 2
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/repos/acme/api/pulls/7/commits?per_page=100&page=1"
+    },
+    "response": {
+      "status": 200,
+      "body": [
+        {
+          "sha": "bb07a00000000000000000000000000000000000",
+          "node_id": "C_bb07a000",
+          "commit": {
+            "message": "Implement webhook retries",
+            "author": {
+              "name": "devin-ai-integration[bot]",
+              "email": "redacted@acme.com",
+              "date": "2026-05-20T08:00:00Z"
+            }
+          },
+          "author": {
+            "id": 555001,
+            "login": "devin-ai-integration[bot]",
+            "type": "Bot"
+          },
+          "parents": []
+        },
+        {
+          "sha": "bb07b00000000000000000000000000000000000",
+          "node_id": "C_bb07b000",
+          "commit": {
+            "message": "Address review feedback",
+            "author": {
+              "name": "devin-ai-integration[bot]",
+              "email": "redacted@acme.com",
+              "date": "2026-05-20T08:00:00Z"
+            }
+          },
+          "author": {
+            "id": 555001,
+            "login": "devin-ai-integration[bot]",
+            "type": "Bot"
+          },
+          "parents": []
+        }
+      ]
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/repos/acme/web/pulls/58"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "number": 58,
+        "state": "closed",
+        "title": "Switches sessions to short-lived tokens.",
+        "body": "Switches sessions to short-lived tokens.",
+        "html_url": "https://github.com/acme/web/pull/58",
+        "user": {
+          "id": 9001,
+          "login": "danacodes",
+          "type": "User",
+          "node_id": "U_9001"
+        },
+        "merged": true,
+        "merged_at": "2026-05-25T14:00:00Z",
+        "merge_commit_sha": "aa58000000000000000000000000000000000000",
+        "merged_by": {
+          "id": 9001,
+          "login": "danacodes",
+          "type": "User"
+        },
+        "created_at": "2026-05-24T10:00:00Z",
+        "additions": 120,
+        "deletions": 14,
+        "commits": 1
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/repos/acme/web/pulls/58/commits?per_page=100&page=1"
+    },
+    "response": {
+      "status": 200,
+      "body": [
+        {
+          "sha": "bb58000000000000000000000000000000000000",
+          "node_id": "C_bb580000",
+          "commit": {
+            "message": "Shorten session token lifetime",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-05-25T14:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        }
+      ]
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/repos/acme/api/pulls/9"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "number": 9,
+        "state": "closed",
+        "title": "PR 9",
+        "body": null,
+        "html_url": "https://github.com/acme/api/pull/9",
+        "user": {
+          "id": 9002,
+          "login": "omarbuilds",
+          "type": "User",
+          "node_id": "U_9002"
+        },
+        "merged": true,
+        "merged_at": "2026-06-05T16:00:00Z",
+        "merge_commit_sha": "aa09000000000000000000000000000000000000",
+        "merged_by": {
+          "id": 9001,
+          "login": "danacodes",
+          "type": "User"
+        },
+        "created_at": "2026-06-05T15:00:00Z",
+        "additions": 120,
+        "deletions": 14,
+        "commits": 1
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/repos/acme/api/pulls/9/commits?per_page=100&page=1"
+    },
+    "response": {
+      "status": 200,
+      "body": [
+        {
+          "sha": "bb09000000000000000000000000000000000000",
+          "node_id": "C_bb090000",
+          "commit": {
+            "message": "Revert \"Implement webhook retries\"\n\nThis reverts commit aa07000000000000000000000000000000000000.",
+            "author": {
+              "name": "omarbuilds",
+              "email": "redacted@acme.com",
+              "date": "2026-06-05T16:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9002,
+            "login": "omarbuilds",
+            "type": "User"
+          },
+          "parents": []
+        }
+      ]
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/repos/acme/web/pulls/60"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "number": 60,
+        "state": "closed",
+        "title": "Adds the export endpoint.",
+        "body": "Adds the export endpoint.",
+        "html_url": "https://github.com/acme/web/pull/60",
+        "user": {
+          "id": 9002,
+          "login": "omarbuilds",
+          "type": "User",
+          "node_id": "U_9002"
+        },
+        "merged": true,
+        "merged_at": "2026-06-09T11:00:00Z",
+        "merge_commit_sha": "aa60000000000000000000000000000000000000",
+        "merged_by": {
+          "id": 9001,
+          "login": "danacodes",
+          "type": "User"
+        },
+        "created_at": "2026-06-08T12:00:00Z",
+        "additions": 120,
+        "deletions": 14,
+        "commits": 2
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/repos/acme/web/pulls/60/commits?per_page=100&page=1"
+    },
+    "response": {
+      "status": 200,
+      "body": [
+        {
+          "sha": "bb60a00000000000000000000000000000000000",
+          "node_id": "C_bb60a000",
+          "commit": {
+            "message": "Add CSV export endpoint\n\nCo-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>",
+            "author": {
+              "name": "omarbuilds",
+              "email": "redacted@acme.com",
+              "date": "2026-06-09T11:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9002,
+            "login": "omarbuilds",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "bb60b00000000000000000000000000000000000",
+          "node_id": "C_bb60b000",
+          "commit": {
+            "message": "Stream large exports\n\nCo-authored-by: Cursor Agent <cursoragent@cursor.com>",
+            "author": {
+              "name": "omarbuilds",
+              "email": "redacted@acme.com",
+              "date": "2026-06-09T11:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9002,
+            "login": "omarbuilds",
+            "type": "User"
+          },
+          "parents": []
+        }
+      ]
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/repos/acme/web/pulls/61"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "number": 61,
+        "state": "closed",
+        "title": "Fixes the date-range picker timezone bug",
+        "body": "Fixes the date-range picker timezone bug.",
+        "html_url": "https://github.com/acme/web/pull/61",
+        "user": {
+          "id": 9003,
+          "login": "evehacks",
+          "type": "User",
+          "node_id": "U_9003"
+        },
+        "merged": true,
+        "merged_at": "2026-06-10T09:30:00Z",
+        "merge_commit_sha": "aa61000000000000000000000000000000000000",
+        "merged_by": {
+          "id": 9001,
+          "login": "danacodes",
+          "type": "User"
+        },
+        "created_at": "2026-06-09T16:00:00Z",
+        "additions": 120,
+        "deletions": 14,
+        "commits": 1
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/repos/acme/web/pulls/61/commits?per_page=100&page=1"
+    },
+    "response": {
+      "status": 200,
+      "body": [
+        {
+          "sha": "bb61000000000000000000000000000000000000",
+          "node_id": "C_bb610000",
+          "commit": {
+            "message": "Pin date-range math to UTC\n\nCo-Authored-By: Claude <noreply@anthropic.com>",
+            "author": {
+              "name": "evehacks",
+              "email": "redacted@acme.com",
+              "date": "2026-06-10T09:30:00Z"
+            }
+          },
+          "author": {
+            "id": 9003,
+            "login": "evehacks",
+            "type": "User"
+          },
+          "parents": []
+        }
+      ]
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/repos/acme/api/pulls/62"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "number": 62,
+        "state": "closed",
+        "title": "Bumps lodash from 4.17.20 to 4.17.21.",
+        "body": "Bumps lodash from 4.17.20 to 4.17.21.",
+        "html_url": "https://github.com/acme/api/pull/62",
+        "user": {
+          "id": 49699333,
+          "login": "dependabot[bot]",
+          "type": "Bot",
+          "node_id": "U_49699333"
+        },
+        "merged": true,
+        "merged_at": "2026-06-10T12:00:00Z",
+        "merge_commit_sha": "aa62000000000000000000000000000000000000",
+        "merged_by": {
+          "id": 9001,
+          "login": "danacodes",
+          "type": "User"
+        },
+        "created_at": "2026-06-10T04:00:00Z",
+        "additions": 120,
+        "deletions": 14,
+        "commits": 1
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/repos/acme/api/pulls/62/commits?per_page=100&page=1"
+    },
+    "response": {
+      "status": 200,
+      "body": [
+        {
+          "sha": "bb62000000000000000000000000000000000000",
+          "node_id": "C_bb620000",
+          "commit": {
+            "message": "Bump lodash from 4.17.20 to 4.17.21",
+            "author": {
+              "name": "dependabot[bot]",
+              "email": "redacted@acme.com",
+              "date": "2026-06-10T12:00:00Z"
+            }
+          },
+          "author": {
+            "id": 49699333,
+            "login": "dependabot[bot]",
+            "type": "Bot"
+          },
+          "parents": []
+        }
+      ]
+    }
+  }
+]

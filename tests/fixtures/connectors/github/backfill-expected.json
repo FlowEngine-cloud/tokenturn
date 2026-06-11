@@ -1,0 +1,144 @@
+{
+  "facts": [
+    {
+      "sourceRef": "ai_credit:2026-05:9001:Copilot AI Credits:GPT-5",
+      "day": "2026-05-01",
+      "model": "GPT-5",
+      "tokens": 0,
+      "amountCents": 400,
+      "currency": "USD",
+      "costBasis": "invoiced",
+      "identityExternalId": "9001",
+      "personEmail": "dana@acme.com"
+    },
+    {
+      "sourceRef": "ai_credit:2026-05:9002:Copilot AI Credits:Claude Sonnet 4.5",
+      "day": "2026-05-01",
+      "model": "Claude Sonnet 4.5",
+      "tokens": 0,
+      "amountCents": 250,
+      "currency": "USD",
+      "costBasis": "invoiced",
+      "identityExternalId": "9002",
+      "personEmail": null
+    },
+    {
+      "sourceRef": "ai_credit:2026-05:unassigned",
+      "day": "2026-05-01",
+      "model": null,
+      "tokens": 0,
+      "amountCents": 50,
+      "currency": "USD",
+      "costBasis": "invoiced",
+      "identityExternalId": null,
+      "personEmail": null
+    },
+    {
+      "sourceRef": "ai_credit:2026-06:9001:Copilot AI Credits:GPT-5",
+      "day": "2026-06-01",
+      "model": "GPT-5",
+      "tokens": 0,
+      "amountCents": 1234,
+      "currency": "USD",
+      "costBasis": "invoiced",
+      "identityExternalId": "9001",
+      "personEmail": "dana@acme.com"
+    },
+    {
+      "sourceRef": "ai_credit:2026-06:unassigned",
+      "day": "2026-06-01",
+      "model": null,
+      "tokens": 0,
+      "amountCents": 0,
+      "currency": "USD",
+      "costBasis": "invoiced",
+      "identityExternalId": null,
+      "personEmail": null
+    }
+  ],
+  "identities": [
+    {
+      "externalId": "9001",
+      "kind": "seat",
+      "email": "dana@acme.com",
+      "displayName": "danacodes",
+      "tags": ["copilot"],
+      "personEmail": "dana@acme.com"
+    },
+    {
+      "externalId": "9001",
+      "kind": "user",
+      "email": "dana@acme.com",
+      "displayName": "danacodes",
+      "tags": [],
+      "personEmail": "dana@acme.com"
+    },
+    {
+      "externalId": "9002",
+      "kind": "seat",
+      "email": null,
+      "displayName": "omarbuilds",
+      "tags": ["copilot"],
+      "personEmail": null
+    },
+    {
+      "externalId": "9002",
+      "kind": "user",
+      "email": null,
+      "displayName": "omarbuilds",
+      "tags": [],
+      "personEmail": null
+    },
+    {
+      "externalId": "9003",
+      "kind": "seat",
+      "email": null,
+      "displayName": "evehacks",
+      "tags": ["copilot"],
+      "personEmail": null
+    },
+    {
+      "externalId": "9003",
+      "kind": "user",
+      "email": null,
+      "displayName": "evehacks",
+      "tags": [],
+      "personEmail": null
+    }
+  ],
+  "metrics": [
+    { "sourceRef": "ai_credit:2026-03:org", "day": "2026-03-01", "metric": "ai_credit_month_total_cents", "value": 0, "identityExternalId": null, "personEmail": null },
+    { "sourceRef": "ai_credit:2026-04:org", "day": "2026-04-01", "metric": "ai_credit_month_total_cents", "value": 0, "identityExternalId": null, "personEmail": null },
+    { "sourceRef": "ai_credit:2026-05:org", "day": "2026-05-01", "metric": "ai_credit_month_total_cents", "value": 700, "identityExternalId": null, "personEmail": null },
+    { "sourceRef": "ai_credit:2026-06:org", "day": "2026-06-01", "metric": "ai_credit_month_total_cents", "value": 1234, "identityExternalId": null, "personEmail": null },
+    { "sourceRef": "cp:2026-06-09:9001", "day": "2026-06-09", "metric": "agent_mode_interactions", "value": 6, "identityExternalId": "9001", "personEmail": "dana@acme.com" },
+    { "sourceRef": "cp:2026-06-09:9001", "day": "2026-06-09", "metric": "code_acceptances", "value": 31, "identityExternalId": "9001", "personEmail": "dana@acme.com" },
+    { "sourceRef": "cp:2026-06-09:9001", "day": "2026-06-09", "metric": "code_generations", "value": 52, "identityExternalId": "9001", "personEmail": "dana@acme.com" },
+    { "sourceRef": "cp:2026-06-09:9001", "day": "2026-06-09", "metric": "interactions", "value": 14, "identityExternalId": "9001", "personEmail": "dana@acme.com" },
+    { "sourceRef": "cp:2026-06-09:9001", "day": "2026-06-09", "metric": "loc_added", "value": 388, "identityExternalId": "9001", "personEmail": "dana@acme.com" },
+    { "sourceRef": "cp:2026-06-09:9001", "day": "2026-06-09", "metric": "loc_suggested_to_add", "value": 420, "identityExternalId": "9001", "personEmail": "dana@acme.com" },
+    { "sourceRef": "cp:2026-06-09:9002", "day": "2026-06-09", "metric": "agent_mode_interactions", "value": 1, "identityExternalId": "9002", "personEmail": null },
+    { "sourceRef": "cp:2026-06-09:9002", "day": "2026-06-09", "metric": "code_acceptances", "value": 12, "identityExternalId": "9002", "personEmail": null },
+    { "sourceRef": "cp:2026-06-09:9002", "day": "2026-06-09", "metric": "code_generations", "value": 30, "identityExternalId": "9002", "personEmail": null },
+    { "sourceRef": "cp:2026-06-09:9002", "day": "2026-06-09", "metric": "interactions", "value": 9, "identityExternalId": "9002", "personEmail": null },
+    { "sourceRef": "cp:2026-06-09:9002", "day": "2026-06-09", "metric": "loc_added", "value": 95, "identityExternalId": "9002", "personEmail": null },
+    { "sourceRef": "cp:2026-06-09:9002", "day": "2026-06-09", "metric": "loc_suggested_to_add", "value": 150, "identityExternalId": "9002", "personEmail": null },
+    { "sourceRef": "cp:2026-06-10:9001", "day": "2026-06-10", "metric": "agent_mode_interactions", "value": 2, "identityExternalId": "9001", "personEmail": "dana@acme.com" },
+    { "sourceRef": "cp:2026-06-10:9001", "day": "2026-06-10", "metric": "code_acceptances", "value": 16, "identityExternalId": "9001", "personEmail": "dana@acme.com" },
+    { "sourceRef": "cp:2026-06-10:9001", "day": "2026-06-10", "metric": "code_generations", "value": 25, "identityExternalId": "9001", "personEmail": "dana@acme.com" },
+    { "sourceRef": "cp:2026-06-10:9001", "day": "2026-06-10", "metric": "interactions", "value": 7, "identityExternalId": "9001", "personEmail": "dana@acme.com" },
+    { "sourceRef": "cp:2026-06-10:9001", "day": "2026-06-10", "metric": "loc_added", "value": 180, "identityExternalId": "9001", "personEmail": "dana@acme.com" },
+    { "sourceRef": "cp:2026-06-10:9001", "day": "2026-06-10", "metric": "loc_suggested_to_add", "value": 210, "identityExternalId": "9001", "personEmail": "dana@acme.com" }
+  ],
+  "outcomes": [
+    { "sourceRef": "pr:acme/api#62", "ts": "2026-06-10T12:00:00Z", "kind": "github_pr", "tools": [], "valueCents": null, "currency": null, "reverted": false, "revertSourceRef": null, "product": "Coding", "personEmail": null },
+    { "sourceRef": "pr:acme/api#7", "ts": "2026-05-20T08:00:00Z", "kind": "github_pr", "tools": ["devin"], "valueCents": null, "currency": null, "reverted": true, "revertSourceRef": "pr:acme/api#9", "product": "Coding", "personEmail": null },
+    { "sourceRef": "pr:acme/api#9", "ts": "2026-06-05T16:00:00Z", "kind": "github_pr", "tools": [], "valueCents": null, "currency": null, "reverted": false, "revertSourceRef": null, "product": "Coding", "personEmail": null },
+    { "sourceRef": "pr:acme/web#41", "ts": "2026-04-20T10:00:00Z", "kind": "github_pr", "tools": ["claude_code"], "valueCents": null, "currency": null, "reverted": false, "revertSourceRef": null, "product": "Coding", "personEmail": "dana@acme.com" },
+    { "sourceRef": "pr:acme/web#45", "ts": "2026-03-20T15:00:00Z", "kind": "github_pr", "tools": [], "valueCents": null, "currency": null, "reverted": false, "revertSourceRef": null, "product": "Coding", "personEmail": null },
+    { "sourceRef": "pr:acme/web#52", "ts": "2026-05-15T09:00:00Z", "kind": "github_pr", "tools": [], "valueCents": null, "currency": null, "reverted": false, "revertSourceRef": null, "product": "Coding", "personEmail": "dana@acme.com" },
+    { "sourceRef": "pr:acme/web#58", "ts": "2026-05-25T14:00:00Z", "kind": "github_pr", "tools": [], "valueCents": null, "currency": null, "reverted": false, "revertSourceRef": null, "product": "Coding", "personEmail": "dana@acme.com" },
+    { "sourceRef": "pr:acme/web#60", "ts": "2026-06-09T11:00:00Z", "kind": "github_pr", "tools": ["copilot", "cursor"], "valueCents": null, "currency": null, "reverted": false, "revertSourceRef": null, "product": "Coding", "personEmail": null },
+    { "sourceRef": "pr:acme/web#61", "ts": "2026-06-10T09:30:00Z", "kind": "github_pr", "tools": ["claude_code"], "valueCents": null, "currency": null, "reverted": false, "revertSourceRef": null, "product": "Coding", "personEmail": null }
+  ]
+}

@@ -1,0 +1,701 @@
+[
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/billing/seats?page=1&per_page=100"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "total_seats": 3,
+        "seats": [
+          {
+            "assignee": {
+              "id": 9001,
+              "login": "danacodes",
+              "email": "dana@acme.com",
+              "name": "Dana",
+              "node_id": "U_9001",
+              "avatar_url": "https://avatars.githubusercontent.com/u/9001",
+              "type": "User",
+              "site_admin": false
+            },
+            "created_at": "2025-11-01T00:00:00Z",
+            "updated_at": "2026-06-01T00:00:00Z",
+            "pending_cancellation_date": null,
+            "last_activity_at": "2026-06-10T18:22:00Z",
+            "last_activity_editor": "vscode/1.100",
+            "plan_type": "business"
+          },
+          {
+            "assignee": {
+              "id": 9002,
+              "login": "omarbuilds",
+              "email": null,
+              "name": null,
+              "node_id": "U_9002",
+              "avatar_url": "https://avatars.githubusercontent.com/u/9002",
+              "type": "User",
+              "site_admin": false
+            },
+            "created_at": "2025-11-01T00:00:00Z",
+            "updated_at": "2026-06-01T00:00:00Z",
+            "pending_cancellation_date": null,
+            "last_activity_at": "2026-06-10T18:22:00Z",
+            "last_activity_editor": "vscode/1.100",
+            "plan_type": "business"
+          },
+          {
+            "assignee": {
+              "id": 9003,
+              "login": "evehacks",
+              "email": null,
+              "name": "Eve H",
+              "node_id": "U_9003",
+              "avatar_url": "https://avatars.githubusercontent.com/u/9003",
+              "type": "User",
+              "site_admin": false
+            },
+            "created_at": "2025-11-01T00:00:00Z",
+            "updated_at": "2026-06-01T00:00:00Z",
+            "pending_cancellation_date": null,
+            "last_activity_at": "2026-06-10T18:22:00Z",
+            "last_activity_editor": "vscode/1.100",
+            "plan_type": "business"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/organizations/acme/settings/billing/ai_credit/usage?year=2026&month=6"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "timePeriod": {
+          "year": 2026,
+          "month": 6
+        },
+        "organization": "acme",
+        "usageItems": [
+          {
+            "product": "Copilot",
+            "sku": "Copilot AI Credits",
+            "model": "GPT-5",
+            "unitType": "credits",
+            "pricePerUnit": 0.01,
+            "grossQuantity": 1800,
+            "grossAmount": 18,
+            "discountQuantity": 0,
+            "discountAmount": 0,
+            "netQuantity": 1800,
+            "netAmount": 18
+          },
+          {
+            "product": "Copilot",
+            "sku": "Copilot AI Credits",
+            "model": "Claude Sonnet 4.5",
+            "unitType": "credits",
+            "pricePerUnit": 0.01,
+            "grossQuantity": 200,
+            "grossAmount": 2,
+            "discountQuantity": 0,
+            "discountAmount": 0,
+            "netQuantity": 200,
+            "netAmount": 2
+          }
+        ]
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/organizations/acme/settings/billing/ai_credit/usage?year=2026&month=6&user=danacodes"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "timePeriod": {
+          "year": 2026,
+          "month": 6
+        },
+        "organization": "acme",
+        "user": "danacodes",
+        "usageItems": [
+          {
+            "product": "Copilot",
+            "sku": "Copilot AI Credits",
+            "model": "GPT-5",
+            "unitType": "credits",
+            "pricePerUnit": 0.01,
+            "grossQuantity": 1500,
+            "grossAmount": 15,
+            "discountQuantity": 0,
+            "discountAmount": 0,
+            "netQuantity": 1500,
+            "netAmount": 15
+          }
+        ]
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/organizations/acme/settings/billing/ai_credit/usage?year=2026&month=6&user=evehacks"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "timePeriod": {
+          "year": 2026,
+          "month": 6
+        },
+        "organization": "acme",
+        "user": "evehacks",
+        "usageItems": []
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/organizations/acme/settings/billing/ai_credit/usage?year=2026&month=6&user=omarbuilds"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "timePeriod": {
+          "year": 2026,
+          "month": 6
+        },
+        "organization": "acme",
+        "user": "omarbuilds",
+        "usageItems": [
+          {
+            "product": "Copilot",
+            "sku": "Copilot AI Credits",
+            "model": "Claude Sonnet 4.5",
+            "unitType": "credits",
+            "pricePerUnit": 0.01,
+            "grossQuantity": 200,
+            "grossAmount": 2,
+            "discountQuantity": 0,
+            "discountAmount": 0,
+            "netQuantity": 200,
+            "netAmount": 2
+          }
+        ]
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/metrics/reports/users-1-day?day=2026-06-06"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "download_links": [],
+        "report_day": "2026-06-06"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/metrics/reports/users-1-day?day=2026-06-07"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "download_links": [],
+        "report_day": "2026-06-07"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/metrics/reports/users-1-day?day=2026-06-08"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "download_links": [],
+        "report_day": "2026-06-08"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/metrics/reports/users-1-day?day=2026-06-09"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "download_links": [
+          "https://gh-usage-reports.example/copilot/2026-06-09-0.ndjson"
+        ],
+        "report_day": "2026-06-09"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://gh-usage-reports.example/copilot/2026-06-09-0.ndjson"
+    },
+    "response": {
+      "status": 200,
+      "text": "{\"report_start_day\":\"2026-06-09\",\"report_end_day\":\"2026-06-09\",\"day\":\"2026-06-09\",\"user_id\":9001,\"user_login\":\"danacodes\",\"product\":\"copilot\",\"user_initiated_interaction_count\":16,\"code_generation_activity_count\":52,\"code_acceptance_activity_count\":31,\"loc_suggested_to_add_sum\":420,\"loc_added_sum\":388,\"chat_panel_agent_mode\":6,\"used_agent\":true,\"used_chat\":true}\n{\"report_start_day\":\"2026-06-09\",\"report_end_day\":\"2026-06-09\",\"day\":\"2026-06-09\",\"user_id\":9002,\"user_login\":\"omarbuilds\",\"product\":\"copilot\",\"user_initiated_interaction_count\":9,\"code_generation_activity_count\":30,\"code_acceptance_activity_count\":12,\"loc_suggested_to_add_sum\":150,\"loc_added_sum\":95,\"chat_panel_agent_mode\":1,\"used_agent\":true,\"used_chat\":true}\n"
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/metrics/reports/users-1-day?day=2026-06-10"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "download_links": [
+          "https://gh-usage-reports.example/copilot/2026-06-10-0.ndjson"
+        ],
+        "report_day": "2026-06-10"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://gh-usage-reports.example/copilot/2026-06-10-0.ndjson"
+    },
+    "response": {
+      "status": 200,
+      "text": "{\"report_start_day\":\"2026-06-10\",\"report_end_day\":\"2026-06-10\",\"day\":\"2026-06-10\",\"user_id\":9001,\"user_login\":\"danacodes\",\"product\":\"copilot\",\"user_initiated_interaction_count\":7,\"code_generation_activity_count\":25,\"code_acceptance_activity_count\":16,\"loc_suggested_to_add_sum\":210,\"loc_added_sum\":180,\"chat_panel_agent_mode\":2,\"used_agent\":true,\"used_chat\":true}\n"
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/metrics/reports/users-1-day?day=2026-06-11"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "download_links": [],
+        "report_day": "2026-06-11"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/metrics/reports/users-1-day?day=2026-06-12"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "download_links": [
+          "https://gh-usage-reports.example/copilot/2026-06-12-0.ndjson"
+        ],
+        "report_day": "2026-06-12"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://gh-usage-reports.example/copilot/2026-06-12-0.ndjson"
+    },
+    "response": {
+      "status": 200,
+      "text": "{\"report_start_day\":\"2026-06-12\",\"report_end_day\":\"2026-06-12\",\"day\":\"2026-06-12\",\"user_id\":9002,\"user_login\":\"omarbuilds\",\"product\":\"copilot\",\"user_initiated_interaction_count\":11,\"code_generation_activity_count\":33,\"code_acceptance_activity_count\":20,\"loc_suggested_to_add_sum\":200,\"loc_added_sum\":170,\"chat_panel_agent_mode\":3,\"used_agent\":true,\"used_chat\":true}\n"
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/metrics/reports/users-1-day?day=2026-06-13"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "download_links": [],
+        "report_day": "2026-06-13"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/search/issues?q=org%3Aacme%20is%3Apr%20is%3Amerged%20merged%3A2026-06-06..2026-06-13&sort=created&order=asc&per_page=100&page=1"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "total_count": 4,
+        "incomplete_results": false,
+        "items": [
+          {
+            "number": 60,
+            "title": "Adds the export endpoint.",
+            "state": "closed",
+            "html_url": "https://github.com/acme/web/pull/60",
+            "repository_url": "https://api.github.com/repos/acme/web",
+            "user": {
+              "id": 9002,
+              "login": "omarbuilds",
+              "type": "User",
+              "node_id": "U_9002"
+            },
+            "labels": [],
+            "created_at": "2026-06-08T12:00:00Z",
+            "closed_at": "2026-06-09T11:00:00Z",
+            "pull_request": {
+              "url": "https://api.github.com/repos/acme/web/pulls/60",
+              "merged_at": "2026-06-09T11:00:00Z"
+            }
+          },
+          {
+            "number": 61,
+            "title": "Fixes the date-range picker timezone bug",
+            "state": "closed",
+            "html_url": "https://github.com/acme/web/pull/61",
+            "repository_url": "https://api.github.com/repos/acme/web",
+            "user": {
+              "id": 9003,
+              "login": "evehacks",
+              "type": "User",
+              "node_id": "U_9003"
+            },
+            "labels": [],
+            "created_at": "2026-06-09T16:00:00Z",
+            "closed_at": "2026-06-10T09:30:00Z",
+            "pull_request": {
+              "url": "https://api.github.com/repos/acme/web/pulls/61",
+              "merged_at": "2026-06-10T09:30:00Z"
+            }
+          },
+          {
+            "number": 62,
+            "title": "Bumps lodash from 4.17.20 to 4.17.21.",
+            "state": "closed",
+            "html_url": "https://github.com/acme/api/pull/62",
+            "repository_url": "https://api.github.com/repos/acme/api",
+            "user": {
+              "id": 49699333,
+              "login": "dependabot[bot]",
+              "type": "Bot",
+              "node_id": "U_49699333"
+            },
+            "labels": [],
+            "created_at": "2026-06-10T04:00:00Z",
+            "closed_at": "2026-06-10T12:00:00Z",
+            "pull_request": {
+              "url": "https://api.github.com/repos/acme/api/pulls/62",
+              "merged_at": "2026-06-10T12:00:00Z"
+            }
+          },
+          {
+            "number": 67,
+            "title": "Reverts acme/web#58\n\nShort-lived tokens ",
+            "state": "closed",
+            "html_url": "https://github.com/acme/web/pull/67",
+            "repository_url": "https://api.github.com/repos/acme/web",
+            "user": {
+              "id": 9001,
+              "login": "danacodes",
+              "type": "User",
+              "node_id": "U_9001"
+            },
+            "labels": [],
+            "created_at": "2026-06-12T09:30:00Z",
+            "closed_at": "2026-06-12T10:00:00Z",
+            "pull_request": {
+              "url": "https://api.github.com/repos/acme/web/pulls/67",
+              "merged_at": "2026-06-12T10:00:00Z"
+            }
+          }
+        ]
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/repos/acme/web/pulls/60"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "number": 60,
+        "state": "closed",
+        "title": "Adds the export endpoint.",
+        "body": "Adds the export endpoint.",
+        "html_url": "https://github.com/acme/web/pull/60",
+        "user": {
+          "id": 9002,
+          "login": "omarbuilds",
+          "type": "User",
+          "node_id": "U_9002"
+        },
+        "merged": true,
+        "merged_at": "2026-06-09T11:00:00Z",
+        "merge_commit_sha": "aa60000000000000000000000000000000000000",
+        "merged_by": {
+          "id": 9001,
+          "login": "danacodes",
+          "type": "User"
+        },
+        "created_at": "2026-06-08T12:00:00Z",
+        "additions": 120,
+        "deletions": 14,
+        "commits": 2
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/repos/acme/web/pulls/60/commits?per_page=100&page=1"
+    },
+    "response": {
+      "status": 200,
+      "body": [
+        {
+          "sha": "bb60a00000000000000000000000000000000000",
+          "node_id": "C_bb60a000",
+          "commit": {
+            "message": "Add CSV export endpoint\n\nCo-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>",
+            "author": {
+              "name": "omarbuilds",
+              "email": "redacted@acme.com",
+              "date": "2026-06-09T11:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9002,
+            "login": "omarbuilds",
+            "type": "User"
+          },
+          "parents": []
+        },
+        {
+          "sha": "bb60b00000000000000000000000000000000000",
+          "node_id": "C_bb60b000",
+          "commit": {
+            "message": "Stream large exports\n\nCo-authored-by: Cursor Agent <cursoragent@cursor.com>",
+            "author": {
+              "name": "omarbuilds",
+              "email": "redacted@acme.com",
+              "date": "2026-06-09T11:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9002,
+            "login": "omarbuilds",
+            "type": "User"
+          },
+          "parents": []
+        }
+      ]
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/repos/acme/web/pulls/61"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "number": 61,
+        "state": "closed",
+        "title": "Fixes the date-range picker timezone bug",
+        "body": "Fixes the date-range picker timezone bug.",
+        "html_url": "https://github.com/acme/web/pull/61",
+        "user": {
+          "id": 9003,
+          "login": "evehacks",
+          "type": "User",
+          "node_id": "U_9003"
+        },
+        "merged": true,
+        "merged_at": "2026-06-10T09:30:00Z",
+        "merge_commit_sha": "aa61000000000000000000000000000000000000",
+        "merged_by": {
+          "id": 9001,
+          "login": "danacodes",
+          "type": "User"
+        },
+        "created_at": "2026-06-09T16:00:00Z",
+        "additions": 120,
+        "deletions": 14,
+        "commits": 1
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/repos/acme/web/pulls/61/commits?per_page=100&page=1"
+    },
+    "response": {
+      "status": 200,
+      "body": [
+        {
+          "sha": "bb61000000000000000000000000000000000000",
+          "node_id": "C_bb610000",
+          "commit": {
+            "message": "Pin date-range math to UTC\n\nCo-Authored-By: Claude <noreply@anthropic.com>",
+            "author": {
+              "name": "evehacks",
+              "email": "redacted@acme.com",
+              "date": "2026-06-10T09:30:00Z"
+            }
+          },
+          "author": {
+            "id": 9003,
+            "login": "evehacks",
+            "type": "User"
+          },
+          "parents": []
+        }
+      ]
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/repos/acme/api/pulls/62"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "number": 62,
+        "state": "closed",
+        "title": "Bumps lodash from 4.17.20 to 4.17.21.",
+        "body": "Bumps lodash from 4.17.20 to 4.17.21.",
+        "html_url": "https://github.com/acme/api/pull/62",
+        "user": {
+          "id": 49699333,
+          "login": "dependabot[bot]",
+          "type": "Bot",
+          "node_id": "U_49699333"
+        },
+        "merged": true,
+        "merged_at": "2026-06-10T12:00:00Z",
+        "merge_commit_sha": "aa62000000000000000000000000000000000000",
+        "merged_by": {
+          "id": 9001,
+          "login": "danacodes",
+          "type": "User"
+        },
+        "created_at": "2026-06-10T04:00:00Z",
+        "additions": 120,
+        "deletions": 14,
+        "commits": 1
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/repos/acme/api/pulls/62/commits?per_page=100&page=1"
+    },
+    "response": {
+      "status": 200,
+      "body": [
+        {
+          "sha": "bb62000000000000000000000000000000000000",
+          "node_id": "C_bb620000",
+          "commit": {
+            "message": "Bump lodash from 4.17.20 to 4.17.21",
+            "author": {
+              "name": "dependabot[bot]",
+              "email": "redacted@acme.com",
+              "date": "2026-06-10T12:00:00Z"
+            }
+          },
+          "author": {
+            "id": 49699333,
+            "login": "dependabot[bot]",
+            "type": "Bot"
+          },
+          "parents": []
+        }
+      ]
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/repos/acme/web/pulls/67"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "number": 67,
+        "state": "closed",
+        "title": "Reverts acme/web#58\n\nShort-lived tokens ",
+        "body": "Reverts acme/web#58\n\nShort-lived tokens broke the mobile app.",
+        "html_url": "https://github.com/acme/web/pull/67",
+        "user": {
+          "id": 9001,
+          "login": "danacodes",
+          "type": "User",
+          "node_id": "U_9001"
+        },
+        "merged": true,
+        "merged_at": "2026-06-12T10:00:00Z",
+        "merge_commit_sha": "aa67000000000000000000000000000000000000",
+        "merged_by": {
+          "id": 9001,
+          "login": "danacodes",
+          "type": "User"
+        },
+        "created_at": "2026-06-12T09:30:00Z",
+        "additions": 120,
+        "deletions": 14,
+        "commits": 1
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/repos/acme/web/pulls/67/commits?per_page=100&page=1"
+    },
+    "response": {
+      "status": 200,
+      "body": [
+        {
+          "sha": "bb67000000000000000000000000000000000000",
+          "node_id": "C_bb670000",
+          "commit": {
+            "message": "Revert \"Shorten session token lifetime\"",
+            "author": {
+              "name": "danacodes",
+              "email": "redacted@acme.com",
+              "date": "2026-06-12T10:00:00Z"
+            }
+          },
+          "author": {
+            "id": 9001,
+            "login": "danacodes",
+            "type": "User"
+          },
+          "parents": []
+        }
+      ]
+    }
+  }
+]

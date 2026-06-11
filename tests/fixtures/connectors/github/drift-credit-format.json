@@ -1,0 +1,102 @@
+[
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/billing/seats?page=1&per_page=100"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "total_seats": 3,
+        "seats": [
+          {
+            "assignee": {
+              "id": 9001,
+              "login": "danacodes",
+              "email": "dana@acme.com",
+              "name": "Dana",
+              "node_id": "U_9001",
+              "avatar_url": "https://avatars.githubusercontent.com/u/9001",
+              "type": "User",
+              "site_admin": false
+            },
+            "created_at": "2025-11-01T00:00:00Z",
+            "updated_at": "2026-06-01T00:00:00Z",
+            "pending_cancellation_date": null,
+            "last_activity_at": "2026-06-10T18:22:00Z",
+            "last_activity_editor": "vscode/1.100",
+            "plan_type": "business"
+          },
+          {
+            "assignee": {
+              "id": 9002,
+              "login": "omarbuilds",
+              "email": null,
+              "name": null,
+              "node_id": "U_9002",
+              "avatar_url": "https://avatars.githubusercontent.com/u/9002",
+              "type": "User",
+              "site_admin": false
+            },
+            "created_at": "2025-11-01T00:00:00Z",
+            "updated_at": "2026-06-01T00:00:00Z",
+            "pending_cancellation_date": null,
+            "last_activity_at": "2026-06-10T18:22:00Z",
+            "last_activity_editor": "vscode/1.100",
+            "plan_type": "business"
+          },
+          {
+            "assignee": {
+              "id": 9003,
+              "login": "evehacks",
+              "email": null,
+              "name": "Eve H",
+              "node_id": "U_9003",
+              "avatar_url": "https://avatars.githubusercontent.com/u/9003",
+              "type": "User",
+              "site_admin": false
+            },
+            "created_at": "2025-11-01T00:00:00Z",
+            "updated_at": "2026-06-01T00:00:00Z",
+            "pending_cancellation_date": null,
+            "last_activity_at": "2026-06-10T18:22:00Z",
+            "last_activity_editor": "vscode/1.100",
+            "plan_type": "business"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/organizations/acme/settings/billing/ai_credit/usage?year=2026&month=3"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "timePeriod": {
+          "year": 2026,
+          "month": 3
+        },
+        "organization": "acme",
+        "usageItems": [
+          {
+            "product": "Copilot",
+            "sku": "Copilot AI Credits",
+            "model": "GPT-5",
+            "unitType": "credits",
+            "pricePerUnit": 0.01,
+            "grossQuantity": 100,
+            "grossAmount": 1,
+            "discountQuantity": 0,
+            "discountAmount": 0,
+            "netQuantity": 100,
+            "netAmount": 1,
+            "totalAmount": 1
+          }
+        ]
+      }
+    }
+  }
+]

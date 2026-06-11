@@ -32,6 +32,8 @@ Vendor connectors sync hourly with a stored cursor: full backfill to the vendor'
 
 **Anthropic** connects with an Admin API key (`sk-ant-admin...`) and pulls org users and API keys (keys auto-map to the person who created them - Anthropic has no key-creation API, so each person mints their own key and the next sync picks it up), per-key/workspace daily usage priced from a pinned model price table (marked `estimated` - Anthropic never reports raw API dollars per user), non-token charges from the cost report (web search, code execution, session usage; `invoiced`, unassigned), and per-user daily Claude Code analytics (sessions, commits, PRs, accept rates, tokens, cost) stored as metrics rather than spend so the ledger never double counts.
 
+**GitHub** connects with a classic PAT (`read:org`, `manage_billing:copilot`, `repo`; enterprise-owned orgs need an enterprise owner's PAT with `admin:enterprise` - per-user Copilot dollars then come from the enterprise billing API) and pulls the Copilot seat roster, per-user AI-credit dollars (GitHub's finest per-user grain is the calendar month, so facts land on the month bucket, `invoiced`; spend the report can't attribute to a current seat holder stays visible as Unassigned), per-user daily Copilot usage counters (interactions, code generations/acceptances - the accept-rate inputs), and merged PRs as outcomes: a merged PR counts on merge, AI authorship is detected from bot authors and commit co-author trailers (Claude, Copilot, Cursor, Devin, Codex), and a revert referencing a PR within the revert window (Settings, default 30 days) flips it and recomputes - after the window it's final. Seat fees are never invented or amortized.
+
 ## Development
 
 ```bash

@@ -1,0 +1,48 @@
+[
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/billing/seats?page=1&per_page=1"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "total_seats": 3,
+        "seats": [
+          {
+            "assignee": {
+              "id": 9001,
+              "login": "danacodes",
+              "email": "dana@acme.com",
+              "name": "Dana",
+              "node_id": "U_9001",
+              "avatar_url": "https://avatars.githubusercontent.com/u/9001",
+              "type": "User",
+              "site_admin": false
+            },
+            "created_at": "2025-11-01T00:00:00Z",
+            "updated_at": "2026-06-01T00:00:00Z",
+            "pending_cancellation_date": null,
+            "last_activity_at": "2026-06-10T18:22:00Z",
+            "last_activity_editor": "vscode/1.100",
+            "plan_type": "business"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/organizations/acme/settings/billing/ai_credit/usage?year=2026&month=1"
+    },
+    "response": {
+      "status": 403,
+      "body": {
+        "message": "You must have admin access to the organization to view its billing usage.",
+        "documentation_url": "https://docs.github.com/rest/billing",
+        "status": "403"
+      }
+    }
+  }
+]

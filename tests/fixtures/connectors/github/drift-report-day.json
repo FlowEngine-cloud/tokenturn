@@ -1,0 +1,83 @@
+[
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/organizations/acme/settings/billing/ai_credit/usage?year=2026&month=3"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "timePeriod": {
+          "year": 2026,
+          "month": 3
+        },
+        "organization": "acme",
+        "usageItems": []
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/organizations/acme/settings/billing/ai_credit/usage?year=2026&month=4"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "timePeriod": {
+          "year": 2026,
+          "month": 4
+        },
+        "organization": "acme",
+        "usageItems": []
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/organizations/acme/settings/billing/ai_credit/usage?year=2026&month=5"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "timePeriod": {
+          "year": 2026,
+          "month": 5
+        },
+        "organization": "acme",
+        "usageItems": []
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/organizations/acme/settings/billing/ai_credit/usage?year=2026&month=6"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "timePeriod": {
+          "year": 2026,
+          "month": 6
+        },
+        "organization": "acme",
+        "usageItems": []
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.github.com/orgs/acme/copilot/metrics/reports/users-1-day?day=2026-05-15"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "download_links": [],
+        "report_day": "2026-05-14"
+      }
+    }
+  }
+]

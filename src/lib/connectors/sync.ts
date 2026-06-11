@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import type { Pool, PoolClient } from "pg";
 import { getPool } from "../db";
 import { logger } from "../logger";
+import { getSetting } from "../settings";
 import { buildContext, connectedRow, getConnectorConfig } from "./connect";
 import { getConnector } from "./registry";
 import type {
@@ -10,6 +11,8 @@ import type {
   FactInput,
   IdentityInput,
   MetricInput,
+  OutcomeInput,
+  RevertInput,
   SyncCursor,
   SyncWindow,
 } from "./types";
@@ -43,6 +46,22 @@ export function utcDay(date: Date): string {
 export function addDays(day: string, days: number): string {
   const t = Date.parse(`${day}T00:00:00Z`);
   return utcDay(new Date(t + days * 86_400_000));
+}
+
+/**
+ * Split a sync window into <=days-day slices, for vendors that cap a report
+ * request's window (Cursor: 30 days; GitHub search: chunked the same way to
+ * stay under the result cap).
+ */
+export function chunkWindows(window: SyncWindow, days: number): SyncWindow[] {
+  const chunks: SyncWindow[] = [];
+  let since = window.since;
+  while (since <= window.until) {
+    const until = addDays(since, days - 1);
+    chunks.push({ since, until: until <= window.until ? until : window.until });
+    since = addDays(since, days);
+  }
+  return chunks;
 }
 
 function minDay(a: string, b: string): string {
@@ -145,6 +164,93 @@ function validateMetric(metric: MetricInput): void {
   }
 }
 
+function validTs(ts: unknown): boolean {
+  return typeof ts === "string" && Number.isFinite(Date.parse(ts));
+}
+
+function validateOutcome(outcome: OutcomeInput): void {
+  if (!validTs(outcome.ts)) {
+    throw new Error(
+      `connector emitted a bad outcome ts ${JSON.stringify(outcome.ts)} (${outcome.sourceRef})`,
+    );
+  }
+  if (!outcome.kind) {
+    throw new Error("connector emitted an outcome without a kind");
+  }
+  if (!outcome.sourceRef) {
+    throw new Error("connector emitted an outcome without a sourceRef");
+  }
+  if ((outcome.valueCents === undefined) !== (outcome.currency === undefined)) {
+    throw new Error(
+      `connector emitted an outcome with value/currency mismatch (${outcome.sourceRef})`,
+    );
+  }
+  if (outcome.valueCents !== undefined && !Number.isInteger(outcome.valueCents)) {
+    throw new Error(
+      `connector emitted a non-integer outcome value for ${outcome.sourceRef}`,
+    );
+  }
+}
+
+function validateRevert(revert: RevertInput): void {
+  if (!validTs(revert.ts)) {
+    throw new Error(
+      `connector emitted a bad revert ts ${JSON.stringify(revert.ts)} (${revert.sourceRef})`,
+    );
+  }
+  if (!revert.kind || !revert.sourceRef) {
+    throw new Error("connector emitted a revert without a kind or sourceRef");
+  }
+  if ((revert.targetRef === undefined) === (revert.targetSha === undefined)) {
+    throw new Error(
+      `connector revert ${revert.sourceRef} must carry exactly one of targetRef/targetSha`,
+    );
+  }
+}
+
+/**
+ * Built-in default products per outcome kind (spec 7: "GitHub merged PRs as
+ * the built-in default for coding"). Created on first use when no product
+ * with that outcome_kind exists, so connector outcomes always have a cost
+ * center to land in.
+ */
+const DEFAULT_OUTCOME_PRODUCTS: Record<string, string> = {
+  github_pr: "Coding",
+};
+
+/** Resolve the product an outcome kind routes to (oldest live match wins). */
+async function resolveOutcomeProduct(
+  db: PoolClient,
+  kind: string,
+  cache: Map<string, string>,
+): Promise<string> {
+  const cached = cache.get(kind);
+  if (cached) return cached;
+  const select = `SELECT id FROM products
+                  WHERE outcome_kind = $1 AND archived_at IS NULL
+                  ORDER BY created_at, id LIMIT 1`;
+  let { rows } = await db.query(select, [kind]);
+  if (rows.length === 0) {
+    const name = DEFAULT_OUTCOME_PRODUCTS[kind];
+    if (!name) {
+      throw new Error(`no product with outcome_kind ${kind} to route outcomes to`);
+    }
+    await db.query(
+      `INSERT INTO products (name, attribution, outcome_kind)
+       VALUES ($1, 'connector', $2) ON CONFLICT DO NOTHING`,
+      [name, kind],
+    );
+    ({ rows } = await db.query(select, [kind]));
+    if (rows.length === 0) {
+      throw new Error(
+        `cannot create the default "${name}" product for outcome_kind ${kind}: the name is taken`,
+      );
+    }
+  }
+  cache.set(kind, rows[0].id as string);
+  return rows[0].id as string;
+}
+
 function identityMapKey(externalId: string, kind: string): string {
   return `${kind}:${externalId}`;
 }
@@ -205,7 +311,10 @@ async function ensureIdentity(
   return { id: rows[0].id, personId: rows[0].person_id };
 }
 
-/** Upsert one page and advance the cursor, atomically. Returns rows (facts + metrics) written. */
+/**
+ * Upsert one page and advance the cursor, atomically. Returns rows written
+ * (facts + metrics + outcomes + revert flips applied).
+ */
 async function commitPage(
   db: PoolClient,
   runId: number,
@@ -294,7 +403,82 @@ async function commitPage(
       );
     }
 
-    const rowCount = page.facts.length + metrics.length;
+    // Outcomes (merged PRs, ...): same identity resolution as facts, routed
+    // to the product whose outcome_kind matches. (kind, source_ref) upserts,
+    // so re-pulls restate in place. reverted_at is deliberately NOT in the
+    // update: a flip survives every later re-pull of the merged PR.
+    const outcomes = page.outcomes ?? [];
+    const productCache = new Map<string, string>();
+    for (const outcome of outcomes) {
+      validateOutcome(outcome);
+      const productId = await resolveOutcomeProduct(db, outcome.kind, productCache);
+      let resolved: { id: string; personId: string | null } | null = null;
+      if (outcome.identity) {
+        const key = identityMapKey(outcome.identity.externalId, outcome.identity.kind);
+        resolved = idMap.get(key) ?? (await ensureIdentity(db, vendor, outcome.identity));
+        idMap.set(key, resolved);
+      }
+      await db.query(
+        `INSERT INTO outcomes
+           (ts, product_id, person_id, kind, value_cents, currency,
+            source_ref, tools, meta)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb)
+         ON CONFLICT (kind, source_ref) DO UPDATE SET
+           ts = EXCLUDED.ts,
+           product_id = EXCLUDED.product_id,
+           person_id = EXCLUDED.person_id,
+           value_cents = EXCLUDED.value_cents,
+           currency = EXCLUDED.currency,
+           tools = EXCLUDED.tools,
+           meta = EXCLUDED.meta`,
+        [
+          outcome.ts,
+          productId,
+          resolved?.personId ?? null,
+          outcome.kind,
+          outcome.valueCents ?? null,
+          outcome.currency ?? null,
+          outcome.sourceRef,
+          outcome.tools ?? [],
+          JSON.stringify(outcome.shas?.length ? { shas: outcome.shas } : {}),
+        ],
+      );
+    }
+
+    // Reverts: flip the referenced outcome when the revert lands within
+    // revert_window_days of it - after the window the outcome is final
+    // (spec 5). The UPDATE runs against the whole ledger, so a revert synced
+    // weeks after its target (long out of any re-pull window) still lands.
+    // reverted_at IS NULL keeps re-delivered reverts idempotent, and the
+    // source_ref guard keeps a record from ever flipping itself.
+    const reverts = page.reverts ?? [];
+    let flips = 0;
+    if (reverts.length > 0) {
+      const windowDays = await getSetting("revert_window_days", db);
+      for (const revert of reverts) {
+        validateRevert(revert);
+        const { rowCount: flipped } = await db.query(
+          `UPDATE outcomes
+           SET reverted_at = $2::timestamptz, revert_source_ref = $3
+           WHERE kind = $1 AND reverted_at IS NULL AND source_ref <> $3
+             AND (($4::text IS NOT NULL AND source_ref = $4)
+               OR ($5::text IS NOT NULL AND meta->'shas' @> to_jsonb($5::text)))
+             AND $2::timestamptz >= ts
+             AND $2::timestamptz <= ts + make_interval(days => $6::int)`,
+          [
+            revert.kind,
+            revert.ts,
+            revert.sourceRef,
+            revert.targetRef ?? null,
+            revert.targetSha ?? null,
+            windowDays,
+          ],
+        );
+        flips += flipped ?? 0;
+      }
+    }
+
+    const rowCount = page.facts.length + metrics.length + outcomes.length + flips;
     await db.query(
       `UPDATE sync_runs
        SET cursor = $2, rows_synced = COALESCE(rows_synced, 0) + $3

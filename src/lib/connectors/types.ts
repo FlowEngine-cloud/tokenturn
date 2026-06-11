@@ -75,12 +75,63 @@ export interface MetricInput {
   sourceRef: string;
 }
 
+/**
+ * One success as the vendor reports it (a merged PR, ...). Routed to the
+ * product whose outcome_kind matches `kind`; (kind, sourceRef) is the
+ * idempotent upsert key, so re-pulls restate in place.
+ */
+export interface OutcomeInput {
+  /** ISO-8601 timestamp. A merged PR counts on merge (spec 5). */
+  ts: string;
+  /** Outcome kind, e.g. "github_pr". Matches products.outcome_kind. */
+  kind: string;
+  /** The identity credited; omitted = unattributed (e.g. a bot author). */
+  identity?: { externalId: string; kind: IdentityInput["kind"] };
+  valueCents?: number;
+  /** ISO-4217, required iff valueCents is set. */
+  currency?: string;
+  /** AI tools detected on the record (bot author / co-author trailers). */
+  tools?: string[];
+  /**
+   * Vendor record keys a later revert may reference (the PR's merge + head
+   * commit shas). Stored on the outcome so a revert synced weeks later can
+   * still find its target.
+   */
+  shas?: string[];
+  /** The vendor record behind the outcome (PR ref) - what drills. */
+  sourceRef: string;
+}
+
+/**
+ * A revert the vendor reports. The framework flips the referenced outcome
+ * (sets reverted_at) when the revert lands within revert_window_days
+ * (Settings, default 30) of the outcome's ts; after the window the outcome
+ * is final (spec 5). Flips apply against the whole ledger, not just this
+ * sync's window, so a revert synced weeks after its target still lands.
+ */
+export interface RevertInput {
+  /** ISO-8601 timestamp the revert took effect (its merge). */
+  ts: string;
+  /** Outcome kind this revert can flip. */
+  kind: string;
+  /** The reverting record itself - drills from the flipped outcome. */
+  sourceRef: string;
+  /** The reverted outcome's sourceRef ("Reverts owner/repo#N"). */
+  targetRef?: string;
+  /** Or a commit sha the outcome registered ("This reverts commit X"). */
+  targetSha?: string;
+}
+
 /** One page of a sync. nextPageToken null = the window is complete. */
 export interface ConnectorPage {
   identities: IdentityInput[];
   facts: FactInput[];
   /** Non-spend usage counters (optional - most connectors have none). */
   metrics?: MetricInput[];
+  /** Successes (merged PRs, ...) - the outcome source (spec 5 GitHub row). */
+  outcomes?: OutcomeInput[];
+  /** Reverts to apply against previously synced outcomes. */
+  reverts?: RevertInput[];
   nextPageToken: string | null;
 }
 

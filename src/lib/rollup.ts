@@ -145,10 +145,13 @@ export async function recomputeRollups(
       [from, to],
     );
 
+    // Reverted outcomes (a merged PR flipped by a revert, spec 5) roll up
+    // under their own "<kind>:reverted" bucket: $/merge and ROI count only
+    // live outcomes, while revert rates stay chartable from the rollup.
     const outcomes = await client.query(
       `INSERT INTO rollup_outcomes_daily
          (day, product_id, person_id, kind, outcome_count, value_usd_cents)
-       SELECT d.day, o.product_id, o.person_id, o.kind,
+       SELECT d.day, o.product_id, o.person_id, k.kind,
               COUNT(*)::int,
               ROUND(SUM(o.value_cents * fx.usd_rate))::bigint
        FROM outcomes o
@@ -156,12 +159,17 @@ export async function recomputeRollups(
          SELECT (o.ts AT TIME ZONE 'UTC')::date AS day
        ) d
        CROSS JOIN LATERAL (
+         SELECT CASE WHEN o.reverted_at IS NULL THEN o.kind
+                ELSE o.kind || ':reverted'
+                END AS kind
+       ) k
+       CROSS JOIN LATERAL (
          SELECT CASE WHEN o.value_cents IS NULL THEN NULL::numeric
                 ELSE ${fxExpr("o.currency", "d.day")}
                 END AS usd_rate
        ) fx
        WHERE d.day BETWEEN $1::date AND $2::date
-       GROUP BY d.day, o.product_id, o.person_id, o.kind`,
+       GROUP BY d.day, o.product_id, o.person_id, k.kind`,
       [from, to],
     );
 

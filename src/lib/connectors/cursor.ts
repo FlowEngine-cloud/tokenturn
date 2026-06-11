@@ -8,7 +8,7 @@ import {
   parseStrict,
   strOrNull,
 } from "./strict";
-import { addDays, utcDay } from "./sync";
+import { addDays, chunkWindows, utcDay } from "./sync";
 import type {
   Connector,
   ConnectorContext,
@@ -215,18 +215,6 @@ export function usageEventsProbeRequest(): CursorRequest {
       pageSize: 1,
     },
   };
-}
-
-/** Split the sync window into the <=30-day slices a report request allows. */
-export function chunkWindows(window: SyncWindow): SyncWindow[] {
-  const chunks: SyncWindow[] = [];
-  let since = window.since;
-  while (since <= window.until) {
-    const until = addDays(since, CHUNK_DAYS - 1);
-    chunks.push({ since, until: until <= window.until ? until : window.until });
-    since = addDays(since, CHUNK_DAYS);
-  }
-  return chunks;
 }
 
 // ---------------------------------------------------------------------------
@@ -650,7 +638,7 @@ export const cursorConnector: Connector = {
     pageToken: string | null,
   ): Promise<ConnectorPage> {
     const state = parseCursorToken(pageToken);
-    const chunks = chunkWindows(window);
+    const chunks = chunkWindows(window, CHUNK_DAYS);
 
     switch (state.phase) {
       case "members": {

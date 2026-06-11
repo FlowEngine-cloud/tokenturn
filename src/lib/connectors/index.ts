@@ -10,6 +10,7 @@
 
 import { anthropicConnector } from "./anthropic";
 import { cursorConnector } from "./cursor";
+import { githubConnector } from "./github";
 import { openaiConnector } from "./openai";
 import { registerConnector } from "./registry";
 
@@ -46,14 +47,18 @@ export type {
   FactInput,
   IdentityInput,
   MetricInput,
+  OutcomeInput,
+  RevertInput,
   ScopeCheck,
   SyncCursor,
   SyncWindow,
 } from "./types";
 export { anthropicConnector } from "./anthropic";
 export { cursorConnector } from "./cursor";
+export { githubConnector } from "./github";
 export { openaiConnector } from "./openai";
 
 registerConnector(anthropicConnector);
 registerConnector(cursorConnector);
+registerConnector(githubConnector);
 registerConnector(openaiConnector);

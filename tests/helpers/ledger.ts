@@ -26,7 +26,7 @@ export async function identityRows(pool: Pool, vendor: string) {
     `SELECT i.external_id AS "externalId", i.kind, i.email,
             i.display_name AS "displayName", i.tags, p.email AS "personEmail"
      FROM identities i LEFT JOIN people p ON p.id = i.person_id
-     WHERE i.vendor = $1 ORDER BY i.external_id`,
+     WHERE i.vendor = $1 ORDER BY i.external_id, i.kind`,
     [vendor],
   );
   return rows;
@@ -42,6 +42,22 @@ export async function metricRows(pool: Pool, vendor: string) {
      LEFT JOIN people p ON p.id = m.person_id
      WHERE m.vendor = $1 ORDER BY m.source_ref, m.metric`,
     [vendor],
+  );
+  return rows;
+}
+
+export async function outcomeRows(pool: Pool) {
+  const { rows } = await pool.query(
+    `SELECT o.source_ref AS "sourceRef",
+            to_char(o.ts AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS ts,
+            o.kind, o.tools, o.value_cents::int AS "valueCents", o.currency,
+            o.reverted_at IS NOT NULL AS reverted,
+            o.revert_source_ref AS "revertSourceRef",
+            pr.name AS product, p.email AS "personEmail"
+     FROM outcomes o
+     JOIN products pr ON pr.id = o.product_id
+     LEFT JOIN people p ON p.id = o.person_id
+     ORDER BY o.source_ref`,
   );
   return rows;
 }

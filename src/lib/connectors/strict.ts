@@ -24,6 +24,37 @@ export const literal =
   (v) =>
     v === want;
 
+/**
+ * Like parseStrict, but tolerates fields it was not told about. For vendors
+ * whose objects are huge and contractually ADDITIVE within a pinned API
+ * version (GitHub: shape changes ship behind X-GitHub-Api-Version, new
+ * fields appear weekly): full-shape pinning there would turn routine
+ * additions into false alarms. The fields we consume are still checked
+ * strictly - a missing or retyped field throws with its name.
+ */
+export function parsePicked(
+  label: string,
+  raw: unknown,
+  required: Record<string, Check>,
+  optional: Record<string, Check> = {},
+): Record<string, unknown> {
+  if (!isObj(raw)) {
+    throw new Error(`${label} is not an object: ${JSON.stringify(raw)}`);
+  }
+  const record = raw as Record<string, unknown>;
+  for (const [key, ok] of Object.entries(required)) {
+    if (!ok(record[key])) {
+      throw new Error(`${label}: missing or invalid "${key}"`);
+    }
+  }
+  for (const [key, ok] of Object.entries(optional)) {
+    if (key in record && !ok(record[key])) {
+      throw new Error(`${label}: missing or invalid "${key}"`);
+    }
+  }
+  return record;
+}
+
 export function parseStrict(
   label: string,
   raw: unknown,

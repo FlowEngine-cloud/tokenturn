@@ -18,7 +18,8 @@ import { readFileSync } from "node:fs";
 
 export interface Recording {
   request: { method: string; url: string; body?: unknown };
-  response: { status: number; body: unknown };
+  /** JSON responses record `body`; raw text (NDJSON reports) records `text`. */
+  response: { status: number; body?: unknown; text?: string };
 }
 
 /** Key-order-independent JSON for body comparison. */
@@ -75,6 +76,12 @@ export function replay(recordings: Recording[]): ReplaySession {
       );
     }
     const [recording] = pending.splice(index, 1);
+    if (recording.response.text !== undefined) {
+      return new Response(recording.response.text, {
+        status: recording.response.status,
+        headers: { "content-type": "application/x-ndjson" },
+      });
+    }
     return new Response(JSON.stringify(recording.response.body), {
       status: recording.response.status,
       headers: { "content-type": "application/json" },
