@@ -31,19 +31,23 @@ describe.runIf(TEST_DATABASE_URL)("core schema", () => {
     );
     expect(rows.map((r) => r.tablename)).toEqual([
       "alert_state",
+      "auth_challenges",
       "fx_rates",
       "identities",
       "ingest_keys",
       "outcomes",
       "people",
       "products",
+      "reset_tokens",
       "rollup_daily",
       "rollup_outcomes_daily",
       "schema_migrations",
+      "sessions",
       "settings",
       "spend_facts",
       "sync_runs",
       "users",
+      "webauthn_credentials",
     ]);
   });
 

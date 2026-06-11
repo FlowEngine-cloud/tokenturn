@@ -1,5 +1,4 @@
-import type { ClientBase, Pool } from "pg";
-import { getPool } from "./db";
+import { getPool, type Db } from "./db";
 import { decryptSecret, encryptSecret, loadOrCreateSecretKey } from "./secrets";
 
 /**
@@ -9,7 +8,7 @@ import { decryptSecret, encryptSecret, loadOrCreateSecretKey } from "./secrets";
  * go through the *SecretSetting functions and are encrypted at rest.
  */
 
-export type Db = Pool | ClientBase;
+export type { Db };
 
 export interface SettingValues {
   /** Org display currency for charts; drill-downs show the original. */

@@ -1,9 +1,12 @@
-import { Pool } from "pg";
+import { Pool, type ClientBase } from "pg";
 
 /**
  * Shared Postgres pool. DATABASE_URL is the only env var the app reads
  * (spec 12b); everything else lives in the DB.
  */
+
+/** Anything that can run a query: the pool, or a client inside a transaction. */
+export type Db = Pool | ClientBase;
 
 let pool: Pool | null = null;
 

@@ -23,6 +23,12 @@ ENV NODE_ENV=production \
 # /data holds keys generated on first boot (mounted as a volume in compose).
 RUN mkdir -p /data && chown node:node /data
 
+# Lost passkey: `docker exec <container> reset-admin` prints a one-time
+# reset link (spec 12b).
+RUN printf '#!/bin/sh\nexec node /app/scripts/reset-admin.mjs "$@"\n' \
+      > /usr/local/bin/reset-admin \
+  && chmod +x /usr/local/bin/reset-admin
+
 COPY --from=build --chown=node:node /app/.next/standalone ./
 COPY --from=build --chown=node:node /app/.next/static ./.next/static
 COPY --from=build --chown=node:node /app/public ./public

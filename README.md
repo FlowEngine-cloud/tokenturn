@@ -12,6 +12,16 @@ Open [http://localhost:3000](http://localhost:3000).
 
 That's it. `DATABASE_URL` is the only environment variable; everything else is configured in Settings and stored in the database. Migrations run automatically on boot. Backup = the Postgres volume.
 
+## Login
+
+The first visitor claims the instance as its one admin - with a passkey, or a password as fallback. No email needed. The admin can add view-only users (username + password). Lost passkey or password:
+
+```bash
+docker compose exec app reset-admin
+```
+
+prints a one-time reset link (valid 30 minutes, single use) to open on your instance's URL.
+
 ## Health
 
 `GET /healthz` returns `200 {"status":"ok","db":"ok"}` when the app and database are up, `503` otherwise. The Docker image ships a matching `HEALTHCHECK`.
