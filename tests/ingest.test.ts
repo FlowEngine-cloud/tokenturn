@@ -382,7 +382,9 @@ describe.runIf(TEST_DATABASE_URL)("ingest API (spec 6)", () => {
       ],
       [call({ ts: "2020-01-01T00:00:00Z" }), "raw-fact retention"],
       [call({ employee: "not-an-email" }), "employee must be an email address"],
-      [call({ product: "Some Other Product" }), 'this key is scoped to product "Support Bot"'],
+      [call({ roi: "Some Other ROI" }), 'this key is scoped to ROI "Support Bot"'],
+      // The pre-rename wire key is still checked, silently, as an alias.
+      [call({ product: "Some Other ROI" }), 'this key is scoped to ROI "Support Bot"'],
       [{ id: "nope", kind: "call", ts: TS_JUNE }, "id must be a UUID"],
       [{ id: randomUUID(), kind: "metric", ts: TS_JUNE }, 'kind must be "call" or "outcome"'],
       [
@@ -416,7 +418,7 @@ describe.runIf(TEST_DATABASE_URL)("ingest API (spec 6)", () => {
     }
   });
 
-  it("keys are scoped: spend needs an sdk product, track() an sdk_event product", async () => {
+  it("keys are scoped: spend needs an sdk ROI, track() an sdk_event ROI", async () => {
     const res = await ingestPost(keyProductToken, {
       events: [
         call(),
@@ -427,7 +429,19 @@ describe.runIf(TEST_DATABASE_URL)("ingest API (spec 6)", () => {
     expect(results[0].status).toBe("rejected");
     expect(results[0].error).toContain('gets its spend from key');
     expect(results[1].status).toBe("rejected");
-    expect(results[1].error).toContain('outcome kind "sdk_event"');
+    expect(results[1].error).toContain('success kind "sdk_event"');
+  });
+
+  it("a matching roi (or the old product alias) passes the scope check", async () => {
+    const events = [
+      call({ roi: "Support Bot" }),
+      call({ product: "Support Bot" }), // pre-rename SDKs
+    ];
+    const { results } = await (await ingestPost(supportToken, { events })).json();
+    expect(results.map((r: { status: string }) => r.status)).toEqual([
+      "accepted",
+      "accepted",
+    ]);
   });
 
   it("new estimated spend re-trues an invoiced month's drift", async () => {

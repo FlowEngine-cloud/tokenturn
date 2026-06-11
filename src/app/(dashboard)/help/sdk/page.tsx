@@ -17,7 +17,7 @@ export default function SdkPage() {
         <Block>
           {`import { pnl } from "@ai-pnl/sdk";
 
-const ai = pnl.wrap(openai, { product: "support-bot" }); // counts every call
+const ai = pnl.wrap(openai, { roi: "support-bot" }); // counts every call
 
 pnl.track("ticket_resolved", { value: 4.5, ref: ticket.id }); // records a success`}
         </Block>

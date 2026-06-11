@@ -13,7 +13,9 @@ export interface CallEvent {
   model: string;
   inputTokens: number;
   outputTokens: number;
-  /** Must match the ingest key's product when set. */
+  /** Must match the ingest key's ROI when set. */
+  roi?: string;
+  /** @deprecated Older SDKs sent `product`; the server still accepts it. */
   product?: string;
   /** Employee email - attributes the spend to a person. */
   employee?: string;
@@ -40,6 +42,9 @@ export interface OutcomeEvent {
   /** The real record behind the outcome (ticket id, coupon id) - becomes
    * source_ref, the thing every displayed number drills down to. */
   ref?: string;
+  /** Must match the ingest key's ROI when set. */
+  roi?: string;
+  /** @deprecated Older SDKs sent `product`; the server still accepts it. */
   product?: string;
   employee?: string;
   tokens?: OutcomeTokens;

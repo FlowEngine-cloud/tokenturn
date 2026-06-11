@@ -58,7 +58,7 @@ describe.runIf(TEST_DATABASE_URL)("SDK -> ingest route -> ledger (spec 6)", () =
     const pnl = new Pnl({
       url: "http://pnl.test",
       key: token,
-      product: "Support Bot",
+      roi: "Support Bot",
       fetch: routeFetch,
     });
     const openai = {

@@ -8,7 +8,7 @@ The AI P&L TypeScript SDK. Wrap your OpenAI or Anthropic client so every call is
 
 ## Setup
 
-1. In AI P&L, create a product (attribution `sdk` for call counting, outcome kind `sdk_event` for `track()`).
+1. In AI P&L, create an ROI (spend source `sdk` for call counting, success kind `sdk_event` for `track()`).
 2. Mint an ingest key for it in Settings - it is shown once.
 3. Give the SDK the server URL and key: `pnl.configure({ url, key })`, or set `AI_PNL_URL` and `AI_PNL_KEY`.
 
@@ -16,7 +16,7 @@ The AI P&L TypeScript SDK. Wrap your OpenAI or Anthropic client so every call is
 import { pnl } from "@ai-pnl/sdk";
 import OpenAI from "openai";
 
-const ai = pnl.wrap(new OpenAI(), { product: "support-bot" }); // counts every call
+const ai = pnl.wrap(new OpenAI(), { roi: "support-bot" }); // counts every call
 
 pnl.track("ticket_resolved", { value: 4.5, ref: "ZD-3141", employee: "dana@acme.com" });
 ```
@@ -27,6 +27,8 @@ pnl.track("ticket_resolved", { value: 4.5, ref: "ZD-3141", employee: "dana@acme.
 
 `employee` is an email; it attributes spend and outcomes to a person through the same Resolve machinery as every vendor identity.
 
+Upgrading: the `roi` option was previously named `product`. The old name still works everywhere (`wrap`, `track`, `configure`, the wire format) - no code change needed.
+
 ## Next.js
 
 ```ts
@@ -34,7 +36,7 @@ pnl.track("ticket_resolved", { value: 4.5, ref: "ZD-3141", employee: "dana@acme.
 import { pnl } from "@ai-pnl/sdk";
 import OpenAI from "openai";
 
-pnl.configure({ product: "support-bot" }); // url/key from AI_PNL_URL / AI_PNL_KEY
+pnl.configure({ roi: "support-bot" }); // url/key from AI_PNL_URL / AI_PNL_KEY
 export const ai = pnl.wrap(new OpenAI());
 export { pnl };
 ```
@@ -63,7 +65,7 @@ import express from "express";
 import OpenAI from "openai";
 import { pnl } from "@ai-pnl/sdk";
 
-pnl.configure({ url: process.env.AI_PNL_URL, key: process.env.AI_PNL_KEY, product: "support-bot" });
+pnl.configure({ url: process.env.AI_PNL_URL, key: process.env.AI_PNL_KEY, roi: "support-bot" });
 const ai = pnl.wrap(new OpenAI());
 
 const app = express();
@@ -88,7 +90,7 @@ app.listen(3001);
 import Anthropic from "@anthropic-ai/sdk";
 import { pnl } from "@ai-pnl/sdk";
 
-pnl.configure({ url: "http://localhost:3000", key: "pnl_...", product: "batch-tagger" });
+pnl.configure({ url: "http://localhost:3000", key: "pnl_...", roi: "batch-tagger" });
 const claude = pnl.wrap(new Anthropic(), { employee: "dana@acme.com" });
 
 const msg = await claude.messages.create({
@@ -101,13 +103,13 @@ pnl.track("article_tagged", { ref: "article-77" });
 await pnl.flush(); // short-lived process: send before exiting
 ```
 
-## Several products in one app
+## Several ROIs in one app
 
-An ingest key is scoped to one product. Create one client per product:
+An ingest key is scoped to one ROI. Create one client per ROI:
 
 ```ts
 import { Pnl } from "@ai-pnl/sdk";
 
-const supportBot = new Pnl({ url, key: SUPPORT_BOT_KEY, product: "support-bot" });
-const brain = new Pnl({ url, key: BRAIN_KEY, product: "company-brain" });
+const supportBot = new Pnl({ url, key: SUPPORT_BOT_KEY, roi: "support-bot" });
+const brain = new Pnl({ url, key: BRAIN_KEY, roi: "company-brain" });
 ```

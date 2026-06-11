@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 
 /**
  * The SDK's ingest endpoint (spec 6 + 12): Bearer ingest key (minted in
- * Settings, scoped per product), rate-limited per key, body size capped.
+ * Settings, scoped per ROI), rate-limited per key, body size capped.
  * Body: { events: [...] } - up to 500 events carrying client UUIDs; the
  * server upserts on the UUID so retries are safe. Responds 200 with a
  * per-event verdict (accepted / duplicate / rejected + the reason); only
@@ -43,7 +43,7 @@ export async function POST(req: Request) {
     return tooManyRequests();
   }
   if (key.productArchived) {
-    return conflict(`product "${key.productName}" is archived`);
+    return conflict(`ROI "${key.productName}" is archived`);
   }
 
   const text = await req.text();

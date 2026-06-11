@@ -42,7 +42,7 @@ def capture_server(status_plan=None):
 
 def make_pnl(status_plan=None, **over):
     requests, transport = capture_server(status_plan)
-    cfg = {"url": "http://pnl.test", "key": "pnl_k", "product": "support-bot", "transport": transport}
+    cfg = {"url": "http://pnl.test", "key": "pnl_k", "roi": "support-bot", "transport": transport}
     cfg.update(over)
     return Pnl(**cfg), requests
 
@@ -188,6 +188,27 @@ class TrackValidationTest(unittest.TestCase):
         self.assertEqual(event["ref"], "12345")  # refs coerced to strings
 
 
+class RoiAliasTest(unittest.TestCase):
+    """The pre-rename `product` argument is a silent alias for `roi` -
+    accepted in Pnl(), configure() and track(); the wire always says roi."""
+
+    def test_product_alias_accepted_everywhere(self):
+        pnl, _ = make_pnl(roi=None, product="support-bot")
+        pnl.track("ok")
+        (event,) = pnl.pending()
+        self.assertEqual(event["roi"], "support-bot")
+        self.assertNotIn("product", event)
+
+    def test_configure_alias_and_roi_outranks_it(self):
+        pnl, _ = make_pnl(roi=None)
+        pnl.configure(product="legacy-name")
+        pnl.track("ok")
+        pnl.track("ok2", roi="explicit", product="ignored")
+        legacy, explicit = pnl.pending()
+        self.assertEqual(legacy["roi"], "legacy-name")
+        self.assertEqual(explicit["roi"], "explicit")
+
+
 class _IngestHandler(http.server.BaseHTTPRequestHandler):
     store = None  # set per test: {"requests": [...], "plan": [...]}
 
@@ -232,7 +253,7 @@ class RealHttpTransportTest(unittest.TestCase):
 
     def test_delivers_over_real_http(self):
         pnl = Pnl(url=self.url, key="pnl_real")
-        pnl.track("ticket_resolved", value=4.5, ref="ZD-9", employee="dana@acme.com", product="support-bot")
+        pnl.track("ticket_resolved", value=4.5, ref="ZD-9", employee="dana@acme.com", roi="support-bot")
         pnl.flush()
         requests = _IngestHandler.store["requests"]
         self.assertEqual(len(requests), 1)
@@ -240,7 +261,7 @@ class RealHttpTransportTest(unittest.TestCase):
         self.assertEqual(requests[0]["auth"], "Bearer pnl_real")
         (event,) = requests[0]["events"]
         self.assertEqual(
-            {k: event[k] for k in ("kind", "outcome", "valueCents", "currency", "ref", "employee", "product")},
+            {k: event[k] for k in ("kind", "outcome", "valueCents", "currency", "ref", "employee", "roi")},
             {
                 "kind": "outcome",
                 "outcome": "ticket_resolved",
@@ -248,7 +269,7 @@ class RealHttpTransportTest(unittest.TestCase):
                 "currency": "USD",
                 "ref": "ZD-9",
                 "employee": "dana@acme.com",
-                "product": "support-bot",
+                "roi": "support-bot",
             },
         )
         self.assertEqual(pnl.pending(), [])

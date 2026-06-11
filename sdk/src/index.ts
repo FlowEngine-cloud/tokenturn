@@ -21,11 +21,11 @@ import { Pnl } from "./client.js";
  *
  *   import { pnl } from "@ai-pnl/sdk";
  *
- *   pnl.configure({ url: "https://pnl.internal", key: "pnl_...", product: "support-bot" });
- *   const ai = pnl.wrap(openai, { product: "support-bot" });
+ *   pnl.configure({ url: "https://pnl.internal", key: "pnl_...", roi: "support-bot" });
+ *   const ai = pnl.wrap(openai, { roi: "support-bot" });
  *   pnl.track("ticket_resolved", { value: 4.5, employee: "dana@acme.com" });
  *
- * Apps with several products mint one ingest key each and create one
- * `new Pnl({...})` per product.
+ * Apps with several ROIs mint one ingest key each and create one
+ * `new Pnl({...})` per ROI.
  */
 export const pnl = new Pnl();

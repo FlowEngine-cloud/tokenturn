@@ -79,13 +79,14 @@ class Pnl:
         self,
         url: Optional[str] = None,
         key: Optional[str] = None,
-        product: Optional[str] = None,
+        roi: Optional[str] = None,
         transport: Optional[Transport] = None,
         now: Optional[Callable[[], datetime]] = None,
+        product: Optional[str] = None,  # deprecated alias for roi, accepted silently
     ) -> None:
         self._url = url
         self._key = key
-        self._product = product
+        self._roi = roi if roi is not None else product
         self._transport: Transport = transport or default_transport
         self._now = now or (lambda: datetime.now(timezone.utc))
         self._buffer: List[Dict[str, Any]] = []
@@ -103,9 +104,10 @@ class Pnl:
         self,
         url: Any = _UNSET,
         key: Any = _UNSET,
-        product: Any = _UNSET,
+        roi: Any = _UNSET,
         transport: Any = _UNSET,
         now: Any = _UNSET,
+        product: Any = _UNSET,  # deprecated alias for roi, accepted silently
     ) -> "Pnl":
         """Merge configuration; chainable. url/key fall back to the
         AI_PNL_URL / AI_PNL_KEY environment variables."""
@@ -113,15 +115,23 @@ class Pnl:
             self._url = url
         if key is not _UNSET:
             self._key = key
-        if product is not _UNSET:
-            self._product = product
+        if roi is not _UNSET:
+            self._roi = roi
+        elif product is not _UNSET:
+            self._roi = product
         if transport is not _UNSET:
             self._transport = transport or default_transport
         if now is not _UNSET:
             self._now = now or (lambda: datetime.now(timezone.utc))
         return self
 
-    def wrap(self, client: Any, product: Optional[str] = None, employee: Optional[str] = None) -> Any:
+    def wrap(
+        self,
+        client: Any,
+        roi: Optional[str] = None,
+        employee: Optional[str] = None,
+        product: Optional[str] = None,  # deprecated alias for roi, accepted silently
+    ) -> Any:
         """Wrap an OpenAI or Anthropic client (sync or async) so every call
         is counted - token counts from the response usage fields, streaming
         included. The client is recognized structurally; an unrecognized one
@@ -137,8 +147,10 @@ class Pnl:
                 )
                 return client
 
+            resolved_roi = roi if roi is not None else product
+
             def record(call: RecordedCall) -> None:
-                self._record_call(call, product, employee)
+                self._record_call(call, resolved_roi, employee)
 
             return wrap_client(client, vendor, record)
         except Exception as err:
@@ -152,7 +164,8 @@ class Pnl:
         currency: Optional[str] = None,
         ref: Optional[Any] = None,
         employee: Optional[str] = None,
-        product: Optional[str] = None,
+        roi: Optional[str] = None,
+        product: Optional[str] = None,  # deprecated alias for roi, accepted silently
     ) -> None:
         """Record a success and its value (in currency units: 4.5 = $4.50).
         `ref` becomes the outcome's source_ref (the ticket id / coupon id
@@ -188,9 +201,9 @@ class Pnl:
             resolved_employee = employee or (store or {}).get("employee")
             if resolved_employee:
                 event["employee"] = resolved_employee
-            resolved_product = product or self._product
-            if resolved_product:
-                event["product"] = resolved_product
+            resolved_roi = roi or product or self._roi
+            if resolved_roi:
+                event["roi"] = resolved_roi
             if store and store["calls"]:
                 event["tokens"] = {
                     "inputTokens": store["input_tokens"],
@@ -261,7 +274,7 @@ class Pnl:
 
     # internals ----------------------------------------------------------
 
-    def _record_call(self, call: RecordedCall, product: Optional[str], employee: Optional[str]) -> None:
+    def _record_call(self, call: RecordedCall, roi: Optional[str], employee: Optional[str]) -> None:
         try:
             event_id = str(uuid.uuid4())
             event: Dict[str, Any] = {
@@ -277,9 +290,9 @@ class Pnl:
             resolved_employee = employee or (store or {}).get("employee")
             if resolved_employee:
                 event["employee"] = resolved_employee
-            resolved_product = product or self._product
-            if resolved_product:
-                event["product"] = resolved_product
+            resolved_roi = roi or self._roi
+            if resolved_roi:
+                event["roi"] = resolved_roi
             if store is not None:
                 store["input_tokens"] += call.input_tokens
                 store["output_tokens"] += call.output_tokens

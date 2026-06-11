@@ -30,7 +30,7 @@ def make_pnl(**over):
             {"results": [{"id": e["id"], "status": "accepted"} for e in events]}
         ).encode("utf-8")
 
-    cfg = {"url": "http://pnl.test", "key": "pnl_test", "product": "support-bot", "transport": transport}
+    cfg = {"url": "http://pnl.test", "key": "pnl_test", "roi": "support-bot", "transport": transport}
     cfg.update(over)
     return Pnl(**cfg), sent
 
@@ -315,14 +315,14 @@ class WrapOpenAITest(unittest.TestCase):
         events = pnl.pending()
         self.assertEqual(len(events), 1)
         self.assertEqual(
-            {k: events[0][k] for k in ("kind", "vendor", "model", "inputTokens", "outputTokens", "product")},
+            {k: events[0][k] for k in ("kind", "vendor", "model", "inputTokens", "outputTokens", "roi")},
             {
                 "kind": "call",
                 "vendor": "openai",
                 "model": "gpt-4o-mini-2024-07-18",
                 "inputTokens": 120,
                 "outputTokens": 30,
-                "product": "support-bot",
+                "roi": "support-bot",
             },
         )
 
@@ -337,6 +337,14 @@ class WrapOpenAITest(unittest.TestCase):
         events = pnl.pending()
         self.assertEqual(len(events), 1)
         self.assertEqual((events[0]["inputTokens"], events[0]["outputTokens"]), (50, 10))
+
+    def test_wrap_accepts_the_pre_rename_product_alias(self):
+        pnl, _ = make_pnl(roi=None)
+        ai = pnl.wrap(FakeOpenAI(), product="support-bot")  # old call sites keep working
+        ai.chat.completions.create(model="gpt-4o-mini", messages=[{"role": "user", "content": "hi"}])
+        (event,) = pnl.pending()
+        self.assertEqual(event["roi"], "support-bot")
+        self.assertNotIn("product", event)
 
     def test_chat_stream_respects_callers_stream_options(self):
         pnl, _ = make_pnl()

@@ -155,7 +155,7 @@ export default function ApiReferencePage() {
             <Block>
               {`{"id": "<uuid>", "kind": "call", "ts": "<ISO>", "vendor": "openai" | "anthropic",
  "model": "gpt-4o-mini", "inputTokens": 1200, "outputTokens": 340,
- "employee": "dana@acme.com"?}`}
+ "employee": "dana@acme.com"?, "roi": "support-bot"?}`}
             </Block>
             <p>
               An <span className="text-foreground">outcome event</span> (success; the
@@ -166,12 +166,14 @@ export default function ApiReferencePage() {
             <Block>
               {`{"id": "<uuid>", "kind": "outcome", "ts": "<ISO>", "outcome": "coupon_created",
  "valueCents": 4000?, "currency": "USD"?, "ref": "SUMMER20"?,
- "employee": "dana@acme.com"?}`}
+ "employee": "dana@acme.com"?, "roi": "support-bot"?}`}
             </Block>
             <p>
               <Code>employee</Code> runs the standard identity machinery: auto-match by
               email, the Resolve queue when unknown, full-history re-attribution on a
-              later match.
+              later match. <Code>roi</Code> is optional - the key already scopes the
+              event - and must match the key&apos;s ROI when set (older SDKs send it as{" "}
+              <Code>product</Code>; both are accepted).
             </p>
           </Endpoint>
           <Endpoint methods={["GET"]} path="/api/ingest-keys">

@@ -8,7 +8,7 @@ The AI P&L Python SDK - full parity with [@ai-pnl/sdk](../sdk/README.md). Wrap y
 
 ## Setup
 
-1. In AI P&L, create a product (attribution `sdk` for call counting, outcome kind `sdk_event` for `track()`).
+1. In AI P&L, create an ROI (spend source `sdk` for call counting, success kind `sdk_event` for `track()`).
 2. Mint an ingest key for it in Settings - it is shown once.
 3. Give the SDK the server URL and key: `pnl.configure(url=..., key=...)`, or set `AI_PNL_URL` and `AI_PNL_KEY`.
 
@@ -16,7 +16,7 @@ The AI P&L Python SDK - full parity with [@ai-pnl/sdk](../sdk/README.md). Wrap y
 from ai_pnl import pnl
 from openai import OpenAI
 
-ai = pnl.wrap(OpenAI(), product="support-bot")  # counts every call
+ai = pnl.wrap(OpenAI(), roi="support-bot")  # counts every call
 
 pnl.track("ticket_resolved", value=4.5, ref="ZD-3141", employee="dana@acme.com")
 ```
@@ -27,6 +27,8 @@ pnl.track("ticket_resolved", value=4.5, ref="ZD-3141", employee="dana@acme.com")
 
 `employee` is an email; it attributes spend and outcomes to a person through the same Resolve machinery as every vendor identity.
 
+Upgrading: the `roi` argument was previously named `product`. The old name still works everywhere (`wrap`, `track`, `configure`, `Pnl(...)`, the wire format) - no code change needed.
+
 ## FastAPI
 
 ```python
@@ -34,7 +36,7 @@ pnl.track("ticket_resolved", value=4.5, ref="ZD-3141", employee="dana@acme.com")
 from ai_pnl import pnl
 from openai import OpenAI
 
-pnl.configure(product="support-bot")  # url/key from AI_PNL_URL / AI_PNL_KEY
+pnl.configure(roi="support-bot")  # url/key from AI_PNL_URL / AI_PNL_KEY
 ai = pnl.wrap(OpenAI())
 ```
 
@@ -85,7 +87,7 @@ async def answer(request: Request):
 from anthropic import Anthropic
 from ai_pnl import pnl
 
-pnl.configure(url="http://localhost:3000", key="pnl_...", product="batch-tagger")
+pnl.configure(url="http://localhost:3000", key="pnl_...", roi="batch-tagger")
 claude = pnl.wrap(Anthropic(), employee="dana@acme.com")
 
 msg = claude.messages.create(
@@ -107,15 +109,15 @@ with claude.messages.stream(model="claude-sonnet-4-5", max_tokens=200, messages=
 # usage recorded from the stream's message snapshot when the block exits
 ```
 
-## Several products in one app
+## Several ROIs in one app
 
-An ingest key is scoped to one product. Create one client per product:
+An ingest key is scoped to one ROI. Create one client per ROI:
 
 ```python
 from ai_pnl import Pnl
 
-support_bot = Pnl(url=url, key=SUPPORT_BOT_KEY, product="support-bot")
-brain = Pnl(url=url, key=BRAIN_KEY, product="company-brain")
+support_bot = Pnl(url=url, key=SUPPORT_BOT_KEY, roi="support-bot")
+brain = Pnl(url=url, key=BRAIN_KEY, roi="company-brain")
 ```
 
 ## Tests

@@ -20,10 +20,12 @@ export interface PnlConfig {
   /** Your AI P&L server, e.g. "https://pnl.internal.example.com".
    * Falls back to the AI_PNL_URL environment variable. */
   url?: string;
-  /** Ingest key minted in Settings (shown once, scoped to one product).
+  /** Ingest key minted in Settings (shown once, scoped to one ROI).
    * Falls back to the AI_PNL_KEY environment variable. */
   key?: string;
-  /** Product name for events that don't set one - must match the key's. */
+  /** ROI name for events that don't set one - must match the key's. */
+  roi?: string;
+  /** @deprecated Use `roi`. Accepted silently as an alias. */
   product?: string;
   /** Test injection points. */
   fetch?: typeof fetch;
@@ -31,6 +33,9 @@ export interface PnlConfig {
 }
 
 export interface WrapOptions {
+  /** The ROI the wrapped client's calls count toward - must match the key's. */
+  roi?: string;
+  /** @deprecated Use `roi`. Accepted silently as an alias. */
   product?: string;
   /** Attribute every call from this wrapped client to one employee.
    * Per-request attribution belongs in context() instead. */
@@ -45,6 +50,9 @@ export interface TrackOptions {
   /** The real record behind the outcome (ticket id, coupon id). */
   ref?: string;
   employee?: string;
+  /** The ROI the success counts toward - must match the key's. */
+  roi?: string;
+  /** @deprecated Use `roi`. Accepted silently as an alias. */
   product?: string;
 }
 
@@ -134,8 +142,8 @@ export class Pnl {
       const store = this.storage.getStore();
       const employee = opts.employee ?? store?.employee;
       if (employee) event.employee = employee;
-      const product = opts.product ?? this.config.product;
-      if (product) event.product = product;
+      const roi = this.resolveRoi(opts);
+      if (roi) event.roi = roi;
       if (store && store.calls.length > 0) {
         event.tokens = {
           inputTokens: store.inputTokens,
@@ -212,14 +220,19 @@ export class Pnl {
     const store = this.storage.getStore();
     const employee = opts.employee ?? store?.employee;
     if (employee) event.employee = employee;
-    const product = opts.product ?? this.config.product;
-    if (product) event.product = product;
+    const roi = this.resolveRoi(opts);
+    if (roi) event.roi = roi;
     if (store) {
       store.inputTokens += call.inputTokens;
       store.outputTokens += call.outputTokens;
       store.calls.push(id);
     }
     this.push(event);
+  }
+
+  /** `roi` everywhere new; the old `product` key is a silent alias. */
+  private resolveRoi(opts: { roi?: string; product?: string }): string | undefined {
+    return opts.roi ?? opts.product ?? this.config.roi ?? this.config.product;
   }
 
   private push(event: IngestEvent): void {

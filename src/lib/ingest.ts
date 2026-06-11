@@ -13,7 +13,7 @@ import { recomputeRollups } from "./rollup";
 /**
  * Ingest API (spec section 6): the server side of the SDK.
  *
- * - Auth: ingest keys minted in Settings, shown once, scoped per product.
+ * - Auth: ingest keys minted in Settings, shown once, scoped per ROI.
  *   Only the sha256 of the token is stored; revoke is the only exit
  *   (nothing hard-deletes - history keeps pointing at the key).
  * - Events carry client-side UUIDs; the server upserts on the UUID, so SDK
@@ -29,8 +29,10 @@ import { recomputeRollups } from "./rollup";
  *   email, queued in Resolve when unmatched, full history re-attributed
  *   on a later match - the same rules as every vendor identity.
  * - No fake numbers: an unpriced model, an unknown currency, a mismatched
- *   product all REJECT that event with the reason verbatim; the rest of
- *   the batch still lands. The SDK logs rejections and drops them.
+ *   ROI all REJECT that event with the reason verbatim; the rest of the
+ *   batch still lands. The SDK logs rejections and drops them.
+ * - Wire compat: events name their ROI under the `roi` key; the old
+ *   `product` key from pre-rename SDKs is accepted silently as an alias.
  */
 
 export const MAX_INGEST_EVENTS = 500;
@@ -91,9 +93,9 @@ export async function mintIngestKey(
     "SELECT name, archived_at FROM products WHERE id = $1",
     [productId],
   );
-  if (products.length === 0) throw new ResolveError("product not found", 404);
+  if (products.length === 0) throw new ResolveError("ROI not found", 404);
   if (products[0].archived_at !== null) {
-    throw new ResolveError("product is archived", 409);
+    throw new ResolveError("ROI is archived", 409);
   }
 
   const token = `pnl_${randomBytes(24).toString("hex")}`;
@@ -252,10 +254,12 @@ function parseEvent(
     employee = raw.employee.trim().toLowerCase();
   }
 
-  if (raw.product !== undefined && raw.product !== null) {
-    const p = typeof raw.product === "string" ? raw.product.trim() : "";
+  // `roi` is the wire key; `product` is the pre-rename alias, accepted silently.
+  const roiRaw = raw.roi !== undefined && raw.roi !== null ? raw.roi : raw.product;
+  if (roiRaw !== undefined && roiRaw !== null) {
+    const p = typeof roiRaw === "string" ? roiRaw.trim() : "";
     if (p.toLowerCase() !== key.productName.toLowerCase() && p !== key.productId) {
-      return reject(id, `this key is scoped to product "${key.productName}"`);
+      return reject(id, `this key is scoped to ROI "${key.productName}"`);
     }
   }
 
@@ -263,8 +267,8 @@ function parseEvent(
     if (key.attribution !== "sdk") {
       return reject(
         id,
-        `product "${key.productName}" gets its spend from ${key.attribution} - ` +
-          `wrap() calls only count for attribution "sdk" products (one dollar, one source)`,
+        `ROI "${key.productName}" gets its spend from ${key.attribution} - ` +
+          `wrap() calls only count for ROIs with spend source "sdk" (one dollar, one source)`,
       );
     }
     if (raw.vendor !== "openai" && raw.vendor !== "anthropic") {
@@ -296,8 +300,8 @@ function parseEvent(
     if (key.outcomeKind !== "sdk_event") {
       return reject(
         id,
-        `product "${key.productName}" has outcome kind ${key.outcomeKind} - ` +
-          'track() needs a product with outcome kind "sdk_event"',
+        `ROI "${key.productName}" has success kind ${key.outcomeKind} - ` +
+          'track() needs an ROI with success kind "sdk_event"',
       );
     }
     const outcome =

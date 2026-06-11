@@ -191,7 +191,7 @@ class IngestE2ETest(unittest.TestCase):
             record.append((dict(headers), body))
             return status, res_body
 
-        pnl = Pnl(url=self.base_url, key=self.token, product="Support Bot", transport=recording_transport)
+        pnl = Pnl(url=self.base_url, key=self.token, roi="Support Bot", transport=recording_transport)
         ai = pnl.wrap(FakeOpenAI())
         with pnl.context(employee="dana@acme.com"):
             ai.chat.completions.create(model="gpt-4o-mini", messages=[{"role": "user", "content": "?"}])

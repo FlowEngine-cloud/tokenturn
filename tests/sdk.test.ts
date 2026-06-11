@@ -41,7 +41,7 @@ function makePnl(over: ConstructorParameters<typeof Pnl>[0] = {}) {
   const pnl = new Pnl({
     url: "http://pnl.test",
     key: "pnl_test",
-    product: "support-bot",
+    roi: "support-bot",
     fetch: server.fetch,
     ...over,
   });
@@ -152,7 +152,7 @@ describe("@ai-pnl/sdk wrap()", () => {
       model: "gpt-4o-mini-2024-07-18",
       inputTokens: 120,
       outputTokens: 30,
-      product: "support-bot",
+      roi: "support-bot",
       employee: "dana@acme.com",
     });
     expect(chat.id).toMatch(/^[0-9a-f-]{36}$/);
@@ -252,7 +252,7 @@ describe("@ai-pnl/sdk track() + context", () => {
       currency: "USD",
       ref: "ZD-3141",
       employee: "dana@acme.com",
-      product: "support-bot",
+      roi: "support-bot",
       tokens: { inputTokens: 120, outputTokens: 30, calls: [callEvent.id] },
     });
   });
@@ -284,6 +284,21 @@ describe("@ai-pnl/sdk track() + context", () => {
     expect(events).toHaveLength(1);
     expect(events[0].tokens).toBeUndefined();
     expect(events[0].employee).toBeUndefined();
+  });
+
+  it('the pre-rename "product" option still works everywhere as a silent roi alias', async () => {
+    const { pnl, server } = makePnl({ roi: undefined, product: "support-bot" });
+    const ai = pnl.wrap(fakeOpenAI().client, { product: "support-bot" });
+    await ai.chat.completions.create({ model: "gpt-4o-mini" });
+    pnl.track("ticket_resolved", { product: "support-bot" });
+    pnl.track("roi_wins", { roi: "explicit", product: "ignored" }); // roi outranks the alias
+    await pnl.flush();
+
+    const [call, outcome, mixed] = server.requests[0].events as [CallEvent, OutcomeEvent, OutcomeEvent];
+    expect(call).toMatchObject({ kind: "call", roi: "support-bot" });
+    expect(call.product).toBeUndefined(); // the wire speaks roi
+    expect(outcome).toMatchObject({ kind: "outcome", roi: "support-bot" });
+    expect(mixed.roi).toBe("explicit");
   });
 });
 
