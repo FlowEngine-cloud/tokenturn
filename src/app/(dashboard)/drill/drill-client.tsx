@@ -499,7 +499,11 @@ export default function DrillClient() {
     else if (key === "product" && value === "none") chips.push("No ROI");
     else if (key === "model" && value === "none") chips.push("No model");
     else if (key === "metric") chips.push(value);
-    else chips.push(`${key}: ${value.length > 12 ? `${value.slice(0, 8)}…` : value}`);
+    else {
+      // The query param keeps its API name; the chip speaks ROI.
+      const label = key === "product" ? "ROI" : key;
+      chips.push(`${label}: ${value.length > 12 ? `${value.slice(0, 8)}…` : value}`);
+    }
   }
 
   if (view === "runs") {

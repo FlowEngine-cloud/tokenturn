@@ -239,7 +239,7 @@ export async function createProduct(
     return product;
   } catch (error) {
     if ((error as { code?: string }).code === "23505") {
-      throw new ResolveError("a product with that name already exists", 409);
+      throw new ResolveError("an ROI with that name already exists", 409);
     }
     throw error;
   }
@@ -301,13 +301,13 @@ export async function updateProduct(
         update.archived ?? null,
       ],
     );
-    if (rows.length === 0) throw new ResolveError("product not found", 404);
+    if (rows.length === 0) throw new ResolveError("ROI not found", 404);
     const product = toProduct(rows[0]);
     logger.info("product updated", { productId: id, ...update });
     return product;
   } catch (error) {
     if ((error as { code?: string }).code === "23505") {
-      throw new ResolveError("a product with that name already exists", 409);
+      throw new ResolveError("an ROI with that name already exists", 409);
     }
     throw error;
   }
@@ -517,7 +517,7 @@ export async function productDetail(
     `SELECT ${PRODUCT_COLUMNS} FROM products p WHERE p.id = $1`,
     [id],
   );
-  if (products.length === 0) throw new ResolveError("product not found", 404);
+  if (products.length === 0) throw new ResolveError("ROI not found", 404);
   const product = toProduct(products[0]);
 
   const displayCurrency = await getSetting("display_currency", db);
@@ -1044,10 +1044,10 @@ export async function upsertManualEntry(
        FROM products WHERE id = $1 FOR UPDATE`,
       [productId],
     );
-    if (products.length === 0) throw new ResolveError("product not found", 404);
+    if (products.length === 0) throw new ResolveError("ROI not found", 404);
     const product = products[0];
     if (product.archived_at !== null) {
-      throw new ResolveError("product is archived", 409);
+      throw new ResolveError("ROI is archived", 409);
     }
     if (input.kind === "cost" && product.attribution !== "manual") {
       throw new ResolveError(

@@ -49,7 +49,7 @@ describe.runIf(TEST_DATABASE_URL)("demo dataset (spec 10 onboarding)", () => {
     expect(summary.from).toBe("2025-12-13"); // 180 days incl. the seed day
     expect(summary.to).toBe("2026-06-10");
     expect(summary.people).toBe(12);
-    expect(summary.products).toBe(4);
+    expect(summary.products).toBe(5);
 
     // The summary is the database, not a brochure.
     expect(await count(pool, "SELECT count(*) AS n FROM people")).toBe(summary.people);
@@ -58,6 +58,10 @@ describe.runIf(TEST_DATABASE_URL)("demo dataset (spec 10 onboarding)", () => {
     expect(await count(pool, "SELECT count(*) AS n FROM spend_facts")).toBe(summary.facts);
     expect(await count(pool, "SELECT count(*) AS n FROM outcomes")).toBe(summary.outcomes);
     expect(await count(pool, "SELECT count(*) AS n FROM usage_metrics")).toBe(summary.metrics);
+    expect(await count(pool, "SELECT count(*) AS n FROM issue_tracking")).toBe(summary.issues);
+    expect(await count(pool, "SELECT count(*) AS n FROM survival_checks")).toBe(
+      summary.survivalChecks,
+    );
 
     // Every demo row is wipe-selectable by its source_ref prefix.
     expect(
@@ -106,14 +110,53 @@ describe.runIf(TEST_DATABASE_URL)("demo dataset (spec 10 onboarding)", () => {
     const { rows: tags } = await pool.query(
       "SELECT tag, counts_personal, product_id FROM tag_settings ORDER BY tag",
     );
-    expect(tags.map((t) => t.tag)).toEqual(["batch-processing", "devin"]);
+    expect(tags.map((t) => t.tag)).toEqual(["batch-processing", "devin", "triage-agent"]);
     expect(tags[0].counts_personal).toBe(false);
     expect(tags[1].product_id).not.toBeNull();
+    expect(tags[2].product_id).not.toBeNull();
 
     // Reverted PRs exist so $/merge math has something to exclude.
     expect(
       await count(pool, "SELECT count(*) AS n FROM outcomes WHERE reverted_at IS NOT NULL"),
     ).toBeGreaterThan(0);
+
+    // The Jira-fed ROI shows the whole ticket lifecycle from minute one:
+    // pending, success AND fail tracking rows, and exactly one issue_done
+    // outcome per success - never one for pending or fail.
+    const { rows: lifecycle } = await pool.query(
+      "SELECT status, count(*)::int AS n FROM issue_tracking GROUP BY status",
+    );
+    const byStatus = Object.fromEntries(lifecycle.map((r) => [r.status, Number(r.n)]));
+    expect(byStatus.pending).toBeGreaterThan(0);
+    expect(byStatus.success).toBeGreaterThan(0);
+    expect(byStatus.fail).toBeGreaterThan(0);
+    expect(
+      await count(pool, "SELECT count(*) AS n FROM outcomes WHERE kind = 'issue_done'"),
+    ).toBe(byStatus.success);
+    // Pending rows are honest: undecided, window still open at seed time.
+    expect(
+      await count(
+        pool,
+        `SELECT count(*) AS n FROM issue_tracking
+         WHERE status = 'pending' AND (decided_at IS NOT NULL OR window_end <= '2026-06-10T12:00:00Z')`,
+      ),
+    ).toBe(0);
+
+    // Survival columns have real rows behind them: both horizons, never
+    // more lines alive than written, and only for PRs whose horizon passed.
+    expect(
+      await count(pool, "SELECT count(*) AS n FROM survival_checks WHERE horizon_days = 30"),
+    ).toBeGreaterThan(0);
+    expect(
+      await count(pool, "SELECT count(*) AS n FROM survival_checks WHERE horizon_days = 90"),
+    ).toBeGreaterThan(0);
+    expect(
+      await count(
+        pool,
+        `SELECT count(*) AS n FROM survival_checks sc JOIN outcomes o ON o.source_ref = sc.source_ref
+         WHERE o.ts + make_interval(days => sc.horizon_days) > '2026-06-10T12:00:00Z'`,
+      ),
+    ).toBe(0);
   });
 
   it("refuses to seed twice", async () => {
@@ -152,6 +195,8 @@ describe.runIf(TEST_DATABASE_URL)("demo dataset (spec 10 onboarding)", () => {
     expect(await count(pool, "SELECT count(*) AS n FROM spend_facts")).toBe(1);
     expect(await count(pool, "SELECT count(*) AS n FROM identities")).toBe(0);
     expect(await count(pool, "SELECT count(*) AS n FROM tag_settings")).toBe(0);
+    expect(await count(pool, "SELECT count(*) AS n FROM issue_tracking")).toBe(0);
+    expect(await count(pool, "SELECT count(*) AS n FROM survival_checks")).toBe(0);
 
     // Conservative deletes: the person and product real data touched stay.
     const { rows: people } = await pool.query("SELECT email FROM people");

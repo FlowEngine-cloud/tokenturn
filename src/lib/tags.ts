@@ -365,7 +365,7 @@ export async function updateTag(
         "SELECT 1 FROM products WHERE id = $1 AND archived_at IS NULL",
         [update.productId],
       );
-      if (rows.length === 0) throw new ResolveError("product not found", 404);
+      if (rows.length === 0) throw new ResolveError("ROI not found", 404);
     }
 
     const { rows: setting } = await client.query(

@@ -8,9 +8,11 @@ import { recomputeRollups } from "./rollup";
  * Demo dataset (spec 10, Onboarding): "start with demo data (wiped when the
  * first real connector connects)". The generator writes ~6 months of
  * realistic-looking people, keys, tags, products, daily spend, usage
- * counters and outcomes through the normal tables and the normal rollup
- * recompute, so every page renders exactly the way it will with real data -
- * and every demo number still drills down to its (demo) source rows.
+ * counters, outcomes, a Jira-fed ROI with the full pending/success/fail
+ * ticket lifecycle, and line-survival checks - all through the normal
+ * tables and the normal rollup recompute, so every page renders exactly
+ * the way it will with real data - and every demo number still drills
+ * down to its (demo) source rows.
  *
  * Demo rows are real ledger rows, marked two ways:
  * - every spend fact / outcome / usage metric carries a `demo:` source_ref
@@ -51,6 +53,10 @@ export interface DemoSummary {
   facts: number;
   outcomes: number;
   metrics: number;
+  /** Tracked Jira issues (pending/success/fail lifecycle rows). */
+  issues: number;
+  /** Line-survival checks behind the coding rows' survival columns. */
+  survivalChecks: number;
 }
 
 /** The marker, or null when no demo data is present. */
@@ -84,6 +90,12 @@ function addDays(day: string, delta: number): string {
   const d = new Date(`${day}T00:00:00Z`);
   d.setUTCDate(d.getUTCDate() + delta);
   return utcDay(d);
+}
+
+function addDaysTs(ts: string, delta: number): string {
+  const d = new Date(ts);
+  d.setUTCDate(d.getUTCDate() + delta);
+  return d.toISOString();
 }
 
 function isWeekend(day: string): boolean {
@@ -150,6 +162,48 @@ interface MetricRow {
   personId: string | null;
   sourceRef: string;
 }
+
+interface IssueRow {
+  sourceRef: string;
+  key: string;
+  title: string;
+  anchorTs: string;
+  windowEnd: string;
+  status: "pending" | "success" | "fail";
+  decidedAt: string | null;
+}
+
+interface SurvivalRow {
+  sourceRef: string;
+  horizonDays: number;
+  linesWritten: number;
+  linesAlive: number;
+}
+
+/** Ticket titles for the Jira-fed ROI - real-looking, no lorem. */
+const ISSUE_TITLES = [
+  "Login loop after SSO redirect",
+  "Export CSV drops the header row",
+  "Webhook retries double-charge invoices",
+  "Search ignores archived records",
+  "Dashboard chart off by one day in UTC+2",
+  "Password reset email lands in spam",
+  "Rate limit hit on bulk import",
+  "Mobile nav overlaps the date picker",
+  "Stale cache after plan upgrade",
+  "PDF report cuts off long names",
+  "Duplicate notifications on mention",
+  "API 500 on empty tag filter",
+];
+
+/** How much of a tool's AI-written code is still alive at 30 days -
+ * the spread that makes the survival columns worth comparing. */
+const SURVIVAL_30D: Record<string, [number, number]> = {
+  claude_code: [0.82, 0.95],
+  cursor: [0.72, 0.9],
+  copilot: [0.65, 0.85],
+  devin: [0.58, 0.8],
+};
 
 /** PR authorship mix per role - what makes the Tools page comparison real. */
 const TOOL_MIX: Record<Role, [string, number][]> = {
@@ -224,13 +278,16 @@ export async function seedDemoData(
       peopleIds.set(person.handle, rows[0].id as string);
     }
 
-    // Products (spec 7's four archetypes)
+    // Products (spec 7's archetypes, one per success source: built-in PRs,
+    // SDK track(), plain cost, a routed agent key, and a Jira-fed ROI with
+    // the full pending/success/fail ticket lifecycle)
     const productIds = new Map<string, string>();
     const productDefs = [
       { key: "coding", name: "Coding", attribution: "connector", outcome: "github_pr", value: null },
       { key: "support", name: "Support Bot", attribution: "sdk", outcome: "sdk_event", value: 450 },
       { key: "brain", name: "Company Brain", attribution: "sdk", outcome: "none", value: null },
       { key: "devin", name: "Devin", attribution: "key", outcome: "none", value: null },
+      { key: "triage", name: "Triage Agent", attribution: "key", outcome: "issue_done", value: 500 },
     ] as const;
     for (const def of productDefs) {
       const { rows } = await client.query(
@@ -317,6 +374,21 @@ export async function seedDemoData(
       productId: productIds.get("devin"),
       notPerson: true,
     });
+    // The Triage Agent's two faces: the Anthropic key it burns on (tag
+    // routes spend to the ROI) and the Jira actor that files its tickets
+    // (spec 7 routing layer 1: the agent's name is the tag).
+    const triageKeyIdentity = await insertIdentity("anthropic", "demo-key-triage", "api_key", {
+      displayName: "triage-agent",
+      tags: ["triage-agent"],
+      productId: productIds.get("triage"),
+      notPerson: true,
+    });
+    const triageJiraIdentity = await insertIdentity("jira", "demo-jira-triage", "user", {
+      displayName: "Triage Agent",
+      tags: ["triage-agent"],
+      productId: productIds.get("triage"),
+      notPerson: true,
+    });
     const legacyIdentity = await insertIdentity("anthropic", "demo-key-legacy", "api_key", {
       displayName: "legacy-batch",
       tags: ["legacy-batch"],
@@ -327,8 +399,8 @@ export async function seedDemoData(
     });
 
     // Tag conventions (spec 7b): batch jobs don't count toward personal
-    // usage; the devin tag routes to the Devin product.
-    const tags = ["batch-processing", "devin"];
+    // usage; the devin and triage-agent tags route to their products.
+    const tags = ["batch-processing", "devin", "triage-agent"];
     await client.query(
       `INSERT INTO tag_settings (tag, counts_personal) VALUES ('batch-processing', false)`,
     );
@@ -336,12 +408,19 @@ export async function seedDemoData(
       `INSERT INTO tag_settings (tag, product_id) VALUES ('devin', $1)`,
       [productIds.get("devin")],
     );
+    await client.query(
+      `INSERT INTO tag_settings (tag, product_id) VALUES ('triage-agent', $1)`,
+      [productIds.get("triage")],
+    );
 
     // ---- six months of daily activity ----
     const facts: FactRow[] = [];
     const outcomes: OutcomeRow[] = [];
     const metrics: MetricRow[] = [];
+    const issues: IssueRow[] = [];
     let revertSeq = 0;
+    let issueSeq = 0;
+    const nowTs = now.toISOString();
 
     const months = new Set<string>();
     for (let day = from; day <= to; day = addDays(day, 1)) {
@@ -525,6 +604,73 @@ export async function seedDemoData(
           sourceRef: `demo:batch:${day}`,
           identityId: identityIdByExternal.get("demo-key-batch") ?? null,
         });
+
+        // The Triage Agent burns on its tagged key and files Jira tickets.
+        facts.push({
+          day,
+          personId: null,
+          productId: productIds.get("triage")!,
+          vendor: "anthropic",
+          model: "claude-sonnet-4-5",
+          tokens: between(rand, 100_000, 400_000),
+          amountCents: between(rand, 300, 900),
+          costBasis: "estimated",
+          sourceRef: `demo:triage:${day}`,
+          identityId: triageKeyIdentity,
+        });
+        // Each ticket runs the spec-7 state machine: pending until the
+        // 30-day window passes quietly or Done arrives sooner (success),
+        // fail when it regresses inside the window.
+        const filed = between(rand, 1, 4);
+        for (let i = 0; i < filed; i++) {
+          issueSeq += 1;
+          const key = `TRI-${100 + issueSeq}`;
+          const anchorTs = `${day}T${String(between(rand, 9, 17)).padStart(2, "0")}:00:00.000Z`;
+          const windowEnd = addDaysTs(anchorTs, 30);
+          let status: IssueRow["status"] = "pending";
+          let decidedAt: string | null = null;
+          const r = rand();
+          if (r < 0.12) {
+            const failAt = addDaysTs(anchorTs, between(rand, 1, 6));
+            if (failAt <= nowTs) {
+              status = "fail";
+              decidedAt = failAt;
+            }
+          } else if (r < 0.8) {
+            const doneAt = addDaysTs(anchorTs, between(rand, 1, 5));
+            if (doneAt <= nowTs) {
+              status = "success";
+              decidedAt = doneAt;
+            }
+          } else if (windowEnd <= nowTs) {
+            // Nobody touched it again - the quiet window is the success.
+            status = "success";
+            decidedAt = windowEnd;
+          }
+          issues.push({
+            sourceRef: `demo:jira:${key}`,
+            key,
+            title: ISSUE_TITLES[issueSeq % ISSUE_TITLES.length],
+            anchorTs,
+            windowEnd,
+            status,
+            decidedAt,
+          });
+          if (status === "success") {
+            outcomes.push({
+              ts: decidedAt!,
+              productId: productIds.get("triage")!,
+              personId: null,
+              kind: "issue_done",
+              count: 1,
+              valueCents: null, // the ROI's default $5.00 applies at read time
+              tools: [],
+              sourceRef: `demo:jira:${key}`,
+              revertedAt: null,
+              revertSourceRef: null,
+            });
+          }
+        }
       }
 
       // The unattributed remainder (spec 4: visible, never hidden).
@@ -580,7 +726,36 @@ export async function seedDemoData(
       }
     }
 
-    // Bulk inserts via UNNEST - thousands of rows, three statements.
+    // Line survival behind the coding rows (spec 5): one check per merged
+    // AI PR per elapsed horizon. Written like the live job writes them -
+    // measured against the merge's own horizon, reverted PRs honestly dead.
+    const survival: SurvivalRow[] = [];
+    for (const pr of outcomes) {
+      if (pr.kind !== "github_pr") continue;
+      const linesWritten = between(rand, 40, 400);
+      const [lo, hi] = SURVIVAL_30D[pr.tools[0]] ?? [0.7, 0.9];
+      const alive30 = Math.round(
+        linesWritten * (pr.revertedAt ? 0.02 + rand() * 0.08 : lo + rand() * (hi - lo)),
+      );
+      if (addDaysTs(pr.ts, 30) <= nowTs) {
+        survival.push({
+          sourceRef: pr.sourceRef,
+          horizonDays: 30,
+          linesWritten,
+          linesAlive: alive30,
+        });
+        if (addDaysTs(pr.ts, 90) <= nowTs) {
+          survival.push({
+            sourceRef: pr.sourceRef,
+            horizonDays: 90,
+            linesWritten,
+            linesAlive: Math.round(alive30 * (0.85 + rand() * 0.12)),
+          });
+        }
+      }
+    }
+
+    // Bulk inserts via UNNEST - thousands of rows, few statements.
     await client.query(
       `INSERT INTO spend_facts
          (day, person_id, product_id, vendor, model, tokens, amount_cents,
@@ -645,6 +820,41 @@ export async function seedDemoData(
         metrics.map((m) => m.sourceRef),
       ],
     );
+    await client.query(
+      `INSERT INTO issue_tracking
+         (vendor, source_ref, issue_key, title, project, identity_id,
+          product_id, anchor_ts, window_end, status, decided_at)
+       SELECT 'jira', source_ref, issue_key, title, 'TRI', $1::uuid, $2::uuid,
+              anchor_ts, window_end, status, decided_at
+       FROM UNNEST(
+         $3::text[], $4::text[], $5::text[], $6::timestamptz[],
+         $7::timestamptz[], $8::text[], $9::timestamptz[]
+       ) AS t(source_ref, issue_key, title, anchor_ts, window_end, status, decided_at)`,
+      [
+        triageJiraIdentity,
+        productIds.get("triage"),
+        issues.map((i) => i.sourceRef),
+        issues.map((i) => i.key),
+        issues.map((i) => i.title),
+        issues.map((i) => i.anchorTs),
+        issues.map((i) => i.windowEnd),
+        issues.map((i) => i.status),
+        issues.map((i) => i.decidedAt),
+      ],
+    );
+    await client.query(
+      `INSERT INTO survival_checks (source_ref, horizon_days, lines_written, lines_alive)
+       SELECT source_ref, horizon_days, lines_written, lines_alive
+       FROM UNNEST(
+         $1::text[], $2::int[], $3::int[], $4::int[]
+       ) AS t(source_ref, horizon_days, lines_written, lines_alive)`,
+      [
+        survival.map((s) => s.sourceRef),
+        survival.map((s) => s.horizonDays),
+        survival.map((s) => s.linesWritten),
+        survival.map((s) => s.linesAlive),
+      ],
+    );
 
     const marker: DemoMarker = {
       seededAt: now.toISOString(),
@@ -667,11 +877,13 @@ export async function seedDemoData(
       from,
       to,
       people: DEMO_PEOPLE.length,
-      products: 4,
+      products: productDefs.length,
       identities: identityIds.length,
       facts: facts.length,
       outcomes: outcomes.length,
       metrics: metrics.length,
+      issues: issues.length,
+      survivalChecks: survival.length,
     };
     logger.info("demo data seeded", { ...summary });
     return summary;
@@ -679,7 +891,7 @@ export async function seedDemoData(
     await client.query("ROLLBACK").catch(() => {});
     if ((err as { code?: string }).code === "23505") {
       throw new ResolveError(
-        "demo data collides with existing rows (a person or product already uses a demo name)",
+        "demo data collides with existing rows (a person or ROI already uses a demo name)",
         409,
       );
     }
@@ -701,9 +913,9 @@ export interface WipeResult {
 
 /**
  * Wipe the demo dataset - called when the first real connector connects
- * (spec 10). Deletes the demo facts/outcomes/metrics by their `demo:`
- * source_ref prefix, then the demo identities, tag rows, people and
- * products - keeping any person or product that real rows reference by now
+ * (spec 10). Deletes the demo facts/outcomes/metrics/issues/survival checks
+ * by their `demo:` source_ref prefix, then the demo identities, tag rows,
+ * people and products - keeping any person or product that real rows reference by now
  * (a CSV import claimed the email, an ingest key or manual entry landed on
  * the product). Rollups recompute over the demo span afterwards.
  */
@@ -744,6 +956,8 @@ export async function wipeDemoData(pool: Pool = getPool()): Promise<WipeResult> 
       "DELETE FROM spend_facts WHERE source_ref LIKE $1",
       [like],
     );
+    await client.query("DELETE FROM issue_tracking WHERE source_ref LIKE $1", [like]);
+    await client.query("DELETE FROM survival_checks WHERE source_ref LIKE $1", [like]);
     await client.query("DELETE FROM identities WHERE id = ANY($1::uuid[])", [
       marker.identityIds,
     ]);
@@ -771,7 +985,8 @@ export async function wipeDemoData(pool: Pool = getPool()): Promise<WipeResult> 
          AND NOT EXISTS (SELECT 1 FROM identities i WHERE i.product_id = pr.id)
          AND NOT EXISTS (SELECT 1 FROM ingest_keys k WHERE k.product_id = pr.id)
          AND NOT EXISTS (SELECT 1 FROM manual_entries e WHERE e.product_id = pr.id)
-         AND NOT EXISTS (SELECT 1 FROM tag_settings t WHERE t.product_id = pr.id)`,
+         AND NOT EXISTS (SELECT 1 FROM tag_settings t WHERE t.product_id = pr.id)
+         AND NOT EXISTS (SELECT 1 FROM issue_tracking it WHERE it.product_id = pr.id)`,
       [marker.productIds],
     );
 

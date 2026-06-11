@@ -104,7 +104,7 @@ export async function PUT(
     const message = error instanceof Error ? error.message : String(error);
     return Response.json(
       { error: message },
-      { status: message === "product not found" ? 404 : 500 },
+      { status: message === "ROI not found" ? 404 : 500 },
     );
   } finally {
     client.release();

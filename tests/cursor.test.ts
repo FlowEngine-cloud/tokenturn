@@ -116,7 +116,7 @@ describe.runIf(TEST_DATABASE_URL)("cursor connector", () => {
       expect(health!.connectNotes.join(" ")).toMatch(/Seat fees .* never invented/);
       // No Cursor invite API exists - the connect screen says so, and the
       // vendor is never offered in the invite fan-out.
-      expect(health!.connectNotes.join(" ")).toMatch(/no invite API/);
+      expect(health!.connectNotes.join(" ")).toMatch(/no API for adding members/);
       expect(health!.invitable).toBe(false);
       expect(health!.configFields).toEqual([
         { key: "apiKey", label: "Admin API key", secret: true },

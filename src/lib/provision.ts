@@ -102,10 +102,10 @@ async function inviteOne(
   switch (vendor) {
     case "openai":
       await inviteOpenAiUser(ctx, person.email);
-      return "org invite sent (reader role)";
+      return "added to the org (reader role) - they confirm by email";
     case "anthropic":
       await inviteAnthropicUser(ctx, person.email);
-      return "org invite sent (user role)";
+      return "added to the org (user role) - they confirm by email";
     case "github": {
       // Copilot's seat API is username-keyed, never email-keyed.
       if (person.githubLogin === null) {
@@ -172,7 +172,7 @@ export async function inviteFanout(
       const row = byId.get(personId)!;
       const base = { personId, email: row.email as string, vendor };
       if (row.mergedInto !== null) {
-        results.push({ ...base, ok: false, detail: null, error: "person was merged - invite the surviving person" });
+        results.push({ ...base, ok: false, detail: null, error: "person was merged - add the surviving person instead" });
         continue;
       }
       if (row.status !== "active") {

@@ -385,7 +385,7 @@ export async function markNotPerson(
   const productId = route.productId ?? null;
   const tag = route.tag?.trim() || null;
   if (productId === null && tag === null) {
-    throw new ResolveError("route the key to a product or a tag", 400);
+    throw new ResolveError("route the key to an ROI or a tag", 400);
   }
 
   const client = await pool.connect();
@@ -399,7 +399,7 @@ export async function markNotPerson(
         "SELECT 1 FROM products WHERE id = $1 AND archived_at IS NULL",
         [productId],
       );
-      if (rows.length === 0) throw new ResolveError("product not found", 404);
+      if (rows.length === 0) throw new ResolveError("ROI not found", 404);
     }
 
     const { rows: updated } = await client.query(

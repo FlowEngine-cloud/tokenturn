@@ -272,7 +272,7 @@ describe.runIf(TEST_DATABASE_URL)("people in/out (spec 8)", () => {
 
     expect(result(dana, "openai")).toMatchObject({
       ok: true,
-      detail: "org invite sent (reader role)",
+      detail: "added to the org (reader role) - they confirm by email",
     });
     expect(result(omar, "openai")).toMatchObject({
       ok: false,

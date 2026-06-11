@@ -453,7 +453,7 @@ describe.runIf(TEST_DATABASE_URL)("identity resolution (Resolve)", () => {
       idParams(anonIdentity),
     );
     expect(noRoute.status).toBe(400);
-    expect((await noRoute.json()).error).toBe("route the key to a product or a tag");
+    expect((await noRoute.json()).error).toBe("route the key to an ROI or a tag");
 
     const ghostProduct = await notPersonRoute(
       postJson(`/api/resolve/${anonIdentity}/not-person`, { productId: ghost }, adminCookie),

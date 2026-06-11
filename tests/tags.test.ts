@@ -482,7 +482,7 @@ describe.runIf(TEST_DATABASE_URL)("tags (spec 7b)", () => {
       tagParams("research"),
     );
     expect(ghostProduct.status).toBe(404);
-    expect((await ghostProduct.json()).error).toBe("product not found");
+    expect((await ghostProduct.json()).error).toBe("ROI not found");
 
     const blankTag = await tagPatchRoute(
       patchJson("/api/tags/%20", { countsPersonal: false }, adminCookie),

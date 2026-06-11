@@ -409,7 +409,7 @@ export async function setIssueProjectRoute(
       "SELECT 1 FROM products WHERE id = $1 AND archived_at IS NULL",
       [productId],
     );
-    if (rows.length === 0) throw new Error("product not found");
+    if (rows.length === 0) throw new Error("ROI not found");
     await db.query(
       `INSERT INTO issue_project_routes (vendor, project, product_id)
        VALUES ($1, $2, $3)

@@ -705,7 +705,7 @@ function AuditBody() {
       </div>
       {entries.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          Nothing yet. Sweeps, invites, connects, and settings changes land here.
+          Nothing yet. Sweeps, adds, connects, and settings changes land here.
         </p>
       ) : (
         <ul className="divide-y">

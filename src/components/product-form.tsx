@@ -33,7 +33,7 @@ export const ATTRIBUTION_LABELS: Record<string, string> = {
 const ATTRIBUTION_HINTS: Record<string, string> = {
   connector: "Everything one vendor bills routes here.",
   key: "Keys named after it route here.",
-  sdk: "wrap(client, { product }) sends spend; track() sends successes.",
+  sdk: "wrap(client, { roi }) sends spend; track() sends successes.",
   manual: "You enter monthly cost - and successes - by hand.",
 };
 export const OUTCOME_LABELS: Record<string, string> = {

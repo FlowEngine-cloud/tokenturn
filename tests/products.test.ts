@@ -157,7 +157,7 @@ describe.runIf(TEST_DATABASE_URL)("products (spec 7)", () => {
       postJson("/api/products", { name: "support bot", attribution: "sdk" }, adminCookie),
     );
     expect(dup.status).toBe(409);
-    expect((await dup.json()).error).toBe("a product with that name already exists");
+    expect((await dup.json()).error).toBe("an ROI with that name already exists");
 
     for (const [body, error] of [
       [{ attribution: "key" }, "name required (1-80 characters)"],
@@ -568,7 +568,7 @@ describe.runIf(TEST_DATABASE_URL)("products (spec 7)", () => {
       idParams(brainId),
     );
     expect(entry.status).toBe(409);
-    expect((await entry.json()).error).toBe("product is archived");
+    expect((await entry.json()).error).toBe("ROI is archived");
 
     // Restore brings it back.
     const restored = await productPatchRoute(

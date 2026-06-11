@@ -360,7 +360,7 @@ describe.runIf(TEST_DATABASE_URL)("products page readers", () => {
   it("rejects unknown products and bad ranges loudly", async () => {
     await expect(
       productDetail("00000000-0000-4000-8000-000000000000", JUNE, pool),
-    ).rejects.toThrow(/product not found/);
+    ).rejects.toThrow(/ROI not found/);
     await expect(
       productsView({ from: "junk", to: "2026-06-02" }, pool),
     ).rejects.toThrow(/from must be/);

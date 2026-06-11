@@ -561,7 +561,7 @@ export const openaiConnector: Connector = {
     "Needs an Admin API key (sk-admin-..., created by an organization owner in the OpenAI platform) with the read scopes api.management.read and api.usage.read.",
     "OpenAI's cost report groups dollars by project, line item and API key - it has no user grouping. Per-user dollars are token counts priced with the pinned model price table, always marked estimated.",
     "Token line items in the cost report are skipped for models we estimate - that money is already on the ledger per user; storing both would double count. Other line items (images, web search, embeddings, ...) are stored as invoiced, unassigned spend per project.",
-    "API keys auto-map to their owner's email. Service-account keys have no owner email and surface in the Resolve queue, where they can be routed to a product instead of a person.",
+    "API keys auto-map to their owner's email. Service-account keys have no owner email and surface in the Resolve queue, where they can be routed to an ROI instead of a person.",
   ],
   configFields: [{ key: "adminKey", label: "Admin API key", secret: true }],
 
