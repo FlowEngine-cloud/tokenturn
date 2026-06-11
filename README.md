@@ -26,6 +26,10 @@ prints a one-time reset link (valid 30 minutes, single use) to open on your inst
 
 `GET /healthz` returns `200 {"status":"ok","db":"ok"}` when the app and database are up, `503` otherwise. The Docker image ships a matching `HEALTHCHECK`.
 
+## Dashboard
+
+Seven pages - Overview, People, Products, Tools, Resolve (with a live queue badge), Report, Settings - behind one global date-range picker (the range lives in the URL, so links reproduce what was on screen) and cmd-K search to any person, product, vendor, or page. The Overview (`GET /api/overview?from&to`) shows total spend with its estimated/invoiced split and the invoice-drift badge, attribution coverage with the visible Unassigned remainder, the daily trend, spend by vendor, top people, top products, and connector health. Every tile clicks through to the raw rows behind its number: spend facts (`GET /api/facts?from&to&day&vendor&person&product&basis` - totals cover the whole filter, so the drill provably sums to the tile, and every row carries the vendor `source_ref`), sync runs (`GET /api/runs?vendor`), or the invoice drift report (`GET /api/invoices`). Tables keep their headers while scrolling and export exactly the rows on screen as CSV. `GET /api/search?q=` powers cmd-K.
+
 ## Connectors
 
 Vendor connectors sync hourly with a stored cursor: full backfill to the vendor's history limit on first connect, resume at the exact failed page after an error, a trailing 7-day re-pull every sync (vendors restate data), and idempotent upserts - a vendor record is never duplicated. Token scopes are validated on connect; credentials are stored encrypted, never plaintext. `GET /api/connectors` is the health surface: last sync, row counts, and the vendor's error verbatim. A connector silent for 24 hours fires an alert event. Connectors are tested against recorded vendor responses (`tests/fixtures/connectors/`), so a vendor format change breaks CI instead of production.
