@@ -1,0 +1,13 @@
+.git
+.github
+.next
+node_modules
+tests
+docker-compose.yml
+Dockerfile
+.dockerignore
+README.md
+AGENTS.md
+CLAUDE.md
+*.log
+.env*

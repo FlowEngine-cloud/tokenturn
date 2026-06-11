@@ -1,0 +1,34 @@
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      # The only env var the app reads. Everything else is configured in
+      # Settings and stored in the database.
+      DATABASE_URL: postgres://aipnl:aipnl@db:5432/aipnl
+    volumes:
+      - app-data:/data
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: aipnl
+      POSTGRES_PASSWORD: aipnl
+      POSTGRES_DB: aipnl
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aipnl -d aipnl"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  app-data:
+  db-data:
