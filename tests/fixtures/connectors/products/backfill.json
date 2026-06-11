@@ -1,0 +1,19 @@
+[
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.acme.test/v1/usage?since=2026-05-11&until=2026-06-11"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "records": [
+          { "id": "p_sb_1", "day": "2026-05-20", "user_email": null, "key_id": "key_sb", "key_name": "support-bot", "owner_email": "dana@acme.com", "model": "claude-sonnet-4", "tokens": 10000, "amount_cents": 3000, "currency": "USD" },
+          { "id": "p_sb_2", "day": "2026-06-02", "user_email": null, "key_id": "key_sb", "key_name": "support-bot", "owner_email": "dana@acme.com", "model": "claude-sonnet-4", "tokens": 8000, "amount_cents": 2000, "currency": "USD" },
+          { "id": "p_dana_u1", "day": "2026-05-25", "user_email": "dana@acme.com", "key_id": null, "key_name": null, "model": "claude-sonnet-4", "tokens": 500, "amount_cents": 100, "currency": "USD" }
+        ],
+        "next_page": null
+      }
+    }
+  }
+]

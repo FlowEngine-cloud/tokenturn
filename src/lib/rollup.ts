@@ -159,12 +159,19 @@ export async function recomputeRollups(
     // Reverted outcomes (a merged PR flipped by a revert, spec 5) roll up
     // under their own "<kind>:reverted" bucket: $/merge and ROI count only
     // live outcomes, while revert rates stay chartable from the rollup.
+    // Counts are count-aware (a manual entry records a month's outcomes as
+    // one row, spec 7); value_cents is per outcome, so a row contributes
+    // count * value. valued_count = outcomes carrying an explicit value,
+    // which is what lets the product's default value per outcome apply to
+    // the rest at read time - from rollups alone.
     const outcomes = await client.query(
       `INSERT INTO rollup_outcomes_daily
-         (day, product_id, person_id, kind, outcome_count, value_usd_cents)
+         (day, product_id, person_id, kind, outcome_count, valued_count,
+          value_usd_cents)
        SELECT d.day, o.product_id, o.person_id, k.kind,
-              COUNT(*)::int,
-              ROUND(SUM(o.value_cents * fx.usd_rate))::bigint
+              SUM(o.count)::int,
+              COALESCE(SUM(o.count) FILTER (WHERE o.value_cents IS NOT NULL), 0)::int,
+              ROUND(SUM(o.count * o.value_cents * fx.usd_rate))::bigint
        FROM outcomes o
        CROSS JOIN LATERAL (
          SELECT (o.ts AT TIME ZONE 'UTC')::date AS day

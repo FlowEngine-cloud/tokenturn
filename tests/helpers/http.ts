@@ -17,6 +17,21 @@ export function postJson(
   });
 }
 
+export function putJson(
+  path: string,
+  body: unknown,
+  cookie?: string,
+): Request {
+  return new Request(`${BASE}${path}`, {
+    method: "PUT",
+    headers: {
+      "content-type": "application/json",
+      ...(cookie ? { cookie } : {}),
+    },
+    body: JSON.stringify(body),
+  });
+}
+
 export function patchJson(
   path: string,
   body: unknown,
