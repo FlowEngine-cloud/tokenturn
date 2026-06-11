@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCents, formatCount } from "@/lib/format";
-import { parseRange, withRange } from "@/lib/range";
+import { rangeFromParams, withRange } from "@/lib/range";
 import type { QueueEntry, UnassignedVendor } from "@/lib/resolve";
 import type { TagConflict } from "@/lib/tags";
 import { useFetch } from "@/lib/use-fetch";
@@ -412,7 +412,11 @@ function MergePanel({ onDone }: { onDone: () => void }) {
 
 export default function ResolveClient() {
   const searchParams = useSearchParams();
-  const range = parseRange(searchParams);
+  // No date bar here - dates mean nothing to the queue. Outbound links carry
+  // the URL's range when one rode along; bare otherwise (the picker restores
+  // the remembered range on landing).
+  const range = rangeFromParams(searchParams);
+  const carry = (href: string) => (range ? withRange(href, range) : href);
   const [version, setVersion] = useState(0);
   const { data, error } = useFetch<ResolveData>(`/api/resolve?v=${version}`);
   const { data: productData } = useFetch<{ products: { id: string; name: string }[] }>(
@@ -477,7 +481,7 @@ export default function ResolveClient() {
               key={entry.id}
               entry={entry}
               products={products}
-              keysHref={withRange(`/keys/${entry.id}`, range)}
+              keysHref={carry(`/keys/${entry.id}`)}
               onDone={reload}
             />
           ))}
@@ -493,7 +497,7 @@ export default function ResolveClient() {
             <ConflictCard
               key={conflict.identityId}
               conflict={conflict}
-              keysHref={withRange(`/keys/${conflict.identityId}`, range)}
+              keysHref={carry(`/keys/${conflict.identityId}`)}
               onDone={reload}
             />
           ))}
@@ -510,9 +514,7 @@ export default function ResolveClient() {
             rows={data.unassigned}
             rowKey={(r) => r.vendor}
             csvName="ai-pnl-unassigned.csv"
-            rowHref={(r) =>
-              withRange(`/drill?vendor=${r.vendor}&person=unassigned&product=none`, range)
-            }
+            rowHref={(r) => carry(`/drill?vendor=${r.vendor}&person=unassigned&product=none`)}
           />
         </section>
       )}

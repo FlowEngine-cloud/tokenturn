@@ -1,17 +1,23 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useEffect } from "react";
 import {
   DAY_RE,
   monthToDateRange,
   parseRange,
+  rangeFromParams,
+  readStoredRange,
+  storeRange,
   trailingRange,
   type DateRange,
 } from "@/lib/range";
 import { cn } from "@/lib/utils";
 
 /** One global date-range picker (spec 10). The range lives in the URL, so
- * every page and every drill link inherits it. */
+ * every page and every drill link inherits it; localStorage remembers the
+ * last range and re-injects it when a URL arrives without one (a bookmark,
+ * a fresh tab, a hop through a dateless page). */
 
 const PRESETS: { label: string; range: () => DateRange }[] = [
   { label: "7D", range: () => trailingRange(7) },
@@ -24,6 +30,7 @@ export function DateRangePicker() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const urlRange = rangeFromParams(searchParams);
   const active = parseRange(searchParams);
 
   function apply(range: DateRange) {
@@ -32,6 +39,19 @@ export function DateRangePicker() {
     params.set("to", range.to);
     router.replace(`${pathname}?${params.toString()}`);
   }
+
+  // URL carries a range -> it is the selection, remember it. URL carries
+  // none -> bring the remembered one back into the URL; with nothing
+  // remembered the default window applies and the URL stays clean.
+  useEffect(() => {
+    if (urlRange) {
+      storeRange(urlRange);
+      return;
+    }
+    const stored = readStoredRange();
+    if (stored) apply(stored);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [urlRange?.from, urlRange?.to, pathname]);
 
   function applyEdge(key: "from" | "to", value: string) {
     if (!DAY_RE.test(value)) return;

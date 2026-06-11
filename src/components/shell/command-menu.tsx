@@ -5,13 +5,16 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Dialog } from "radix-ui";
 import { CornerDownLeft, Search } from "lucide-react";
 import { HELP_ITEM, NAV_ITEMS } from "@/components/shell/nav";
-import { parseRange, withRange } from "@/lib/range";
+import { rangeFromParams, withRange } from "@/lib/range";
 import { cn } from "@/lib/utils";
 
 /**
  * Cmd-K search to any person, ROI, or vendor (spec 10), plus the pages.
  * Entity hits land on the drill-down filtered to that entity over the
- * active date range.
+ * active date range: hrefs carry the URL's range when there is one;
+ * otherwise they stay bare and the picker restores the remembered range
+ * on landing. With `trigger={false}` only the ⌘K shortcut opens it - for
+ * pages whose top bar is hidden.
  */
 
 interface Item {
@@ -28,7 +31,7 @@ interface ApiResults {
   vendors: { vendor: string; displayName: string; connected: boolean }[];
 }
 
-export function CommandMenu() {
+export function CommandMenu({ trigger = true }: { trigger?: boolean }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [open, setOpen] = useState(false);
@@ -36,7 +39,8 @@ export function CommandMenu() {
   const [results, setResults] = useState<ApiResults | null>(null);
   const [active, setActive] = useState(0);
   const abort = useRef<AbortController | null>(null);
-  const range = parseRange(searchParams);
+  const range = rangeFromParams(searchParams);
+  const carry = (href: string) => (range ? withRange(href, range) : href);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -74,7 +78,7 @@ export function CommandMenu() {
       key: `page:${n.href}`,
       group: "Pages",
       label: n.label,
-      href: withRange(n.href, range),
+      href: carry(n.href),
     }));
     if (q === "" || results === null) return pages;
     return [
@@ -85,7 +89,7 @@ export function CommandMenu() {
           group: "People",
           label: p.name ?? p.email,
           sub: p.name ? p.email : p.status !== "active" ? p.status : undefined,
-          href: withRange(`/people/${p.id}`, range),
+          href: carry(`/people/${p.id}`),
         }),
       ),
       ...results.products.map(
@@ -94,7 +98,7 @@ export function CommandMenu() {
           group: "ROI",
           label: p.name,
           sub: p.archived ? "archived" : undefined,
-          href: withRange(`/products/${p.id}`, range),
+          href: carry(`/products/${p.id}`),
         }),
       ),
       ...results.vendors.map(
@@ -103,12 +107,12 @@ export function CommandMenu() {
           group: "Vendors",
           label: v.displayName,
           sub: v.connected ? "connected" : undefined,
-          href: withRange(`/drill?vendor=${v.vendor}`, range),
+          href: carry(`/drill?vendor=${v.vendor}`),
         }),
       ),
     ];
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, results, range.from, range.to]);
+  }, [q, results, range?.from, range?.to]);
 
   const activeIndex = Math.min(active, Math.max(items.length - 1, 0));
 
@@ -134,13 +138,15 @@ export function CommandMenu() {
 
   return (
     <Dialog.Root open={open} onOpenChange={setOpen}>
-      <Dialog.Trigger asChild>
-        <button className="flex h-8 w-full max-w-xs items-center gap-2 rounded-md border px-3 text-sm text-muted-foreground hover:text-foreground">
-          <Search className="h-4 w-4" />
-          <span className="flex-1 text-left">Search</span>
-          <kbd className="rounded border bg-muted px-1.5 font-mono text-xs">⌘K</kbd>
-        </button>
-      </Dialog.Trigger>
+      {trigger && (
+        <Dialog.Trigger asChild>
+          <button className="flex h-8 w-full max-w-xs items-center gap-2 rounded-md border px-3 text-sm text-muted-foreground hover:text-foreground">
+            <Search className="h-4 w-4" />
+            <span className="flex-1 text-left">Search</span>
+            <kbd className="rounded border bg-muted px-1.5 font-mono text-xs">⌘K</kbd>
+          </button>
+        </Dialog.Trigger>
+      )}
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-[90] bg-black/50" />
         <Dialog.Content className="fixed left-1/2 top-[15%] z-[100] w-full max-w-lg -translate-x-1/2 overflow-hidden rounded-lg border bg-popover shadow-lg">

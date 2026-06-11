@@ -5,7 +5,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { HELP_ITEM, NAV_ITEMS, RESOLVE_CHANGED_EVENT } from "@/components/shell/nav";
 import { APP_NAME } from "@/lib/brand";
-import { DAY_RE } from "@/lib/range";
+import { rangeFromParams } from "@/lib/range";
 import { cn } from "@/lib/utils";
 
 /**
@@ -42,12 +42,8 @@ export function Sidebar() {
     };
   }, [pathname, version]);
 
-  const from = searchParams.get("from");
-  const to = searchParams.get("to");
-  const rangeQuery =
-    from && to && DAY_RE.test(from) && DAY_RE.test(to)
-      ? `?from=${from}&to=${to}`
-      : "";
+  const range = rangeFromParams(searchParams);
+  const rangeQuery = range ? `?from=${range.from}&to=${range.to}` : "";
 
   return (
     <aside className="fixed inset-y-0 left-0 z-30 hidden w-56 flex-col border-r bg-sidebar md:flex print:hidden">

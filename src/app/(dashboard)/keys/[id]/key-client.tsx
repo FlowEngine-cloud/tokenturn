@@ -7,7 +7,7 @@ import { Tile } from "@/components/tile";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCents, formatCount, shortDay } from "@/lib/format";
 import type { KeyDetail, KeyModelRow } from "@/lib/people";
-import { parseRange, withRange } from "@/lib/range";
+import { rangeFromParams, withRange } from "@/lib/range";
 import { useFetch } from "@/lib/use-fetch";
 
 /**
@@ -35,7 +35,9 @@ export function KeySkeleton() {
 export default function KeyClient() {
   const { id } = useParams<{ id: string }>();
   const searchParams = useSearchParams();
-  const range = parseRange(searchParams);
+  // All-time sheet - no date bar. Outbound links carry the URL's range when
+  // one rode along; bare otherwise.
+  const range = rangeFromParams(searchParams);
   const { data, error } = useFetch<KeyDetail>(`/api/keys/${id}`);
 
   if (error) {
@@ -50,12 +52,16 @@ export default function KeyClient() {
   const ccy = data.displayCurrency;
   const money = (cents: number) => formatCents(cents, ccy);
   // The key's facts span this window - drills carry it so they sum to the
-  // all-time numbers on this page.
+  // all-time numbers on this page. A never-used key has no span; its drills
+  // stay bare (they are empty either way).
   const span =
     data.firstUsedDay && data.lastUsedDay
       ? { from: data.firstUsedDay, to: data.lastUsedDay }
-      : range;
-  const drill = (query: string) => withRange(`/drill?key=${data.key.id}${query}`, span);
+      : null;
+  const drill = (query: string) => {
+    const href = `/drill?key=${data.key.id}${query}`;
+    return span ? withRange(href, span) : href;
+  };
 
   const modelColumns: Column<KeyModelRow>[] = [
     {
@@ -133,7 +139,7 @@ export default function KeyClient() {
         <Tile title="Owner">
           {data.owner ? (
             <Link
-              href={withRange(`/people/${data.owner.id}`, range)}
+              href={range ? withRange(`/people/${data.owner.id}`, range) : `/people/${data.owner.id}`}
               className="text-lg font-medium hover:underline"
             >
               {data.owner.name ?? data.owner.email}
@@ -158,7 +164,11 @@ export default function KeyClient() {
         <Tile title="ROI">
           {data.product ? (
             <Link
-              href={withRange(`/drill?product=${data.product.id}`, span)}
+              href={
+                span
+                  ? withRange(`/drill?product=${data.product.id}`, span)
+                  : `/drill?product=${data.product.id}`
+              }
               className="text-lg font-medium hover:underline"
             >
               {data.product.name}

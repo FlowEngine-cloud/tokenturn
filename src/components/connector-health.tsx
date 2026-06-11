@@ -4,13 +4,14 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import type { ConnectorHealth } from "@/lib/connectors/health";
 import { formatCount, timeAgo } from "@/lib/format";
-import { parseRange, withRange } from "@/lib/range";
+import { rangeFromParams, withRange } from "@/lib/range";
 import { cn } from "@/lib/utils";
 
 /**
  * Connector health (spec 5): connection state, last sync, row counts, the
  * vendor's error verbatim. Shared by Overview and Settings; each row drills
- * to its sync runs.
+ * to its sync runs, carrying the URL's range only when one is there (on
+ * Settings the URL may have none - links stay bare).
  */
 
 export function statusOf(c: ConnectorHealth): { label: string; dot: string } {
@@ -26,16 +27,17 @@ export function statusOf(c: ConnectorHealth): { label: string; dot: string } {
 
 export function ConnectorHealthList({ connectors }: { connectors: ConnectorHealth[] }) {
   const searchParams = useSearchParams();
-  const range = parseRange(searchParams);
+  const range = rangeFromParams(searchParams);
 
   return (
     <ul className="divide-y">
       {connectors.map((c) => {
         const status = statusOf(c);
+        const href = `/drill?view=runs&vendor=${c.vendor}`;
         return (
           <li key={c.vendor}>
             <Link
-              href={withRange(`/drill?view=runs&vendor=${c.vendor}`, range)}
+              href={range ? withRange(href, range) : href}
               className="flex flex-col gap-1 px-1 py-3 hover:bg-accent/50"
             >
               <span className="flex items-center gap-3">
