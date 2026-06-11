@@ -48,6 +48,31 @@ export function Section({
   );
 }
 
+/** One settings line (spec 10.6): a label and a control, nothing else. No
+ * label = a control-only row (save buttons) aligned to the control column. */
+export function SettingsRow({
+  label,
+  htmlFor,
+  children,
+}: {
+  label?: string;
+  htmlFor?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="grid grid-cols-1 items-center gap-x-4 gap-y-1 sm:grid-cols-[11rem_minmax(0,1fr)]">
+      {label ? (
+        <label htmlFor={htmlFor} className="text-sm font-medium">
+          {label}
+        </label>
+      ) : (
+        <span aria-hidden className="max-sm:hidden" />
+      )}
+      <div className="flex min-w-0 flex-wrap items-center gap-2">{children}</div>
+    </div>
+  );
+}
+
 /** Two-step destructive button: first click arms, second fires. */
 export function ConfirmButton({
   label,

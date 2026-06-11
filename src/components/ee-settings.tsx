@@ -6,6 +6,7 @@ import {
   ConfirmButton,
   ErrorLine,
   Section,
+  SettingsRow,
   send,
   useLatest,
 } from "@/components/form-utils";
@@ -38,7 +39,7 @@ function LockedLine() {
   return <p className="text-sm text-muted-foreground">{EE_LOCKED_COPY}</p>;
 }
 
-function StatusDot({ on }: { on: boolean }) {
+export function StatusDot({ on }: { on: boolean }) {
   return (
     <span
       className={cn(
@@ -109,13 +110,10 @@ export function LicenseSection({
 
   return (
     <Section title="License">
-      <div className="flex flex-wrap items-center gap-2">
+      <SettingsRow label="Status">
         <StatusDot on={license.state === "valid"} />
         {license.state === "none" ? (
-          <span className="text-sm">
-            Free · sustainable-use license - all connectors, the SDK, the full
-            dashboard, limits and alerts. One admin plus view-only users.
-          </span>
+          <span className="text-sm">Free</span>
         ) : (
           <span className="text-sm">
             Enterprise · {license.org} ·{" "}
@@ -126,45 +124,45 @@ export function LicenseSection({
             )}
           </span>
         )}
-      </div>
+      </SettingsRow>
       {license.state !== "none" && (
-        <p className="text-sm text-muted-foreground">
-          {license.features.map((f) => EE_FEATURE_LABELS[f]).join(" · ")}
-          {license.state === "expired" &&
-            " - locked until renewal; everything recorded stays readable"}
-        </p>
+        <SettingsRow label="Features">
+          <span className="text-sm text-muted-foreground">
+            {license.features.map((f) => EE_FEATURE_LABELS[f]).join(" · ")}
+            {license.state === "expired" && " · locked"}
+          </span>
+        </SettingsRow>
       )}
       {isAdmin && (
-        <div className="space-y-2">
+        <SettingsRow label="License file" htmlFor="license-file">
           <textarea
-            aria-label="License file"
+            id="license-file"
             className="h-20 w-full max-w-2xl rounded-md border bg-transparent p-2 font-mono text-sm"
-            placeholder='paste the license file - {"v":1,"payload":"...","signature":"..."}'
+            placeholder='{"v":1,"payload":"…","signature":"…"}'
             disabled={busy}
             value={text}
             onChange={(e) => setText(e.target.value)}
           />
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              size="sm"
-              disabled={busy || text.trim() === ""}
-              onClick={() => void patch(text.trim())}
-            >
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Install license"}
-            </Button>
-            {license.state !== "none" && (
-              <ConfirmButton
-                label="Remove license"
-                confirmLabel="Confirm remove"
-                disabled={busy}
-                onConfirm={() => void patch(null)}
-              />
-            )}
-            <span className="text-sm text-muted-foreground">
-              verified offline - nothing leaves this machine
-            </span>
-          </div>
-        </div>
+        </SettingsRow>
+      )}
+      {isAdmin && (
+        <SettingsRow>
+          <Button
+            size="sm"
+            disabled={busy || text.trim() === ""}
+            onClick={() => void patch(text.trim())}
+          >
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Install license"}
+          </Button>
+          {license.state !== "none" && (
+            <ConfirmButton
+              label="Remove license"
+              confirmLabel="Confirm remove"
+              disabled={busy}
+              onConfirm={() => void patch(null)}
+            />
+          )}
+        </SettingsRow>
       )}
       <ErrorLine message={error} />
     </Section>

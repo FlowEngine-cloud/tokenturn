@@ -1,8 +1,9 @@
 import { Suspense } from "react";
 import SettingsClient, { SettingsSkeleton } from "./settings-client";
 
-/** Settings (spec 10 page 7): connectors, products, alert channels, display
- * currency, license - every numeric default in the plan editable here. */
+/** Settings (spec 10.6): controls grouped in cards - Connectors, Alerts,
+ * Money, Email, Ingest keys, Users, Defaults, License - a label and a
+ * control per row. */
 export default function SettingsPage() {
   return (
     <Suspense fallback={<SettingsSkeleton />}>

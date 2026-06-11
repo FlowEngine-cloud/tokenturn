@@ -1,46 +1,35 @@
 "use client";
 
-import Link from "next/link";
-import { useState } from "react";
-import { Check, Copy, Loader2 } from "lucide-react";
+import { useRef, useState } from "react";
+import { Check, Copy, Loader2, Upload } from "lucide-react";
 import { ConnectorCard } from "@/components/connector-card";
-import { EnterpriseSections, LicenseSection } from "@/components/ee-settings";
+import { EnterpriseSections, LicenseSection, StatusDot } from "@/components/ee-settings";
 import {
   ConfirmButton,
   ErrorLine,
   Section,
+  SettingsRow,
   send,
   toCents,
   useLatest,
 } from "@/components/form-utils";
-import {
-  ATTRIBUTION_LABELS,
-  NewProductForm,
-  OUTCOME_LABELS,
-  ProductFields,
-  productBody,
-  type ProductFieldsValue,
-} from "@/components/product-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ConnectorHealth } from "@/lib/connectors/health";
 import { EE_LOCKED_COPY, type LicenseStatus } from "@/lib/ee";
-import { formatCents, formatCount, timeAgo } from "@/lib/format";
+import { formatCount, timeAgo } from "@/lib/format";
 import type { IngestKey } from "@/lib/ingest";
+import type { ImportResult, ParsedInvoiceCsv } from "@/lib/invoices";
 import type { ProductListItem } from "@/lib/products";
 import type { SettingValues } from "@/lib/settings";
 import { useFetch } from "@/lib/use-fetch";
-import { cn } from "@/lib/utils";
 
 /**
- * Settings (spec 10 page 7): connectors, ROI rows, alert channels, display
- * currency, license - and every numeric default in the plan (revert window,
- * anomaly thresholds, retention) editable. Plus the two key surfaces specs 6
- * and 11 put here: ingest keys (minted per ROI, shown once) and the
- * admin's view-only users. Writes are admin-only; the server's word comes
- * back verbatim.
+ * Settings (spec 10.6): real controls grouped in cards, a label and a
+ * control per row - Connectors, Alerts, Money, Email, Ingest keys (spec 6:
+ * minted here, shown once), Users, Defaults, License, then the ee/ cards.
+ * Writes are admin-only; the server's word comes back verbatim.
  */
 
 export function SettingsSkeleton() {
@@ -71,57 +60,305 @@ interface UserRow {
   has_password: boolean;
 }
 
-// ---- ROI rows (spec 7; DB keeps the products table name) ------------------
+// ---- Alerts (spec 9: Slack webhook + every alert threshold) ----------------
 
-function ManualEntryForm({ product, onChanged }: { product: ProductListItem; onChanged: () => void }) {
-  const canCost = product.attribution === "manual";
-  const canOutcomes = product.outcomeKind === "manual";
-  const [kind, setKind] = useState<"cost" | "outcomes">(canCost ? "cost" : "outcomes");
-  const [month, setMonth] = useState("");
-  const [amount, setAmount] = useState("");
-  const [currency, setCurrency] = useState("USD");
-  const [count, setCount] = useState("");
-  const [value, setValue] = useState("");
-  const [valueCurrency, setValueCurrency] = useState("USD");
-  const [note, setNote] = useState("");
+function AlertsCard({
+  settings,
+  configured,
+  isAdmin,
+  onChanged,
+}: {
+  settings: SettingValues;
+  configured: boolean;
+  isAdmin: boolean;
+  onChanged: () => void;
+}) {
+  const [url, setUrl] = useState("");
+  const [webhookBusy, setWebhookBusy] = useState(false);
+  const [form, setForm] = useState({
+    limit_alert_thresholds_pct: settings.limit_alert_thresholds_pct.join(", "),
+    anomaly_burn_multiplier: String(settings.anomaly_burn_multiplier),
+    anomaly_min_day: (settings.anomaly_min_day_cents / 100).toFixed(2),
+    connector_silent_alert_hours: String(settings.connector_silent_alert_hours),
+  });
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  if (!canCost && !canOutcomes) return null;
-  const activeKind = canCost && kind === "cost" ? "cost" : canOutcomes ? "outcomes" : "cost";
+  const set = (patch: Partial<typeof form>) => {
+    setSaved(false);
+    setForm((prev) => ({ ...prev, ...patch }));
+  };
+
+  async function patchWebhook(value: string | null) {
+    setWebhookBusy(true);
+    setError(null);
+    const { error: failure } = await send("/api/settings", "PATCH", {
+      slack_webhook_url: value,
+    });
+    setWebhookBusy(false);
+    if (failure) {
+      setError(failure);
+    } else {
+      setUrl("");
+      onChanged();
+    }
+  }
 
   async function save() {
+    setBusy(true);
     setError(null);
     setSaved(false);
-    let body: Record<string, unknown>;
-    if (activeKind === "cost") {
-      const cents = toCents(amount);
-      if (cents === null) {
-        setError("amount must be a non-negative number");
-        return;
-      }
-      body = { kind: "cost", month, amountCents: cents, currency: currency || "USD" };
+    const thresholds = form.limit_alert_thresholds_pct
+      .split(",")
+      .map((t) => Number(t.trim()))
+      .filter((t) => !Number.isNaN(t));
+    const { error: failure } = await send("/api/settings", "PATCH", {
+      limit_alert_thresholds_pct: thresholds,
+      anomaly_burn_multiplier: Number(form.anomaly_burn_multiplier),
+      anomaly_min_day_cents: toCents(form.anomaly_min_day) ?? -1,
+      connector_silent_alert_hours: Number(form.connector_silent_alert_hours),
+    });
+    setBusy(false);
+    if (failure) {
+      setError(failure);
     } else {
-      const n = Number(count);
-      if (!Number.isInteger(n) || n < 0) {
-        setError("count must be a non-negative whole number");
-        return;
-      }
-      body = { kind: "outcomes", month, count: n };
-      if (value.trim() !== "") {
-        const cents = toCents(value);
-        if (cents === null) {
-          setError("value must be a non-negative amount");
-          return;
-        }
-        body.valueCents = cents;
-        body.valueCurrency = valueCurrency || "USD";
-      }
+      setSaved(true);
+      onChanged();
     }
-    if (note.trim() !== "") body.note = note.trim();
+  }
+
+  const numeric = (
+    label: string,
+    key: keyof typeof form,
+    suffix: string,
+    width = "w-20",
+  ) => (
+    <SettingsRow label={label} htmlFor={`alerts-${key}`}>
+      <Input
+        id={`alerts-${key}`}
+        className={`h-8 ${width}`}
+        disabled={busy || !isAdmin}
+        value={form[key]}
+        onChange={(e) => set({ [key]: e.target.value } as Partial<typeof form>)}
+      />
+      <span className="text-sm text-muted-foreground">{suffix}</span>
+    </SettingsRow>
+  );
+
+  return (
+    <Section title="Alerts">
+      <SettingsRow label="Slack webhook" htmlFor="alerts-webhook">
+        <StatusDot on={configured} />
+        {isAdmin ? (
+          <>
+            <Input
+              id="alerts-webhook"
+              type="url"
+              className="h-8 w-80"
+              placeholder="https://hooks.slack.com/services/…"
+              disabled={webhookBusy}
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+            />
+            <Button
+              size="sm"
+              disabled={webhookBusy || url.trim() === ""}
+              onClick={() => void patchWebhook(url.trim())}
+            >
+              {webhookBusy ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : configured ? (
+                "Replace"
+              ) : (
+                "Save"
+              )}
+            </Button>
+            {configured && (
+              <ConfirmButton
+                label="Clear"
+                confirmLabel="Confirm clear"
+                disabled={webhookBusy}
+                onConfirm={() => void patchWebhook(null)}
+              />
+            )}
+          </>
+        ) : (
+          <span className="text-sm">{configured ? "configured" : "not set"}</span>
+        )}
+      </SettingsRow>
+      {numeric("Limit alerts", "limit_alert_thresholds_pct", "% of monthly limit", "w-28")}
+      {numeric("Anomaly trigger", "anomaly_burn_multiplier", "× 30-day average", "w-16")}
+      {numeric("Anomaly floor", "anomaly_min_day", "$ / day")}
+      {numeric("Silent connector", "connector_silent_alert_hours", "hours", "w-16")}
+      {isAdmin && (
+        <SettingsRow>
+          <Button size="sm" disabled={busy} onClick={save}>
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
+          </Button>
+          {saved && <span className="text-sm text-green-700">saved</span>}
+        </SettingsRow>
+      )}
+      <ErrorLine message={error} />
+    </Section>
+  );
+}
+
+// ---- Money (spec 4: display currency + monthly invoice CSV true-up) -------
+
+async function postCsv(
+  url: string,
+  text: string,
+): Promise<{ error: string | null; data: unknown }> {
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "content-type": "text/csv" },
+      body: text,
+    });
+    const data = (await res.json().catch(() => null)) as Record<string, unknown> | null;
+    if (res.ok) return { error: null, data };
+    return { error: (data?.error as string) ?? `request failed (${res.status})`, data };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : String(err), data: null };
+  }
+}
+
+function InvoiceImportControl({ onChanged }: { onChanged: () => void }) {
+  const fileInput = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  const [csv, setCsv] = useState<string | null>(null);
+  const [preview, setPreview] = useState<ParsedInvoiceCsv | null>(null);
+  const [result, setResult] = useState<ImportResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  function reset() {
+    setCsv(null);
+    setPreview(null);
+    if (fileInput.current) fileInput.current.value = "";
+  }
+
+  async function load(file: File) {
     setBusy(true);
-    const { error: failure } = await send(`/api/products/${product.id}/manual`, "PUT", body);
+    setError(null);
+    setResult(null);
+    const text = await file.text();
+    const { error: failure, data } = await postCsv("/api/invoices/import?preview=1", text);
+    setBusy(false);
+    if (failure) {
+      setError(failure);
+      reset();
+    } else {
+      setCsv(text);
+      setPreview(data as ParsedInvoiceCsv);
+    }
+  }
+
+  async function commit() {
+    if (csv === null) return;
+    setBusy(true);
+    setError(null);
+    const { error: failure, data } = await postCsv("/api/invoices/import", csv);
+    setBusy(false);
+    if (failure) {
+      setError(failure);
+    } else {
+      setResult(data as ImportResult);
+      reset();
+    }
+    onChanged();
+  }
+
+  if (preview) {
+    const bad = preview.rows.filter((row) => row.error !== null);
+    return (
+      <div className="min-w-0 space-y-1.5">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-sm tabular-nums">
+            {formatCount(preview.rows.length)} rows ·{" "}
+            {formatCount(preview.rows.length - bad.length)} ready
+            {bad.length > 0 && (
+              <span className="text-red-600"> · {formatCount(bad.length)} with errors</span>
+            )}
+          </span>
+          {preview.ok && (
+            <Button size="sm" disabled={busy} onClick={() => void commit()}>
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Import"}
+            </Button>
+          )}
+          <Button variant="ghost" size="sm" disabled={busy} onClick={reset}>
+            Cancel
+          </Button>
+        </div>
+        {bad.slice(0, 8).map((row) => (
+          <p key={row.line} className="text-sm text-red-600">
+            line {row.line}: {row.error}
+          </p>
+        ))}
+        {bad.length > 8 && (
+          <p className="text-sm text-red-600">+ {formatCount(bad.length - 8)} more</p>
+        )}
+        <ErrorLine message={error} />
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <input
+        ref={fileInput}
+        type="file"
+        accept=".csv,text/csv,text/plain"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) void load(file);
+        }}
+      />
+      <Button
+        variant="outline"
+        size="sm"
+        disabled={busy}
+        onClick={() => fileInput.current?.click()}
+      >
+        {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+        Import CSV
+      </Button>
+      <span className="text-sm text-muted-foreground">vendor, month, amount, currency</span>
+      {result && (
+        <span className="flex items-center gap-1.5 text-sm text-green-700">
+          <Check className="h-4 w-4" />
+          {formatCount(result.imported)} imported
+        </span>
+      )}
+      <ErrorLine message={error} />
+    </>
+  );
+}
+
+function MoneyCard({
+  settings,
+  isAdmin,
+  onChanged,
+}: {
+  settings: SettingValues;
+  isAdmin: boolean;
+  onChanged: () => void;
+}) {
+  const [currency, setCurrency] = useState(settings.display_currency);
+  const [busy, setBusy] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [fxBusy, setFxBusy] = useState(false);
+  const [fxNotice, setFxNotice] = useState<string | null>(null);
+
+  async function save() {
+    setBusy(true);
+    setError(null);
+    setSaved(false);
+    const { error: failure } = await send("/api/settings", "PATCH", {
+      display_currency: currency.trim().toUpperCase(),
+    });
     setBusy(false);
     if (failure) {
       setError(failure);
@@ -132,408 +369,56 @@ function ManualEntryForm({ product, onChanged }: { product: ProductListItem; onC
   }
 
   return (
-    <div className="space-y-2 border-t pt-3">
-      <div className="flex flex-wrap items-end gap-2">
-        <div className="space-y-1">
-          <Label htmlFor={`manual-kind-${product.id}`}>Manual entry</Label>
-          <select
-            id={`manual-kind-${product.id}`}
-            className="h-8 rounded-md border bg-transparent px-2 text-sm"
-            disabled={busy || !(canCost && canOutcomes)}
-            value={activeKind}
-            onChange={(e) => setKind(e.target.value as "cost" | "outcomes")}
-          >
-            {canCost && <option value="cost">monthly cost</option>}
-            {canOutcomes && <option value="outcomes">monthly outcomes</option>}
-          </select>
-        </div>
-        <div className="space-y-1">
-          <Label htmlFor={`manual-month-${product.id}`}>Month</Label>
-          <Input
-            id={`manual-month-${product.id}`}
-            type="month"
-            className="h-8 w-40"
-            disabled={busy}
-            value={month}
-            onChange={(e) => setMonth(e.target.value)}
-          />
-        </div>
-        {activeKind === "cost" ? (
-          <div className="space-y-1">
-            <Label htmlFor={`manual-amount-${product.id}`}>Amount</Label>
-            <div className="flex gap-1">
-              <Input
-                id={`manual-amount-${product.id}`}
-                className="h-8 w-28"
-                inputMode="decimal"
-                placeholder="2000"
-                disabled={busy}
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-              />
-              <Input
-                aria-label="Currency"
-                className="h-8 w-16 uppercase"
-                maxLength={3}
-                disabled={busy}
-                value={currency}
-                onChange={(e) => setCurrency(e.target.value.toUpperCase())}
-              />
-            </div>
-          </div>
-        ) : (
-          <>
-            <div className="space-y-1">
-              <Label htmlFor={`manual-count-${product.id}`}>Count</Label>
-              <Input
-                id={`manual-count-${product.id}`}
-                className="h-8 w-20"
-                inputMode="numeric"
-                disabled={busy}
-                value={count}
-                onChange={(e) => setCount(e.target.value)}
-              />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor={`manual-value-${product.id}`}>Value each</Label>
-              <div className="flex gap-1">
-                <Input
-                  id={`manual-value-${product.id}`}
-                  className="h-8 w-24"
-                  inputMode="decimal"
-                  placeholder="default"
-                  disabled={busy}
-                  value={value}
-                  onChange={(e) => setValue(e.target.value)}
-                />
-                <Input
-                  aria-label="Value currency"
-                  className="h-8 w-16 uppercase"
-                  maxLength={3}
-                  disabled={busy}
-                  value={valueCurrency}
-                  onChange={(e) => setValueCurrency(e.target.value.toUpperCase())}
-                />
-              </div>
-            </div>
-          </>
-        )}
-        <div className="space-y-1">
-          <Label htmlFor={`manual-note-${product.id}`}>Note</Label>
-          <Input
-            id={`manual-note-${product.id}`}
-            className="h-8 w-44"
-            disabled={busy}
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-          />
-        </div>
-        <Button size="sm" disabled={busy || !/^\d{4}-\d{2}$/.test(month)} onClick={save}>
-          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Record"}
-        </Button>
-        {saved && <span className="pb-1.5 text-sm text-green-700">recorded · rollups updated</span>}
-      </div>
-      <ErrorLine message={error} />
-    </div>
-  );
-}
-
-function ProductRow({
-  product,
-  isAdmin,
-  onChanged,
-}: {
-  product: ProductListItem;
-  isAdmin: boolean;
-  onChanged: () => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [fields, setFields] = useState<ProductFieldsValue>({
-    name: product.name,
-    attribution: product.attribution,
-    outcomeKind: product.outcomeKind,
-    defaultValue:
-      product.defaultValueCents === null ? "" : (product.defaultValueCents / 100).toFixed(2),
-    defaultCurrency: product.defaultValueCurrency ?? "USD",
-  });
-
-  async function patch(body: Record<string, unknown>) {
-    setBusy(true);
-    setError(null);
-    const { error: failure } = await send(`/api/products/${product.id}`, "PATCH", body);
-    setBusy(false);
-    if (failure) setError(failure);
-    else onChanged();
-  }
-
-  const archived = product.archivedAt !== null;
-  return (
-    <div className={cn("space-y-3 rounded-lg border p-3", archived && "opacity-70")}>
-      <div className="flex flex-wrap items-center gap-3">
-        <Link href={`/products/${product.id}`} className="font-medium hover:underline">
-          {product.name}
-        </Link>
-        <span className="text-sm text-muted-foreground">
-          {ATTRIBUTION_LABELS[product.attribution]} · {OUTCOME_LABELS[product.outcomeKind]}
-          {product.defaultValueCents !== null &&
-            ` · ${formatCents(product.defaultValueCents, product.defaultValueCurrency ?? "USD")}/success`}
-          {archived && " · archived"}
-        </span>
-        <span className="flex-1" />
-        <span className="text-sm tabular-nums text-muted-foreground">
-          {formatCents(product.spendUsdCents, "USD")} all-time
-          {product.outcomeCount > 0 && ` · ${formatCount(product.outcomeCount)} outcomes`}
-        </span>
+    <Section title="Money">
+      <SettingsRow label="Display currency" htmlFor="money-currency">
+        <Input
+          id="money-currency"
+          className="h-8 w-20 uppercase"
+          maxLength={3}
+          disabled={busy || !isAdmin}
+          value={currency}
+          onChange={(e) => {
+            setSaved(false);
+            setCurrency(e.target.value.toUpperCase());
+          }}
+        />
         {isAdmin && (
-          <>
-            <Button variant="ghost" size="sm" disabled={busy} onClick={() => setOpen((v) => !v)}>
-              {open ? "Close" : "Edit"}
-            </Button>
-            <ConfirmButton
-              label={archived ? "Restore" : "Archive"}
-              confirmLabel={archived ? "Confirm restore" : "Confirm archive"}
-              disabled={busy}
-              onConfirm={() => patch({ archived: !archived })}
-            />
-          </>
+          <Button size="sm" disabled={busy} onClick={save}>
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
+          </Button>
         )}
-      </div>
-
-      {open && isAdmin && (
-        <div className="space-y-3 border-t pt-3">
-          <div className="flex flex-wrap items-end gap-2">
-            <ProductFields
-              value={fields}
-              onChange={setFields}
-              disabled={busy}
-              idPrefix={`edit-${product.id}`}
-            />
-            <Button
-              size="sm"
-              disabled={busy}
-              onClick={() => {
-                const body = productBody(fields);
-                if (typeof body === "string") setError(body);
-                else void patch(body);
-              }}
-            >
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
-            </Button>
-          </div>
-          {!archived && <ManualEntryForm product={product} onChanged={onChanged} />}
-        </div>
-      )}
-      <ErrorLine message={error} />
-    </div>
-  );
-}
-
-
-// ---- Ingest keys (spec 6: minted in Settings, shown once, per ROI) --------
-
-function IngestKeysSection({
-  keys,
-  products,
-  isAdmin,
-  onChanged,
-}: {
-  keys: IngestKey[];
-  products: ProductListItem[];
-  isAdmin: boolean;
-  onChanged: () => void;
-}) {
-  const live = products.filter((p) => p.archivedAt === null);
-  const [productId, setProductId] = useState("");
-  const [name, setName] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [minted, setMinted] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
-
-  return (
-    <Section title="Ingest keys">
-      {isAdmin && (
-        <div className="flex flex-wrap items-center gap-2">
-          <select
-            aria-label="ROI"
-            className="h-8 rounded-md border bg-transparent px-2 text-sm"
-            disabled={busy}
-            value={productId}
-            onChange={(e) => setProductId(e.target.value)}
-          >
-            <option value="">Mint for ROI…</option>
-            {live.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
-          <Input
-            aria-label="Key name"
-            className="h-8 w-40"
-            placeholder="name (optional)"
-            disabled={busy}
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
+        {saved && <span className="text-sm text-green-700">saved</span>}
+        {error?.includes("FX") && (
           <Button
+            variant="outline"
             size="sm"
-            disabled={busy || productId === ""}
+            disabled={fxBusy}
             onClick={async () => {
-              setBusy(true);
-              setError(null);
-              setMinted(null);
-              const { error: failure, data } = await send("/api/ingest-keys", "POST", {
-                productId,
-                ...(name.trim() !== "" ? { name: name.trim() } : {}),
-              });
-              setBusy(false);
+              setFxBusy(true);
+              setFxNotice(null);
+              const { error: failure, data } = await send("/api/fx/sync", "POST");
+              setFxBusy(false);
               if (failure) {
-                setError(failure);
+                setFxNotice(failure);
               } else {
-                setMinted((data?.token as string) ?? null);
-                setCopied(false);
-                setName("");
-                onChanged();
+                const run = data?.run as { status?: string; error?: string | null };
+                setFxNotice(
+                  run?.status === "success"
+                    ? "rates synced - save again"
+                    : (run?.error ?? "sync failed"),
+                );
               }
             }}
           >
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Mint key"}
+            {fxBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Sync FX rates"}
           </Button>
-        </div>
-      )}
-      {minted && (
-        <div className="flex flex-wrap items-center gap-2 rounded-md border border-amber-500/40 p-2">
-          <code className="font-mono text-sm">{minted}</code>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              void navigator.clipboard.writeText(minted).then(() => setCopied(true));
-            }}
-          >
-            {copied ? <Check className="h-4 w-4 text-green-700" /> : <Copy className="h-4 w-4" />}
-          </Button>
-          <span className="text-sm text-amber-700">shown once - store it now</span>
-        </div>
-      )}
-      <ErrorLine message={error} />
-      {keys.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          No keys yet. The SDK authenticates with an ingest key scoped to one ROI.
-        </p>
-      ) : (
-        <ul className="divide-y">
-          {keys.map((key) => (
-            <li key={key.id} className="flex flex-wrap items-center gap-3 py-2">
-              <code className="font-mono text-sm">{key.tokenPrefix}…</code>
-              {key.name && <span className="text-sm">{key.name}</span>}
-              <span className="text-sm text-muted-foreground">→ {key.productName}</span>
-              <span className="flex-1" />
-              <span className="text-sm text-muted-foreground">
-                {key.lastUsedAt ? `used ${timeAgo(key.lastUsedAt)}` : "never used"}
-              </span>
-              {key.revokedAt ? (
-                <span className="text-sm text-red-600">revoked</span>
-              ) : (
-                isAdmin && (
-                  <ConfirmButton
-                    label="Revoke"
-                    confirmLabel="Confirm revoke"
-                    onConfirm={() => {
-                      void send(`/api/ingest-keys/${key.id}`, "PATCH", { revoked: true }).then(
-                        ({ error: failure }) => {
-                          if (failure) setError(failure);
-                          else onChanged();
-                        },
-                      );
-                    }}
-                  />
-                )
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
-    </Section>
-  );
-}
-
-// ---- Alert channel (spec 9: alerts default to the Slack webhook) ----------
-
-function AlertsSection({
-  configured,
-  isAdmin,
-  onChanged,
-}: {
-  configured: boolean;
-  isAdmin: boolean;
-  onChanged: () => void;
-}) {
-  const [url, setUrl] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function patch(value: string | null) {
-    setBusy(true);
-    setError(null);
-    const { error: failure } = await send("/api/settings", "PATCH", {
-      slack_webhook_url: value,
-    });
-    setBusy(false);
-    if (failure) {
-      setError(failure);
-    } else {
-      setUrl("");
-      onChanged();
-    }
-  }
-
-  return (
-    <Section title="Alert channel">
-      <div className="flex flex-wrap items-center gap-2">
-        <span
-          className={cn(
-            "h-2 w-2 shrink-0 rounded-full",
-            configured ? "bg-green-600" : "bg-muted-foreground/40",
-          )}
-        />
-        <span className="text-sm">
-          Slack webhook {configured ? "configured" : "not set"}
-        </span>
-        <span className="text-sm text-muted-foreground">
-          · limit, anomaly and silent-connector alerts post here
-        </span>
-      </div>
+        )}
+        {fxNotice && <span className="text-sm text-muted-foreground">{fxNotice}</span>}
+      </SettingsRow>
       {isAdmin && (
-        <div className="flex flex-wrap items-center gap-2">
-          <Input
-            aria-label="Slack webhook URL"
-            type="url"
-            className="h-8 w-96"
-            placeholder="https://hooks.slack.com/services/…"
-            disabled={busy}
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-          />
-          <Button
-            size="sm"
-            disabled={busy || url.trim() === ""}
-            onClick={() => patch(url.trim())}
-          >
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : configured ? "Replace" : "Save"}
-          </Button>
-          {configured && (
-            <ConfirmButton
-              label="Clear"
-              confirmLabel="Confirm clear"
-              disabled={busy}
-              onConfirm={() => patch(null)}
-            />
-          )}
-        </div>
+        <SettingsRow label="Invoice import">
+          <InvoiceImportControl onChanged={onChanged} />
+        </SettingsRow>
       )}
       <ErrorLine message={error} />
     </Section>
@@ -542,7 +427,7 @@ function AlertsSection({
 
 // ---- Email provider (spec 12b: API key in Settings, encrypted, test-send) -
 
-function EmailSection({
+function EmailCard({
   email,
   isAdmin,
   onChanged,
@@ -610,101 +495,96 @@ function EmailSection({
 
   return (
     <Section title="Email">
-      <div className="flex flex-wrap items-center gap-2">
-        <span
-          className={cn(
-            "h-2 w-2 shrink-0 rounded-full",
-            email ? "bg-green-600" : "bg-muted-foreground/40",
-          )}
-        />
+      <SettingsRow label="Status">
+        <StatusDot on={email !== null} />
         <span className="text-sm">
-          {email ? `${email.provider} · from ${email.from}` : "no provider set"}
+          {email ? `${email.provider} · from ${email.from}` : "not set"}
         </span>
-        <span className="text-sm text-muted-foreground">
-          · optional - only scheduled features need it; alerts use Slack
-        </span>
-      </div>
+        {email && isAdmin && (
+          <ConfirmButton
+            label="Clear"
+            confirmLabel="Confirm clear"
+            disabled={busy}
+            onConfirm={() => void patch(null)}
+          />
+        )}
+      </SettingsRow>
       {isAdmin && (
         <>
-          <div className="flex flex-wrap items-end gap-2">
-            <div className="space-y-1">
-              <Label htmlFor="email-provider">Provider</Label>
-              <select
-                id="email-provider"
-                className="h-8 rounded-md border bg-transparent px-2 text-sm"
-                disabled={busy}
-                value={provider}
-                onChange={(e) => setProvider(e.target.value)}
-              >
-                <option value="resend">Resend</option>
-                <option value="postmark">Postmark</option>
-                <option value="ses">Amazon SES</option>
-              </select>
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="email-from">From</Label>
-              <Input
-                id="email-from"
-                type="email"
-                className="h-8 w-56"
-                placeholder="reports@acme.com"
-                disabled={busy}
-                value={from}
-                onChange={(e) => setFrom(e.target.value)}
-              />
-            </div>
-            {provider === "ses" ? (
-              <>
-                <div className="space-y-1">
-                  <Label htmlFor="email-access-key">Access key ID</Label>
-                  <Input
-                    id="email-access-key"
-                    className="h-8 w-44"
-                    disabled={busy}
-                    value={accessKeyId}
-                    onChange={(e) => setAccessKeyId(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="email-secret-key">Secret access key</Label>
-                  <Input
-                    id="email-secret-key"
-                    type="password"
-                    autoComplete="off"
-                    className="h-8 w-52"
-                    disabled={busy}
-                    value={secretAccessKey}
-                    onChange={(e) => setSecretAccessKey(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="email-region">Region</Label>
-                  <Input
-                    id="email-region"
-                    className="h-8 w-32"
-                    placeholder="us-east-1"
-                    disabled={busy}
-                    value={region}
-                    onChange={(e) => setRegion(e.target.value)}
-                  />
-                </div>
-              </>
-            ) : (
-              <div className="space-y-1">
-                <Label htmlFor="email-api-key">
-                  {provider === "postmark" ? "Server token" : "API key"}
-                </Label>
+          <SettingsRow label="Provider" htmlFor="email-provider">
+            <select
+              id="email-provider"
+              className="h-8 rounded-md border bg-transparent px-2 text-sm"
+              disabled={busy}
+              value={provider}
+              onChange={(e) => setProvider(e.target.value)}
+            >
+              <option value="resend">Resend</option>
+              <option value="postmark">Postmark</option>
+              <option value="ses">Amazon SES</option>
+            </select>
+          </SettingsRow>
+          <SettingsRow label="From" htmlFor="email-from">
+            <Input
+              id="email-from"
+              type="email"
+              className="h-8 w-64"
+              placeholder="reports@acme.com"
+              disabled={busy}
+              value={from}
+              onChange={(e) => setFrom(e.target.value)}
+            />
+          </SettingsRow>
+          {provider === "ses" ? (
+            <>
+              <SettingsRow label="Access key ID" htmlFor="email-access-key">
                 <Input
-                  id="email-api-key"
+                  id="email-access-key"
+                  className="h-8 w-64"
+                  disabled={busy}
+                  value={accessKeyId}
+                  onChange={(e) => setAccessKeyId(e.target.value)}
+                />
+              </SettingsRow>
+              <SettingsRow label="Secret access key" htmlFor="email-secret-key">
+                <Input
+                  id="email-secret-key"
                   type="password"
                   autoComplete="off"
                   className="h-8 w-64"
                   disabled={busy}
-                  value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
+                  value={secretAccessKey}
+                  onChange={(e) => setSecretAccessKey(e.target.value)}
                 />
-              </div>
-            )}
+              </SettingsRow>
+              <SettingsRow label="Region" htmlFor="email-region">
+                <Input
+                  id="email-region"
+                  className="h-8 w-32"
+                  placeholder="us-east-1"
+                  disabled={busy}
+                  value={region}
+                  onChange={(e) => setRegion(e.target.value)}
+                />
+              </SettingsRow>
+            </>
+          ) : (
+            <SettingsRow
+              label={provider === "postmark" ? "Server token" : "API key"}
+              htmlFor="email-api-key"
+            >
+              <Input
+                id="email-api-key"
+                type="password"
+                autoComplete="off"
+                className="h-8 w-64"
+                disabled={busy}
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+              />
+            </SettingsRow>
+          )}
+          <SettingsRow>
             <Button
               size="sm"
               disabled={
@@ -720,21 +600,14 @@ function EmailSection({
             >
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : email ? "Replace" : "Save"}
             </Button>
-            {email && (
-              <ConfirmButton
-                label="Clear"
-                confirmLabel="Confirm clear"
-                disabled={busy}
-                onConfirm={() => void patch(null)}
-              />
-            )}
-          </div>
+            {notice && <span className="text-sm text-green-700">{notice}</span>}
+          </SettingsRow>
           {email && (
-            <div className="flex flex-wrap items-center gap-2">
+            <SettingsRow label="Test send" htmlFor="email-test-to">
               <Input
-                aria-label="Test recipient"
+                id="email-test-to"
                 type="email"
-                className="h-8 w-56"
+                className="h-8 w-64"
                 placeholder="you@acme.com"
                 disabled={testBusy}
                 value={to}
@@ -746,11 +619,10 @@ function EmailSection({
                 disabled={testBusy || to.trim() === ""}
                 onClick={() => void testSend()}
               >
-                {testBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send test email"}
+                {testBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send"}
               </Button>
-            </div>
+            </SettingsRow>
           )}
-          {notice && <p className="text-sm text-green-700">{notice}</p>}
         </>
       )}
       <ErrorLine message={error} />
@@ -758,146 +630,126 @@ function EmailSection({
   );
 }
 
-// ---- Display currency + every numeric default in the plan -----------------
+// ---- Ingest keys (spec 6: minted in Settings, shown once, per ROI) --------
 
-function ConfigSection({
-  settings,
+function IngestKeysCard({
+  keys,
+  products,
   isAdmin,
   onChanged,
 }: {
-  settings: SettingValues;
+  keys: IngestKey[];
+  products: ProductListItem[];
   isAdmin: boolean;
   onChanged: () => void;
 }) {
-  const [form, setForm] = useState({
-    display_currency: settings.display_currency,
-    revert_window_days: String(settings.revert_window_days),
-    anomaly_burn_multiplier: String(settings.anomaly_burn_multiplier),
-    anomaly_min_day: (settings.anomaly_min_day_cents / 100).toFixed(2),
-    limit_alert_thresholds_pct: settings.limit_alert_thresholds_pct.join(", "),
-    raw_facts_retention_months: String(settings.raw_facts_retention_months),
-    connector_silent_alert_hours: String(settings.connector_silent_alert_hours),
-    update_check_enabled: settings.update_check_enabled,
-  });
+  const [productId, setProductId] = useState("");
+  const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
-  const [fxBusy, setFxBusy] = useState(false);
-  const [fxNotice, setFxNotice] = useState<string | null>(null);
-
-  const set = (patch: Partial<typeof form>) => {
-    setSaved(false);
-    setForm((prev) => ({ ...prev, ...patch }));
-  };
-
-  async function save() {
-    setBusy(true);
-    setError(null);
-    setSaved(false);
-    const thresholds = form.limit_alert_thresholds_pct
-      .split(",")
-      .map((t) => Number(t.trim()))
-      .filter((t) => !Number.isNaN(t));
-    const body = {
-      display_currency: form.display_currency.trim().toUpperCase(),
-      revert_window_days: Number(form.revert_window_days),
-      anomaly_burn_multiplier: Number(form.anomaly_burn_multiplier),
-      anomaly_min_day_cents: toCents(form.anomaly_min_day) ?? -1,
-      limit_alert_thresholds_pct: thresholds,
-      raw_facts_retention_months: Number(form.raw_facts_retention_months),
-      connector_silent_alert_hours: Number(form.connector_silent_alert_hours),
-      update_check_enabled: form.update_check_enabled,
-    };
-    const { error: failure } = await send("/api/settings", "PATCH", body);
-    setBusy(false);
-    if (failure) {
-      setError(failure);
-    } else {
-      setSaved(true);
-      onChanged();
-    }
-  }
-
-  const field = (
-    label: string,
-    key: keyof typeof form,
-    opts: { width?: string; suffix?: string } = {},
-  ) => (
-    <div className="space-y-1">
-      <Label htmlFor={`cfg-${key}`}>{label}</Label>
-      <div className="flex items-center gap-1.5">
-        <Input
-          id={`cfg-${key}`}
-          className={cn("h-8", opts.width ?? "w-24")}
-          disabled={busy || !isAdmin}
-          value={String(form[key])}
-          onChange={(e) => set({ [key]: e.target.value } as Partial<typeof form>)}
-        />
-        {opts.suffix && (
-          <span className="text-sm text-muted-foreground">{opts.suffix}</span>
-        )}
-      </div>
-    </div>
-  );
+  const [minted, setMinted] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   return (
-    <Section title="Display currency & defaults">
-      <div className="flex flex-wrap items-end gap-x-6 gap-y-3">
-        {field("Display currency", "display_currency", { width: "w-20 uppercase" })}
-        {field("Revert window", "revert_window_days", { suffix: "days" })}
-        {field("Anomaly trigger", "anomaly_burn_multiplier", {
-          width: "w-16",
-          suffix: "x trailing 30-day avg",
-        })}
-        {field("Anomaly minimum", "anomaly_min_day", { suffix: "$/day" })}
-        {field("Limit alerts at", "limit_alert_thresholds_pct", {
-          width: "w-28",
-          suffix: "% of monthly limit",
-        })}
-        {field("Raw fact retention", "raw_facts_retention_months", { suffix: "months" })}
-        {field("Connector silent alert", "connector_silent_alert_hours", { suffix: "hours" })}
-        <label className="flex h-8 items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            disabled={busy || !isAdmin}
-            checked={form.update_check_enabled}
-            onChange={(e) => set({ update_check_enabled: e.target.checked })}
-          />
-          Check GitHub for new releases
-        </label>
-      </div>
+    <Section title="Ingest keys">
       {isAdmin && (
-        <div className="flex flex-wrap items-center gap-2">
-          <Button size="sm" disabled={busy} onClick={save}>
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
+        <SettingsRow label="Mint" htmlFor="ingest-product">
+          <select
+            id="ingest-product"
+            className="h-8 rounded-md border bg-transparent px-2 text-sm"
+            disabled={busy}
+            value={productId}
+            onChange={(e) => setProductId(e.target.value)}
+          >
+            <option value="">Mint for ROI…</option>
+            {products.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+          <Input
+            aria-label="Key name"
+            className="h-8 w-40"
+            placeholder="name (optional)"
+            disabled={busy}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+          <Button
+            size="sm"
+            disabled={busy || productId === ""}
+            onClick={async () => {
+              setBusy(true);
+              setError(null);
+              setMinted(null);
+              const { error: failure, data } = await send("/api/ingest-keys", "POST", {
+                productId,
+                ...(name.trim() !== "" ? { name: name.trim() } : {}),
+              });
+              setBusy(false);
+              if (failure) {
+                setError(failure);
+              } else {
+                setMinted((data?.token as string) ?? null);
+                setCopied(false);
+                setName("");
+                onChanged();
+              }
+            }}
+          >
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Mint key"}
           </Button>
-          {saved && <span className="text-sm text-green-700">saved</span>}
-          {error?.includes("FX") && (
+        </SettingsRow>
+      )}
+      {minted && (
+        <SettingsRow>
+          <span className="flex flex-wrap items-center gap-2 rounded-md border border-amber-500/40 p-2">
+            <code className="font-mono text-sm">{minted}</code>
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
-              disabled={fxBusy}
-              onClick={async () => {
-                setFxBusy(true);
-                setFxNotice(null);
-                const { error: failure, data } = await send("/api/fx/sync", "POST");
-                setFxBusy(false);
-                if (failure) {
-                  setFxNotice(failure);
-                } else {
-                  const run = data?.run as { status?: string; error?: string | null };
-                  setFxNotice(
-                    run?.status === "success"
-                      ? "rates synced - save again"
-                      : (run?.error ?? "sync failed"),
-                  );
-                }
+              onClick={() => {
+                void navigator.clipboard.writeText(minted).then(() => setCopied(true));
               }}
             >
-              {fxBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Sync FX rates"}
+              {copied ? <Check className="h-4 w-4 text-green-700" /> : <Copy className="h-4 w-4" />}
             </Button>
-          )}
-          {fxNotice && <span className="text-sm text-muted-foreground">{fxNotice}</span>}
+            <span className="text-sm text-amber-700">shown once - store it now</span>
+          </span>
+        </SettingsRow>
+      )}
+      {keys.length > 0 && (
+        <div className="space-y-2">
+          {keys.map((key) => (
+            <div key={key.id} className="flex flex-wrap items-center gap-3">
+              <code className="font-mono text-sm">{key.tokenPrefix}…</code>
+              {key.name && <span className="text-sm">{key.name}</span>}
+              <span className="text-sm text-muted-foreground">→ {key.productName}</span>
+              <span className="flex-1" />
+              <span className="text-sm text-muted-foreground">
+                {key.lastUsedAt ? `used ${timeAgo(key.lastUsedAt)}` : "never used"}
+              </span>
+              {key.revokedAt ? (
+                <span className="text-sm text-red-600">revoked</span>
+              ) : (
+                isAdmin && (
+                  <ConfirmButton
+                    label="Revoke"
+                    confirmLabel="Confirm revoke"
+                    onConfirm={() => {
+                      void send(`/api/ingest-keys/${key.id}`, "PATCH", { revoked: true }).then(
+                        ({ error: failure }) => {
+                          if (failure) setError(failure);
+                          else onChanged();
+                        },
+                      );
+                    }}
+                  />
+                )
+              )}
+            </div>
+          ))}
         </div>
       )}
       <ErrorLine message={error} />
@@ -907,7 +759,7 @@ function ConfigSection({
 
 // ---- Users (spec 11: one admin + view-only users; more admins = ee) -------
 
-function UsersSection({
+function UsersCard({
   users,
   moreAdminsLicensed,
   onChanged,
@@ -927,9 +779,9 @@ function UsersSection({
 
   return (
     <Section title="Users">
-      <ul className="divide-y">
+      <div className="space-y-2">
         {users.map((user) => (
-          <li key={user.id} className="flex items-center gap-3 py-2">
+          <div key={user.id} className="flex flex-wrap items-center gap-3">
             <span className="font-medium">{user.name}</span>
             <span className="text-sm text-muted-foreground">
               {user.role}
@@ -955,12 +807,12 @@ function UsersSection({
                 }}
               />
             )}
-          </li>
+          </div>
         ))}
-      </ul>
-      <div className="flex flex-wrap items-center gap-2">
+      </div>
+      <SettingsRow label="Add" htmlFor="user-name">
         <Input
-          aria-label="User name"
+          id="user-name"
           className="h-8 w-40"
           placeholder="name"
           disabled={busy}
@@ -1009,12 +861,98 @@ function UsersSection({
             }
           }}
         >
-          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add user"}
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add"}
         </Button>
-        {adminLocked && (
-          <span className="text-sm text-muted-foreground">{EE_LOCKED_COPY}</span>
-        )}
-      </div>
+        {adminLocked && <span className="text-sm text-muted-foreground">{EE_LOCKED_COPY}</span>}
+      </SettingsRow>
+      <ErrorLine message={error} />
+    </Section>
+  );
+}
+
+// ---- Defaults (spec 10.6: revert window, retention) ------------------------
+
+function DefaultsCard({
+  settings,
+  isAdmin,
+  onChanged,
+}: {
+  settings: SettingValues;
+  isAdmin: boolean;
+  onChanged: () => void;
+}) {
+  const [form, setForm] = useState({
+    revert_window_days: String(settings.revert_window_days),
+    raw_facts_retention_months: String(settings.raw_facts_retention_months),
+    update_check_enabled: settings.update_check_enabled,
+  });
+  const [busy, setBusy] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const set = (patch: Partial<typeof form>) => {
+    setSaved(false);
+    setForm((prev) => ({ ...prev, ...patch }));
+  };
+
+  async function save() {
+    setBusy(true);
+    setError(null);
+    setSaved(false);
+    const { error: failure } = await send("/api/settings", "PATCH", {
+      revert_window_days: Number(form.revert_window_days),
+      raw_facts_retention_months: Number(form.raw_facts_retention_months),
+      update_check_enabled: form.update_check_enabled,
+    });
+    setBusy(false);
+    if (failure) {
+      setError(failure);
+    } else {
+      setSaved(true);
+      onChanged();
+    }
+  }
+
+  return (
+    <Section title="Defaults">
+      <SettingsRow label="Revert window" htmlFor="defaults-revert">
+        <Input
+          id="defaults-revert"
+          className="h-8 w-16"
+          disabled={busy || !isAdmin}
+          value={form.revert_window_days}
+          onChange={(e) => set({ revert_window_days: e.target.value })}
+        />
+        <span className="text-sm text-muted-foreground">days</span>
+      </SettingsRow>
+      <SettingsRow label="Retention" htmlFor="defaults-retention">
+        <Input
+          id="defaults-retention"
+          className="h-8 w-16"
+          disabled={busy || !isAdmin}
+          value={form.raw_facts_retention_months}
+          onChange={(e) => set({ raw_facts_retention_months: e.target.value })}
+        />
+        <span className="text-sm text-muted-foreground">months of raw facts</span>
+      </SettingsRow>
+      <SettingsRow label="Update check" htmlFor="defaults-update">
+        <input
+          id="defaults-update"
+          type="checkbox"
+          disabled={busy || !isAdmin}
+          checked={form.update_check_enabled}
+          onChange={(e) => set({ update_check_enabled: e.target.checked })}
+        />
+        <span className="text-sm text-muted-foreground">GitHub releases</span>
+      </SettingsRow>
+      {isAdmin && (
+        <SettingsRow>
+          <Button size="sm" disabled={busy} onClick={save}>
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
+          </Button>
+          {saved && <span className="text-sm text-green-700">saved</span>}
+        </SettingsRow>
+      )}
       <ErrorLine message={error} />
     </Section>
   );
@@ -1038,9 +976,7 @@ export default function SettingsClient() {
   const connectorData = useLatest(connectorFetch.data);
   const settingsData = useLatest(settingsFetch.data);
   const productData = useLatest(
-    useFetch<{ products: ProductListItem[] }>(
-      `/api/products?archived=1&v=${version}`,
-    ).data,
+    useFetch<{ products: ProductListItem[] }>(`/api/products?v=${version}`).data,
   );
   const keyData = useLatest(
     useFetch<{ keys: IngestKey[] }>(`/api/ingest-keys?v=${version}`).data,
@@ -1080,51 +1016,33 @@ export default function SettingsClient() {
         </div>
       </Section>
 
-      <Section title="ROI">
-        {isAdmin && <NewProductForm onChanged={reload} />}
-        <div className="space-y-2">
-          {productData.products.map((product) => (
-            <ProductRow
-              key={product.id}
-              product={product}
-              isAdmin={isAdmin}
-              onChanged={reload}
-            />
-          ))}
-          {productData.products.length === 0 && (
-            <p className="text-sm text-muted-foreground">
-              No ROI yet. An ROI is a slice of spend and a definition of success.
-            </p>
-          )}
-        </div>
-      </Section>
+      <AlertsCard
+        settings={settingsData.settings}
+        configured={settingsData.secrets.slack_webhook_url}
+        isAdmin={isAdmin}
+        onChanged={reload}
+      />
 
-      <IngestKeysSection
+      <MoneyCard settings={settingsData.settings} isAdmin={isAdmin} onChanged={reload} />
+
+      <EmailCard email={settingsData.email} isAdmin={isAdmin} onChanged={reload} />
+
+      <IngestKeysCard
         keys={keyData.keys}
         products={productData.products}
         isAdmin={isAdmin}
         onChanged={reload}
       />
 
-      <AlertsSection
-        configured={settingsData.secrets.slack_webhook_url}
-        isAdmin={isAdmin}
-        onChanged={reload}
-      />
-
-      <EmailSection email={settingsData.email} isAdmin={isAdmin} onChanged={reload} />
-
-      {/* No version key: the form itself is the live copy of these values
-        * (nothing else edits them), and a remount would eat the saved notice. */}
-      <ConfigSection settings={settingsData.settings} isAdmin={isAdmin} onChanged={reload} />
-
       {userData && (
-        <UsersSection
+        <UsersCard
           users={userData.users}
           moreAdminsLicensed={eeFeatures.includes("more_admins")}
           onChanged={reload}
         />
       )}
+
+      <DefaultsCard settings={settingsData.settings} isAdmin={isAdmin} onChanged={reload} />
 
       <LicenseSection
         license={settingsData.license}

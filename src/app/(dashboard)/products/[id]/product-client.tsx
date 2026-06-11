@@ -2,14 +2,26 @@
 
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
+import { useState } from "react";
+import { Loader2 } from "lucide-react";
 import { DataTable, type Column } from "@/components/data-table";
+import { ConfirmButton, ErrorLine, send, useLatest } from "@/components/form-utils";
+import {
+  ATTRIBUTION_LABELS,
+  ManualEntryForm,
+  OUTCOME_LABELS,
+  ProductFields,
+  productBody,
+  type ProductFieldsValue,
+} from "@/components/product-form";
 import { RowLink, Tile } from "@/components/tile";
 import { TrendBars } from "@/components/trend-bars";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ATTRIBUTION_LABELS, OUTCOME_LABELS } from "@/components/product-form";
 import { formatCents, formatCount, shortDay } from "@/lib/format";
 import type {
   ManualEntry,
+  Product,
   ProductDailyRow,
   ProductDetail,
   ProductKeyRow,
@@ -18,11 +30,66 @@ import { parseRange, withRange } from "@/lib/range";
 import { useFetch } from "@/lib/use-fetch";
 
 /**
- * One product (spec 10 page 3 click-through): spend, outcomes and unit cost
- * in the product's own unit, value and ROI where real, by vendor / person /
+ * One ROI (spec 10 page 3 click-through): spend, outcomes and unit cost
+ * in its own unit, value and ROI where real, by vendor / person /
  * day, the keys routed to it (spec 7b) and its manual entries. Every number
- * links to the raw rows that sum to it.
+ * links to the raw rows that sum to it. Admins manage the row here - rename,
+ * change the slice or success, archive, record manual months.
  */
+
+function ManagePanel({ product, onChanged }: { product: Product; onChanged: () => void }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [fields, setFields] = useState<ProductFieldsValue>({
+    name: product.name,
+    attribution: product.attribution,
+    outcomeKind: product.outcomeKind,
+    defaultValue:
+      product.defaultValueCents === null ? "" : (product.defaultValueCents / 100).toFixed(2),
+    defaultCurrency: product.defaultValueCurrency ?? "USD",
+  });
+
+  async function patch(body: Record<string, unknown>) {
+    setBusy(true);
+    setError(null);
+    const { error: failure } = await send(`/api/products/${product.id}`, "PATCH", body);
+    setBusy(false);
+    if (failure) setError(failure);
+    else onChanged();
+  }
+
+  const archived = product.archivedAt !== null;
+  return (
+    <section className="space-y-3 rounded-lg border bg-card p-4">
+      <div className="flex items-center gap-3">
+        <h2 className="text-sm font-medium text-muted-foreground">Manage</h2>
+        <span className="flex-1" />
+        <ConfirmButton
+          label={archived ? "Restore" : "Archive"}
+          confirmLabel={archived ? "Confirm restore" : "Confirm archive"}
+          disabled={busy}
+          onConfirm={() => void patch({ archived: !archived })}
+        />
+      </div>
+      <div className="flex flex-wrap items-end gap-2">
+        <ProductFields value={fields} onChange={setFields} disabled={busy} idPrefix="manage" />
+        <Button
+          size="sm"
+          disabled={busy}
+          onClick={() => {
+            const body = productBody(fields);
+            if (typeof body === "string") setError(body);
+            else void patch(body);
+          }}
+        >
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
+        </Button>
+      </div>
+      {!archived && <ManualEntryForm product={product} onChanged={onChanged} />}
+      <ErrorLine message={error} />
+    </section>
+  );
+}
 
 export function ProductSkeleton() {
   return (
@@ -44,9 +111,15 @@ export default function ProductClient() {
   const { id } = useParams<{ id: string }>();
   const searchParams = useSearchParams();
   const range = parseRange(searchParams);
-  const { data, error } = useFetch<ProductDetail>(
-    `/api/products/${id}?from=${range.from}&to=${range.to}`,
+  // ?v= bump refetches after a manage write; useLatest keeps the page mounted
+  // (a skeleton swap would eat the form's "saved" state mid-edit).
+  const [version, setVersion] = useState(0);
+  const { data: auth } = useFetch<{ user: { role: string } | null }>("/api/auth/state");
+  const fetched = useFetch<ProductDetail>(
+    `/api/products/${id}?from=${range.from}&to=${range.to}&v=${version}`,
   );
+  const data = useLatest(fetched.data);
+  const { error } = fetched;
 
   if (error) {
     return (
@@ -368,6 +441,14 @@ export default function ProductClient() {
           maxHeightClass="max-h-96"
         />
       </section>
+
+      {auth?.user?.role === "admin" && (
+        <ManagePanel
+          key={`${data.product.id}:${data.product.archivedAt ?? "live"}`}
+          product={data.product}
+          onChanged={() => setVersion((v) => v + 1)}
+        />
+      )}
     </div>
   );
 }
