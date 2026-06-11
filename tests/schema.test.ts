@@ -35,6 +35,7 @@ describe.runIf(TEST_DATABASE_URL)("core schema", () => {
       "connectors",
       "fx_rates",
       "identities",
+      "ingest_events",
       "ingest_keys",
       "invoices",
       "manual_entries",

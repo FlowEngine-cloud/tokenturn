@@ -257,7 +257,7 @@ function identityMapKey(externalId: string, kind: string): string {
   return `${kind}:${externalId}`;
 }
 
-interface ResolvedIdentity {
+export interface ResolvedIdentity {
   id: string;
   personId: string | null;
   productId: string | null;
@@ -283,9 +283,10 @@ function personByEmailSql(emailExpr: string): string {
  * manual_tags survive; email/display name never regress to NULL; person_id
  * keeps an existing (possibly human-made) mapping, else auto-matches by
  * email (spec 5) - except for identities marked "not a person", whose
- * person_id is never re-filled.
+ * person_id is never re-filled. Shared with the ingest API, whose employee
+ * emails become 'sdk'-vendor identities on the same machinery.
  */
-async function upsertIdentity(
+export async function upsertIdentity(
   db: PoolClient,
   vendor: string,
   identity: IdentityInput,
