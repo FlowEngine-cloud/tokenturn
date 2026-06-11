@@ -1,5 +1,6 @@
 import type { Pool } from "pg";
 import { getPool, type Db } from "./db";
+import { unknownCurrencies } from "./fx";
 import { logger } from "./logger";
 import { ResolveError } from "./resolve";
 import { fxExpr, recomputeRollups } from "./rollup";
@@ -492,12 +493,7 @@ export interface ManualEntryResult {
 /** No fake numbers: money in a currency with no FX rate at all can never
  * roll up, so it is rejected at the door instead of poisoning recomputes. */
 async function assertFxKnown(db: Db, currency: string): Promise<void> {
-  if (currency === "USD") return;
-  const { rows } = await db.query(
-    "SELECT 1 FROM fx_rates WHERE currency = $1 LIMIT 1",
-    [currency],
-  );
-  if (rows.length === 0) {
+  if ((await unknownCurrencies([currency], db)).length > 0) {
     throw new ResolveError(
       `no FX rate for ${currency} yet - enter the amount in USD or a currency with known rates`,
       409,

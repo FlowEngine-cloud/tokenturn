@@ -1,6 +1,7 @@
 import type { Pool } from "pg";
 import { getPool } from "../db";
 import { emitEvent } from "../events";
+import { fxTick } from "../fx";
 import { logger } from "../logger";
 import { getSetting } from "../settings";
 import { listConnectedRows } from "./connect";
@@ -129,6 +130,12 @@ export function startScheduler(): () => void {
     const run = () => {
       schedulerTick().catch((err) => {
         logger.error("scheduler tick failed", { error: err });
+      });
+      // Daily ECB FX rates ride the same ticker; fxTick fetches only when
+      // due. Tests drive fxTick directly, so connector-tick tests stay
+      // independent of the ECB feed.
+      fxTick().catch((err) => {
+        logger.error("fx tick failed", { error: err });
       });
     };
     ticker = setInterval(run, TICK_EVERY_MS);

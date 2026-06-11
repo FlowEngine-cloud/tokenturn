@@ -48,6 +48,20 @@ export function fxExpr(currencyExpr: string, dayExpr: string): string {
   );
 }
 
+/**
+ * USD cents -> display-currency cents at the day's rate (spec 4: rollups
+ * normalize to USD; conversion to the org's display currency happens at read
+ * time, so changing it never needs a recompute). Pass the display currency
+ * as a bound parameter (e.g. "$4::text").
+ */
+export function displayExpr(
+  usdCentsExpr: string,
+  currencyExpr: string,
+  dayExpr: string,
+): string {
+  return `ROUND((${usdCentsExpr}) / ${fxExpr(currencyExpr, dayExpr)})`;
+}
+
 export interface RecomputeRange {
   /** Inclusive UTC day, YYYY-MM-DD. */
   from?: string;

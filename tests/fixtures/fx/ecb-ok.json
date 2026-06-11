@@ -1,0 +1,12 @@
+[
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist-90d.xml"
+    },
+    "response": {
+      "status": 200,
+      "text": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<gesmes:Envelope xmlns:gesmes=\"http://www.gesmes.org/xml/2002-08-01\" xmlns=\"http://www.ecb.int/vocabulary/2002-08-01/eurofxref\">\n<gesmes:subject>Reference rates</gesmes:subject>\n<gesmes:Sender><gesmes:name>European Central Bank</gesmes:name></gesmes:Sender>\n<Cube>\n<Cube time=\"2026-06-10\">\n<Cube currency=\"USD\" rate=\"1.1000\"/>\n<Cube currency=\"GBP\" rate=\"0.8800\"/>\n<Cube currency=\"JPY\" rate=\"137.50\"/>\n</Cube>\n<Cube time=\"2026-06-09\">\n<Cube currency=\"USD\" rate=\"1.2500\"/>\n<Cube currency=\"GBP\" rate=\"0.8000\"/>\n<Cube currency=\"JPY\" rate=\"156.25\"/>\n</Cube>\n</Cube>\n</gesmes:Envelope>\n"
+    }
+  }
+]

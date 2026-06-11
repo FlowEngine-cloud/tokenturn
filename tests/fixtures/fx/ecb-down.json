@@ -1,0 +1,12 @@
+[
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist-90d.xml"
+    },
+    "response": {
+      "status": 200,
+      "text": "<html><body>scheduled maintenance</body></html>"
+    }
+  }
+]

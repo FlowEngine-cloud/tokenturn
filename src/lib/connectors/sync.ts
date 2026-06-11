@@ -1,7 +1,8 @@
 import { createHash } from "node:crypto";
 import type { Pool, PoolClient } from "pg";
 import { getPool } from "../db";
-import { logger } from "../logger";
+import { trueUpAfterSync } from "../invoices";
+import { logger, type Logger } from "../logger";
 import { getSetting } from "../settings";
 import { applyTagRouting } from "../tags";
 import { buildContext, connectedRow, getConnectorConfig } from "./connect";
@@ -369,6 +370,17 @@ async function reattributeIdentityHistory(
   );
 }
 
+interface DaySpan {
+  min: string;
+  max: string;
+}
+
+interface PageCommit {
+  rows: number;
+  /** Day span of the facts this page wrote, for the invoice true-up. */
+  factSpan: DaySpan | null;
+}
+
 /**
  * Upsert one page and advance the cursor, atomically. Returns rows written
  * (facts + metrics + outcomes + revert flips applied).
@@ -379,7 +391,7 @@ async function commitPage(
   vendor: string,
   page: ConnectorPage,
   cursor: SyncCursor,
-): Promise<number> {
+): Promise<PageCommit> {
   await db.query("BEGIN");
   try {
     const idMap = new Map<string, ResolvedIdentity>();
@@ -575,10 +587,38 @@ async function commitPage(
       [runId, JSON.stringify(cursor), rowCount],
     );
     await db.query("COMMIT");
-    return rowCount;
+    let factSpan: DaySpan | null = null;
+    for (const fact of page.facts) {
+      factSpan = factSpan
+        ? { min: minDay(factSpan.min, fact.day), max: maxDay(factSpan.max, fact.day) }
+        : { min: fact.day, max: fact.day };
+    }
+    return { rows: rowCount, factSpan };
   } catch (err) {
     await db.query("ROLLBACK").catch(() => {});
     throw err;
+  }
+}
+
+/**
+ * Vendors restate data, and restated facts change the drift against an
+ * imported invoice: re-true every invoiced month this sync wrote into
+ * (spec 4: invoices true estimated up to invoiced). A failure here never
+ * fails the sync - the drift report recomputes the same numbers live and
+ * refuses loudly on its own.
+ */
+async function trueUpSafely(
+  vendor: string,
+  span: DaySpan | null,
+  pool: Pool,
+  log: Logger,
+): Promise<void> {
+  if (!span) return;
+  try {
+    const { days } = await trueUpAfterSync(vendor, span, pool);
+    if (days.length > 0) log.info("invoices trued up after sync", { days });
+  } catch (err) {
+    log.error("invoice true-up after sync failed", { error: err });
   }
 }
 
@@ -657,6 +697,7 @@ export async function runSync(vendor: string, opts: SyncOpts = {}): Promise<Sync
 
     const ctx = buildContext(connector, config, opts.fetch);
     let rowsSynced = 0;
+    let factSpan: DaySpan | null = null;
     try {
       for (;;) {
         const page = await connector.fetchPage(ctx, window, pageToken);
@@ -671,7 +712,16 @@ export async function runSync(vendor: string, opts: SyncOpts = {}): Promise<Sync
               watermark: prevWatermark,
               inProgress: { since: window.since, until: window.until, pageToken: page.nextPageToken },
             };
-        rowsSynced += await commitPage(client, runId, vendor, page, cursor);
+        const committed = await commitPage(client, runId, vendor, page, cursor);
+        rowsSynced += committed.rows;
+        if (committed.factSpan) {
+          factSpan = factSpan
+            ? {
+                min: minDay(factSpan.min, committed.factSpan.min),
+                max: maxDay(factSpan.max, committed.factSpan.max),
+              }
+            : committed.factSpan;
+        }
         if (done) break;
         pageToken = page.nextPageToken;
       }
@@ -680,6 +730,7 @@ export async function runSync(vendor: string, opts: SyncOpts = {}): Promise<Sync
         "UPDATE sync_runs SET status = 'success', finished_at = now() WHERE id = $1",
         [runId],
       );
+      await trueUpSafely(vendor, factSpan, pool, log);
       log.info("sync finished", { runId, rowsSynced, ...window });
       return { vendor, skipped: false, runId, status: "success", window, rowsSynced };
     } catch (err) {
@@ -691,6 +742,8 @@ export async function runSync(vendor: string, opts: SyncOpts = {}): Promise<Sync
         "UPDATE sync_runs SET status = 'error', error = $2, finished_at = now() WHERE id = $1",
         [runId, message],
       );
+      // Pages committed before the failure still restated facts.
+      await trueUpSafely(vendor, factSpan, pool, log);
       log.error("sync failed", { runId, error: err, ...window });
       return { vendor, skipped: false, runId, status: "error", window, rowsSynced, error: message };
     }

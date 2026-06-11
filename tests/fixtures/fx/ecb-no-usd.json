@@ -1,0 +1,12 @@
+[
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist-90d.xml"
+    },
+    "response": {
+      "status": 200,
+      "text": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<gesmes:Envelope xmlns:gesmes=\"http://www.gesmes.org/xml/2002-08-01\" xmlns=\"http://www.ecb.int/vocabulary/2002-08-01/eurofxref\">\n<Cube>\n<Cube time=\"2026-06-10\">\n<Cube currency=\"GBP\" rate=\"0.8800\"/>\n</Cube>\n</Cube>\n</gesmes:Envelope>\n"
+    }
+  }
+]
