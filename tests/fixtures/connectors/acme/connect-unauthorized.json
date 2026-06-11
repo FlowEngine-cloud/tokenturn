@@ -1,0 +1,9 @@
+[
+  {
+    "request": { "method": "GET", "url": "https://api.acme.test/v1/me" },
+    "response": {
+      "status": 401,
+      "body": { "error": "Invalid API key provided: acme_sk_****7f2 (request id: req_991)" }
+    }
+  }
+]

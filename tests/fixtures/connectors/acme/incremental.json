@@ -1,0 +1,38 @@
+[
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.acme.test/v1/usage?since=2026-06-03&until=2026-06-10"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "records": [
+          {
+            "id": "u_1004",
+            "day": "2026-06-05",
+            "user_email": null,
+            "key_id": "key_9",
+            "key_name": "support-bot",
+            "model": "acme-large",
+            "tokens": 1500,
+            "amount_cents": 460,
+            "currency": "EUR"
+          },
+          {
+            "id": "u_1006",
+            "day": "2026-06-09",
+            "user_email": "dana@acme.com",
+            "key_id": null,
+            "key_name": null,
+            "model": "acme-large",
+            "tokens": 250,
+            "amount_cents": 75,
+            "currency": "USD"
+          }
+        ],
+        "next_page": null
+      }
+    }
+  }
+]

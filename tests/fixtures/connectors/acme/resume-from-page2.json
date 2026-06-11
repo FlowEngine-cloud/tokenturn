@@ -1,0 +1,63 @@
+[
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.acme.test/v1/usage?since=2026-05-10&until=2026-06-10&page=p2"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "records": [
+          {
+            "id": "u_1003",
+            "day": "2026-06-01",
+            "user_email": "dana@acme.com",
+            "key_id": null,
+            "key_name": null,
+            "model": "acme-mini",
+            "tokens": 400,
+            "amount_cents": 95,
+            "currency": "USD"
+          },
+          {
+            "id": "u_1004",
+            "day": "2026-06-05",
+            "user_email": null,
+            "key_id": "key_9",
+            "key_name": "support-bot",
+            "model": "acme-large",
+            "tokens": 1500,
+            "amount_cents": 410,
+            "currency": "EUR"
+          }
+        ],
+        "next_page": "p3"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.acme.test/v1/usage?since=2026-05-10&until=2026-06-10&page=p3"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "records": [
+          {
+            "id": "u_1005",
+            "day": "2026-06-08",
+            "user_email": null,
+            "key_id": "key_mystery",
+            "key_name": null,
+            "model": "acme-mini",
+            "tokens": 300,
+            "amount_cents": 130,
+            "currency": "USD"
+          }
+        ],
+        "next_page": null
+      }
+    }
+  }
+]

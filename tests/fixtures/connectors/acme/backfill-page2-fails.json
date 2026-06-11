@@ -1,0 +1,48 @@
+[
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.acme.test/v1/usage?since=2026-05-10&until=2026-06-10"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "records": [
+          {
+            "id": "u_1001",
+            "day": "2026-05-12",
+            "user_email": "dana@acme.com",
+            "key_id": null,
+            "key_name": null,
+            "model": "acme-large",
+            "tokens": 1200,
+            "amount_cents": 350,
+            "currency": "USD"
+          },
+          {
+            "id": "u_1002",
+            "day": "2026-05-15",
+            "user_email": null,
+            "key_id": "key_7",
+            "key_name": "batch-processing",
+            "model": "acme-large",
+            "tokens": 800,
+            "amount_cents": 220,
+            "currency": "USD"
+          }
+        ],
+        "next_page": "p2"
+      }
+    }
+  },
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.acme.test/v1/usage?since=2026-05-10&until=2026-06-10&page=p2"
+    },
+    "response": {
+      "status": 500,
+      "body": { "error": "acme internal error 8861: usage shard temporarily unavailable" }
+    }
+  }
+]

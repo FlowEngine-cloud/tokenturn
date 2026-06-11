@@ -1,0 +1,93 @@
+{
+  "facts": [
+    {
+      "sourceRef": "u_1001",
+      "day": "2026-05-12",
+      "model": "acme-large",
+      "tokens": 1200,
+      "amountCents": 350,
+      "currency": "USD",
+      "costBasis": "estimated",
+      "identityExternalId": "dana@acme.com",
+      "personEmail": "dana@acme.com"
+    },
+    {
+      "sourceRef": "u_1002",
+      "day": "2026-05-15",
+      "model": "acme-large",
+      "tokens": 800,
+      "amountCents": 220,
+      "currency": "USD",
+      "costBasis": "estimated",
+      "identityExternalId": "key_7",
+      "personEmail": null
+    },
+    {
+      "sourceRef": "u_1003",
+      "day": "2026-06-01",
+      "model": "acme-mini",
+      "tokens": 400,
+      "amountCents": 95,
+      "currency": "USD",
+      "costBasis": "estimated",
+      "identityExternalId": "dana@acme.com",
+      "personEmail": "dana@acme.com"
+    },
+    {
+      "sourceRef": "u_1004",
+      "day": "2026-06-05",
+      "model": "acme-large",
+      "tokens": 1500,
+      "amountCents": 410,
+      "currency": "EUR",
+      "costBasis": "estimated",
+      "identityExternalId": "key_9",
+      "personEmail": null
+    },
+    {
+      "sourceRef": "u_1005",
+      "day": "2026-06-08",
+      "model": "acme-mini",
+      "tokens": 300,
+      "amountCents": 130,
+      "currency": "USD",
+      "costBasis": "estimated",
+      "identityExternalId": "key_mystery",
+      "personEmail": null
+    }
+  ],
+  "identities": [
+    {
+      "externalId": "dana@acme.com",
+      "kind": "user",
+      "email": "dana@acme.com",
+      "displayName": null,
+      "tags": [],
+      "personEmail": "dana@acme.com"
+    },
+    {
+      "externalId": "key_7",
+      "kind": "api_key",
+      "email": null,
+      "displayName": "batch-processing",
+      "tags": ["batch-processing"],
+      "personEmail": null
+    },
+    {
+      "externalId": "key_9",
+      "kind": "api_key",
+      "email": null,
+      "displayName": "support-bot",
+      "tags": ["support-bot"],
+      "personEmail": null
+    },
+    {
+      "externalId": "key_mystery",
+      "kind": "api_key",
+      "email": null,
+      "displayName": null,
+      "tags": [],
+      "personEmail": null
+    }
+  ]
+}

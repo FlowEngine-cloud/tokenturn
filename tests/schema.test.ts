@@ -32,6 +32,7 @@ describe.runIf(TEST_DATABASE_URL)("core schema", () => {
     expect(rows.map((r) => r.tablename)).toEqual([
       "alert_state",
       "auth_challenges",
+      "connectors",
       "fx_rates",
       "identities",
       "ingest_keys",

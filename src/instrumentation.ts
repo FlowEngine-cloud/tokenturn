@@ -1,7 +1,8 @@
 /**
  * Runs once when the server boots (after migrations, which the entrypoint
  * runs first). Ensures the secrets-at-rest key exists in the data volume on
- * first boot, so encryption never lazily fails mid-request.
+ * first boot, so encryption never lazily fails mid-request, then starts the
+ * hourly connector sync scheduler.
  */
 export async function register(): Promise<void> {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
@@ -10,4 +11,6 @@ export async function register(): Promise<void> {
   const { logger } = await import("./lib/logger");
   loadOrCreateSecretKey();
   logger.info("secrets key ready", { file: secretKeyPath() });
+  const { startScheduler } = await import("./lib/connectors");
+  startScheduler();
 }

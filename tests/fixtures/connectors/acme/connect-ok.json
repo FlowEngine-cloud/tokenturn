@@ -1,0 +1,6 @@
+[
+  {
+    "request": { "method": "GET", "url": "https://api.acme.test/v1/me" },
+    "response": { "status": 200, "body": { "scopes": ["usage:read", "members:read"] } }
+  }
+]
