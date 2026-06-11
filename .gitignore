@@ -21,6 +21,11 @@
 /build
 /sdk/dist
 
+# python (sdk-py)
+__pycache__/
+*.pyc
+*.egg-info/
+
 # misc
 .DS_Store
 *.pem

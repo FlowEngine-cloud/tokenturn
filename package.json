@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:py": "python3 -m unittest discover -s sdk-py/tests"
   },
   "dependencies": {
     "@simplewebauthn/browser": "^13.3.0",
