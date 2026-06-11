@@ -1,0 +1,17 @@
+[
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.acme.test/v1/usage?since=2026-06-04&until=2026-06-11"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "records": [
+          { "id": "r_dana_g2", "day": "2026-06-10", "user_email": "dana@gmail.com", "key_id": null, "key_name": null, "model": "claude-sonnet-4", "tokens": 450, "amount_cents": 60, "currency": "USD" }
+        ],
+        "next_page": null
+      }
+    }
+  }
+]

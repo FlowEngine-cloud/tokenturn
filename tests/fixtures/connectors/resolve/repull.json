@@ -1,0 +1,19 @@
+[
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.acme.test/v1/usage?since=2026-06-03&until=2026-06-10"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "records": [
+          { "id": "r_robB_1", "day": "2026-06-06", "user_email": null, "key_id": "key_robB", "key_name": "robs-laptop", "model": "claude-sonnet-4", "tokens": 100, "amount_cents": 25, "currency": "USD" },
+          { "id": "r_newman_2", "day": "2026-06-08", "user_email": "newman@acme.com", "key_id": null, "key_name": null, "model": "claude-sonnet-4", "tokens": 350, "amount_cents": 35, "currency": "USD" },
+          { "id": "r_svc_2", "day": "2026-06-09", "user_email": "svc@acme.com", "key_id": null, "key_name": null, "model": "claude-sonnet-4", "tokens": 300, "amount_cents": 75, "currency": "USD" }
+        ],
+        "next_page": null
+      }
+    }
+  }
+]

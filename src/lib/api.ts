@@ -46,6 +46,12 @@ export function cleanPassword(value: unknown): string | null {
   return value.length >= 8 && value.length <= 200 ? value : null;
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export function cleanUuid(value: unknown): string | null {
+  return typeof value === "string" && UUID_RE.test(value) ? value.toLowerCase() : null;
+}
+
 export async function requireUser(
   req: Request,
   db: Db = getPool(),

@@ -1,0 +1,28 @@
+[
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.acme.test/v1/usage?since=2026-05-10&until=2026-06-10"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "records": [
+          { "id": "r_dana_1", "day": "2026-05-20", "user_email": "dana@acme.com", "key_id": null, "key_name": null, "model": "claude-sonnet-4", "tokens": 1000, "amount_cents": 100, "currency": "USD" },
+          { "id": "r_bob_1", "day": "2026-05-21", "user_email": "bob@gmail.com", "key_id": null, "key_name": null, "model": "claude-sonnet-4", "tokens": 2000, "amount_cents": 250, "currency": "USD" },
+          { "id": "r_bob_2", "day": "2026-05-28", "user_email": "bob@gmail.com", "key_id": null, "key_name": null, "model": "claude-sonnet-4", "tokens": 600, "amount_cents": 80, "currency": "USD" },
+          { "id": "r_ci_1", "day": "2026-05-22", "user_email": null, "key_id": "key_ci", "key_name": "ci-runner", "model": "claude-haiku-4", "tokens": 9000, "amount_cents": 400, "currency": "USD" },
+          { "id": "r_rob_1", "day": "2026-05-22", "user_email": null, "key_id": "key_rob", "key_name": "Rob Lee", "model": "claude-sonnet-4", "tokens": 700, "amount_cents": 150, "currency": "USD" },
+          { "id": "r_robA_1", "day": "2026-05-27", "user_email": null, "key_id": "key_robA", "key_name": "robs-laptop", "model": "claude-sonnet-4", "tokens": 300, "amount_cents": 65, "currency": "USD" },
+          { "id": "r_svc_1", "day": "2026-05-23", "user_email": "svc@acme.com", "key_id": null, "key_name": null, "model": "claude-sonnet-4", "tokens": 250, "amount_cents": 55, "currency": "USD" },
+          { "id": "r_anon_1", "day": "2026-05-24", "user_email": null, "key_id": "key_anon", "key_name": null, "model": "claude-sonnet-4", "tokens": 120, "amount_cents": 90, "currency": "USD" },
+          { "id": "r_newman_1", "day": "2026-05-29", "user_email": "newman@acme.com", "key_id": null, "key_name": null, "model": "claude-sonnet-4", "tokens": 400, "amount_cents": 40, "currency": "USD" }
+        ],
+        "outcomes": [
+          { "id": "evt_bob_1", "ts": "2026-05-28T10:00:00Z", "user_email": "bob@gmail.com" }
+        ],
+        "next_page": null
+      }
+    }
+  }
+]

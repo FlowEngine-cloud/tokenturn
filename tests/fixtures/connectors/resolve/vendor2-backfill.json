@@ -1,0 +1,18 @@
+[
+  {
+    "request": {
+      "method": "GET",
+      "url": "https://api.acme.test/v1/usage?since=2026-05-10&until=2026-06-10"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "records": [
+          { "id": "v2_dana_g1", "day": "2026-05-25", "user_email": "dana@gmail.com", "key_id": null, "key_name": null, "model": "gpt-5", "tokens": 500, "amount_cents": 75, "currency": "USD" },
+          { "id": "v2_bob_1", "day": "2026-05-26", "user_email": "bob@gmail.com", "key_id": null, "key_name": null, "model": "gpt-5", "tokens": 800, "amount_cents": 130, "currency": "USD" }
+        ],
+        "next_page": null
+      }
+    }
+  }
+]

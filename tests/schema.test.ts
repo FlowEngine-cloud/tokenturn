@@ -38,6 +38,7 @@ describe.runIf(TEST_DATABASE_URL)("core schema", () => {
       "ingest_keys",
       "outcomes",
       "people",
+      "person_emails",
       "products",
       "reset_tokens",
       "rollup_daily",

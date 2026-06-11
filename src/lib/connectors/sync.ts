@@ -255,30 +255,55 @@ function identityMapKey(externalId: string, kind: string): string {
   return `${kind}:${externalId}`;
 }
 
+interface ResolvedIdentity {
+  id: string;
+  personId: string | null;
+  productId: string | null;
+}
+
 /**
- * Upsert a described identity. Tags overwrite (a key rename re-tags);
- * email/display name never regress to NULL; person_id keeps an existing
- * (possibly human-made) mapping, else auto-matches by email (spec 5).
+ * Auto-match by email, case-insensitive (spec 5). Resolve's remembered
+ * aliases come first (person_emails rows are explicit human decisions -
+ * confirms and merges, remembered forever), then the people roster, skipping
+ * anyone merged into someone else.
+ */
+function personByEmailSql(emailExpr: string): string {
+  return `COALESCE(
+    (SELECT pe.person_id FROM person_emails pe WHERE pe.email = lower(${emailExpr})),
+    (SELECT p.id FROM people p
+     WHERE lower(p.email) = lower(${emailExpr}) AND p.merged_into IS NULL
+     LIMIT 1)
+  )`;
+}
+
+/**
+ * Upsert a described identity. Tags overwrite (a key rename re-tags) while
+ * manual_tags survive; email/display name never regress to NULL; person_id
+ * keeps an existing (possibly human-made) mapping, else auto-matches by
+ * email (spec 5) - except for identities marked "not a person", whose
+ * person_id is never re-filled.
  */
 async function upsertIdentity(
   db: PoolClient,
   vendor: string,
   identity: IdentityInput,
-): Promise<{ id: string; personId: string | null }> {
+): Promise<ResolvedIdentity> {
   const { rows } = await db.query(
     `INSERT INTO identities (vendor, external_id, kind, email, display_name, tags, person_id)
-     VALUES ($1, $2, $3, $4, $5, $6,
-       (SELECT id FROM people WHERE lower(email) = lower($4) LIMIT 1))
+     VALUES ($1, $2, $3, $4, $5, $6, ${personByEmailSql("$4")})
      ON CONFLICT (vendor, external_id, kind) DO UPDATE SET
        email = COALESCE(EXCLUDED.email, identities.email),
        display_name = COALESCE(EXCLUDED.display_name, identities.display_name),
        tags = EXCLUDED.tags,
-       person_id = COALESCE(
-         identities.person_id,
-         (SELECT id FROM people WHERE lower(email) = lower(EXCLUDED.email) LIMIT 1)
-       ),
+       person_id = CASE
+         WHEN identities.not_person THEN NULL
+         ELSE COALESCE(
+           identities.person_id,
+           ${personByEmailSql("COALESCE(EXCLUDED.email, identities.email)")}
+         )
+       END,
        updated_at = now()
-     RETURNING id, person_id`,
+     RETURNING id, person_id, product_id`,
     [
       vendor,
       identity.externalId,
@@ -288,7 +313,7 @@ async function upsertIdentity(
       identity.tags ?? [],
     ],
   );
-  return { id: rows[0].id, personId: rows[0].person_id };
+  return { id: rows[0].id, personId: rows[0].person_id, productId: rows[0].product_id };
 }
 
 /**
@@ -300,15 +325,47 @@ async function ensureIdentity(
   db: PoolClient,
   vendor: string,
   ref: { externalId: string; kind: string },
-): Promise<{ id: string; personId: string | null }> {
+): Promise<ResolvedIdentity> {
   const { rows } = await db.query(
     `INSERT INTO identities (vendor, external_id, kind)
      VALUES ($1, $2, $3)
      ON CONFLICT (vendor, external_id, kind) DO UPDATE SET updated_at = identities.updated_at
-     RETURNING id, person_id`,
+     RETURNING id, person_id, product_id`,
     [vendor, ref.externalId, ref.kind],
   );
-  return { id: rows[0].id, personId: rows[0].person_id };
+  return { id: rows[0].id, personId: rows[0].person_id, productId: rows[0].product_id };
+}
+
+/**
+ * A match re-attributes the identity's FULL history, not just future spend
+ * (spec 4). Auto-matches that land late - the person was imported after some
+ * of the identity's history had synced (spec 8: self-created keys are
+ * auto-discovered) - pull that history in here. Only rows that disagree with
+ * the identity's current mapping are touched, so this is an idempotent
+ * consistency sweep: facts/metrics/outcomes always mirror their identity.
+ */
+async function reattributeIdentityHistory(
+  db: PoolClient,
+  resolved: ResolvedIdentity,
+): Promise<void> {
+  await db.query(
+    `UPDATE spend_facts
+     SET person_id = $2, product_id = COALESCE($3, product_id)
+     WHERE identity_id = $1
+       AND (person_id IS DISTINCT FROM $2
+         OR ($3::uuid IS NOT NULL AND product_id IS DISTINCT FROM $3))`,
+    [resolved.id, resolved.personId, resolved.productId],
+  );
+  await db.query(
+    `UPDATE usage_metrics SET person_id = $2
+     WHERE identity_id = $1 AND person_id IS DISTINCT FROM $2`,
+    [resolved.id, resolved.personId],
+  );
+  await db.query(
+    `UPDATE outcomes SET person_id = $2
+     WHERE identity_id = $1 AND person_id IS DISTINCT FROM $2`,
+    [resolved.id, resolved.personId],
+  );
 }
 
 /**
@@ -324,32 +381,37 @@ async function commitPage(
 ): Promise<number> {
   await db.query("BEGIN");
   try {
-    const idMap = new Map<string, { id: string; personId: string | null }>();
+    const idMap = new Map<string, ResolvedIdentity>();
     for (const identity of page.identities) {
-      idMap.set(
-        identityMapKey(identity.externalId, identity.kind),
-        await upsertIdentity(db, vendor, identity),
-      );
+      const resolved = await upsertIdentity(db, vendor, identity);
+      idMap.set(identityMapKey(identity.externalId, identity.kind), resolved);
+      if (resolved.personId !== null || resolved.productId !== null) {
+        // The upsert may have just auto-matched (a person imported after the
+        // identity's history synced): pull the full history in (spec 4).
+        await reattributeIdentityHistory(db, resolved);
+      }
     }
 
     for (const fact of page.facts) {
       validateFact(fact);
-      let resolved: { id: string; personId: string | null } | null = null;
+      let resolved: ResolvedIdentity | null = null;
       if (fact.identity) {
         const key = identityMapKey(fact.identity.externalId, fact.identity.kind);
         resolved = idMap.get(key) ?? (await ensureIdentity(db, vendor, fact.identity));
         idMap.set(key, resolved);
       }
-      // person_id NULL = the visible Unassigned bucket. product_id is left
-      // alone: tag->product routing owns it, and re-pulls must not clear it.
+      // person_id NULL = the visible Unassigned bucket. product_id follows
+      // the identity's routing (a key routes to at most one product, spec
+      // 7b); an identity with no routing never clears a fact's product.
       await db.query(
         `INSERT INTO spend_facts
-           (day, person_id, vendor, model, tokens, amount_cents, currency,
-            cost_basis, source_ref, identity_id)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+           (day, person_id, product_id, vendor, model, tokens, amount_cents,
+            currency, cost_basis, source_ref, identity_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
          ON CONFLICT (vendor, source_ref) DO UPDATE SET
            day = EXCLUDED.day,
            person_id = EXCLUDED.person_id,
+           product_id = COALESCE(EXCLUDED.product_id, spend_facts.product_id),
            model = EXCLUDED.model,
            tokens = EXCLUDED.tokens,
            amount_cents = EXCLUDED.amount_cents,
@@ -359,6 +421,7 @@ async function commitPage(
         [
           fact.day,
           resolved?.personId ?? null,
+          resolved?.productId ?? null,
           vendor,
           fact.model ?? null,
           fact.tokens ?? 0,
@@ -377,7 +440,7 @@ async function commitPage(
     const metrics = page.metrics ?? [];
     for (const metric of metrics) {
       validateMetric(metric);
-      let resolved: { id: string; personId: string | null } | null = null;
+      let resolved: ResolvedIdentity | null = null;
       if (metric.identity) {
         const key = identityMapKey(metric.identity.externalId, metric.identity.kind);
         resolved = idMap.get(key) ?? (await ensureIdentity(db, vendor, metric.identity));
@@ -412,7 +475,7 @@ async function commitPage(
     for (const outcome of outcomes) {
       validateOutcome(outcome);
       const productId = await resolveOutcomeProduct(db, outcome.kind, productCache);
-      let resolved: { id: string; personId: string | null } | null = null;
+      let resolved: ResolvedIdentity | null = null;
       if (outcome.identity) {
         const key = identityMapKey(outcome.identity.externalId, outcome.identity.kind);
         resolved = idMap.get(key) ?? (await ensureIdentity(db, vendor, outcome.identity));
@@ -421,8 +484,8 @@ async function commitPage(
       await db.query(
         `INSERT INTO outcomes
            (ts, product_id, person_id, kind, value_cents, currency,
-            source_ref, tools, meta)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb)
+            source_ref, tools, meta, identity_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10)
          ON CONFLICT (kind, source_ref) DO UPDATE SET
            ts = EXCLUDED.ts,
            product_id = EXCLUDED.product_id,
@@ -430,7 +493,8 @@ async function commitPage(
            value_cents = EXCLUDED.value_cents,
            currency = EXCLUDED.currency,
            tools = EXCLUDED.tools,
-           meta = EXCLUDED.meta`,
+           meta = EXCLUDED.meta,
+           identity_id = EXCLUDED.identity_id`,
         [
           outcome.ts,
           productId,
@@ -441,6 +505,7 @@ async function commitPage(
           outcome.sourceRef,
           outcome.tools ?? [],
           JSON.stringify(outcome.shas?.length ? { shas: outcome.shas } : {}),
+          resolved?.id ?? null,
         ],
       );
     }

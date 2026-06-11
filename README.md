@@ -34,6 +34,10 @@ Vendor connectors sync hourly with a stored cursor: full backfill to the vendor'
 
 **GitHub** connects with a classic PAT (`read:org`, `manage_billing:copilot`, `repo`; enterprise-owned orgs need an enterprise owner's PAT with `admin:enterprise` - per-user Copilot dollars then come from the enterprise billing API) and pulls the Copilot seat roster, per-user AI-credit dollars (GitHub's finest per-user grain is the calendar month, so facts land on the month bucket, `invoiced`; spend the report can't attribute to a current seat holder stays visible as Unassigned), per-user daily Copilot usage counters (interactions, code generations/acceptances - the accept-rate inputs), and merged PRs as outcomes: a merged PR counts on merge, AI authorship is detected from bot authors and commit co-author trailers (Claude, Copilot, Cursor, Devin, Codex), and a revert referencing a PR within the revert window (Settings, default 30 days) flips it and recomputes - after the window it's final. Seat fees are never invented or amortized.
 
+## Identity resolution
+
+Identities auto-match to people by email, case-insensitively, across all vendors; keys map via their vendor-side owner fields. Whatever can't be matched sits in the Resolve queue (`GET /api/resolve`) with explainable suggestions - same email handle, same name, or the same email/name already confirmed on another identity - never guessed scores. One click confirms a match (`POST /api/resolve/{id}/confirm`), re-attributes that identity's **full history** (facts, metrics, outcomes, rollups), and is remembered forever: the email becomes an alias, so the same email on any vendor auto-maps from then on. A key that isn't a person - a service account - routes to a product and/or a tag instead (`POST /api/resolve/{id}/not-person`) and auto-match never re-fills it. Two emails belonging to one human merge (`POST /api/resolve/merge`); the merged person archives, and their identities, history, and email follow the survivor. Spend with no person and no product stays visible per vendor as Unassigned - never dropped, never hidden.
+
 ## Development
 
 ```bash

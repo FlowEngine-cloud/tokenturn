@@ -4,6 +4,7 @@ import type {
   ConnectorPage,
   FactInput,
   IdentityInput,
+  OutcomeInput,
   ScopeCheck,
   SyncWindow,
 } from "../../src/lib/connectors/types";
@@ -21,6 +22,9 @@ import type {
  * - key rows -> an "api_key" identity; the key name becomes its tag.
  * - key rows with no name -> a bare fact reference; the framework
  *   auto-discovers a stub identity (keys people create on their own).
+ * - an optional "outcomes" array -> sdk_event outcomes credited to the
+ *   user's identity, so resolve tests can drive outcome re-attribution
+ *   through the same recorded-sync path as facts.
  */
 
 export const ACME_BASE = "https://api.acme.test";
@@ -132,9 +136,40 @@ function toPage(body: Record<string, unknown>): ConnectorPage {
       sourceRef: record.id,
     });
   }
+
+  const outcomes: OutcomeInput[] = [];
+  if (body.outcomes !== undefined) {
+    if (!Array.isArray(body.outcomes)) {
+      throw new Error('acme usage response: invalid "outcomes"');
+    }
+    for (const raw of body.outcomes) {
+      const event = raw as Record<string, unknown>;
+      if (
+        !event ||
+        typeof event.id !== "string" ||
+        typeof event.ts !== "string" ||
+        typeof event.user_email !== "string"
+      ) {
+        throw new Error(`acme outcome is malformed: ${JSON.stringify(raw)}`);
+      }
+      identities.set(`user:${event.user_email}`, {
+        externalId: event.user_email,
+        kind: "user",
+        email: event.user_email,
+      });
+      outcomes.push({
+        ts: event.ts,
+        kind: "sdk_event",
+        identity: { externalId: event.user_email, kind: "user" },
+        sourceRef: event.id,
+      });
+    }
+  }
+
   return {
     identities: [...identities.values()],
     facts,
+    outcomes,
     nextPageToken: body.next_page as string | null,
   };
 }
