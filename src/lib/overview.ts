@@ -2,6 +2,7 @@ import { getPool, type Db } from "./db";
 // The index import matters: it is what registers the built-in connectors,
 // so vendor search works no matter which route loads first.
 import { listConnectedRows, listConnectors } from "./connectors";
+import { assertDay, displayLateral, type TrendPoint } from "./display";
 import { invoiceDrift } from "./invoices";
 import { ResolveError } from "./resolve";
 import { fxExpr } from "./rollup";
@@ -22,21 +23,11 @@ import { getSetting } from "./settings";
  */
 
 export const VENDOR_RE = /^[a-z0-9][a-z0-9_.-]*$/;
-const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
-export function assertDay(name: string, value: string): void {
-  if (!DATE_RE.test(value)) {
-    throw new ResolveError(`${name} must be YYYY-MM-DD`, 400);
-  }
-}
-
-/** Per-day USD-cents -> display-currency-cents, as a LATERAL alias `d`.
- * $1 must be the display currency in every query that embeds this. */
-export function displayLateral(rowAlias: string): string {
-  return `CROSS JOIN LATERAL (
-    SELECT ${rowAlias}.amount_usd_cents::numeric / ${fxExpr("$1::text", `${rowAlias}.day`)} AS cents
-  ) d`;
-}
+// Shared with the people/products/tools readers via the leaf module
+// (display.ts) so they never import this file's connector registry.
+export { assertDay, displayLateral } from "./display";
+export type { TrendPoint } from "./display";
 
 export interface OverviewTotals {
   totalCents: number;
@@ -49,11 +40,6 @@ export interface OverviewTotals {
   /** assigned / total, one decimal; null when there is no spend. */
   coveragePct: number | null;
   factCount: number;
-}
-
-export interface TrendPoint {
-  day: string;
-  cents: number;
 }
 
 export interface VendorSpend {
@@ -423,6 +409,8 @@ export interface OutcomeFilters {
   /** Product uuid. */
   product?: string;
   kind?: string;
+  /** AI authorship tag on the outcome (outcomes.tools, spec 5). */
+  tool?: string;
   limit?: number;
   offset?: number;
 }
@@ -445,6 +433,8 @@ export interface OutcomeRow {
   productId: string;
   productName: string;
   identityExternalId: string | null;
+  /** AI authorship detected on the record (bot author, co-author trailers). */
+  tools: string[];
   revertedAt: string | null;
   revertSourceRef: string | null;
 }
@@ -487,6 +477,7 @@ export async function listOutcomes(
   }
   if (filters.product !== undefined) add("o.product_id = ?::uuid", filters.product);
   if (filters.kind !== undefined) add("o.kind = ?", filters.kind);
+  if (filters.tool !== undefined) add("? = ANY (o.tools)", filters.tool);
   const whereSql = where.length > 0 ? `WHERE ${where.join(" AND ")}` : "";
 
   const { rows: aggRows } = await db.query(
@@ -505,7 +496,7 @@ export async function listOutcomes(
             o.source_ref AS "sourceRef",
             o.person_id AS "personId", p.name AS "personName", p.email AS "personEmail",
             o.product_id AS "productId", pr.name AS "productName",
-            i.external_id AS "identityExternalId",
+            i.external_id AS "identityExternalId", o.tools,
             o.reverted_at AS "revertedAt", o.revert_source_ref AS "revertSourceRef"
      FROM outcomes o
      JOIN products pr ON pr.id = o.product_id
@@ -530,6 +521,120 @@ export async function listOutcomes(
     totalCount,
     liveCount,
     revertedCount: totalCount - liveCount,
+    limit,
+    offset,
+  };
+}
+
+// ---- drill-down: the raw usage_metrics behind any counter-derived number ----
+
+export interface MetricFilters {
+  from?: string;
+  to?: string;
+  vendor?: string;
+  /** One or more metric names (the Tools page accept-rate pair). */
+  metric?: string[];
+  /** Person uuid, or "unassigned" for person IS NULL. */
+  person?: string;
+  /** Identity uuid - the counters a single key/seat/user produced. */
+  key?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export interface MetricRow {
+  id: string;
+  day: string;
+  vendor: string;
+  metric: string;
+  value: number;
+  personId: string | null;
+  personName: string | null;
+  personEmail: string | null;
+  identityExternalId: string | null;
+  /** The vendor record behind the counter - what makes it drillable. */
+  sourceRef: string;
+}
+
+export interface MetricPage {
+  rows: MetricRow[];
+  /** Across the WHOLE filter - so a counter-derived number provably sums
+   * to the rows behind it (accept rates, vendor-estimated costs). */
+  totalCount: number;
+  totalValue: number;
+  /** Per-metric totals across the whole filter (the rate's inputs). */
+  byMetric: { metric: string; value: number; rowCount: number }[];
+  limit: number;
+  offset: number;
+}
+
+export async function listMetrics(
+  filters: MetricFilters = {},
+  db: Db = getPool(),
+): Promise<MetricPage> {
+  const params: unknown[] = [];
+  const where: string[] = [];
+  const add = (clause: string, value: unknown): void => {
+    params.push(value);
+    where.push(clause.replace("?", `$${params.length}`));
+  };
+
+  if (filters.from !== undefined) {
+    assertDay("from", filters.from);
+    add("m.day >= ?::date", filters.from);
+  }
+  if (filters.to !== undefined) {
+    assertDay("to", filters.to);
+    add("m.day <= ?::date", filters.to);
+  }
+  if (filters.vendor !== undefined) add("m.vendor = ?", filters.vendor);
+  if (filters.metric !== undefined && filters.metric.length > 0) {
+    add("m.metric = ANY (?)", filters.metric);
+  }
+  if (filters.person === "unassigned") {
+    where.push("m.person_id IS NULL");
+  } else if (filters.person !== undefined) {
+    add("m.person_id = ?::uuid", filters.person);
+  }
+  if (filters.key !== undefined) add("m.identity_id = ?::uuid", filters.key);
+  const whereSql = where.length > 0 ? `WHERE ${where.join(" AND ")}` : "";
+
+  const { rows: aggRows } = await db.query(
+    `SELECT m.metric, COUNT(*)::int AS count, COALESCE(SUM(m.value), 0)::bigint AS value
+     FROM usage_metrics m ${whereSql}
+     GROUP BY m.metric ORDER BY m.metric`,
+    params,
+  );
+
+  const limit = Math.min(filters.limit ?? FACT_PAGE_DEFAULT, FACT_PAGE_MAX);
+  const offset = filters.offset ?? 0;
+  const { rows } = await db.query(
+    `SELECT m.id::text AS id, m.day::text AS day, m.vendor, m.metric,
+            m.value::bigint AS value,
+            m.person_id AS "personId", p.name AS "personName", p.email AS "personEmail",
+            i.external_id AS "identityExternalId", m.source_ref AS "sourceRef"
+     FROM usage_metrics m
+     LEFT JOIN people p ON p.id = m.person_id
+     LEFT JOIN identities i ON i.id = m.identity_id
+     ${whereSql}
+     ORDER BY m.day DESC, m.metric, m.id DESC
+     LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+    [...params, limit, offset],
+  );
+
+  const byMetric = aggRows.map((row) => ({
+    metric: row.metric as string,
+    value: Number(row.value),
+    rowCount: Number(row.count),
+  }));
+  return {
+    rows: rows.map((row) => ({
+      ...(row as unknown as MetricRow),
+      value: Number(row.value),
+    })),
+    totalCount: byMetric.reduce((sum, m) => sum + m.rowCount, 0),
+    totalValue: byMetric.reduce((sum, m) => sum + m.value, 0),
+    byMetric,
     limit,
     offset,
   };

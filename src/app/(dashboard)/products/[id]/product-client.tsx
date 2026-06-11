@@ -1,0 +1,372 @@
+"use client";
+
+import Link from "next/link";
+import { useParams, useSearchParams } from "next/navigation";
+import { DataTable, type Column } from "@/components/data-table";
+import { RowLink, Tile } from "@/components/tile";
+import { TrendBars } from "@/components/trend-bars";
+import { Skeleton } from "@/components/ui/skeleton";
+import { formatCents, formatCount, shortDay } from "@/lib/format";
+import type {
+  ManualEntry,
+  ProductDailyRow,
+  ProductDetail,
+  ProductKeyRow,
+} from "@/lib/products";
+import { parseRange, withRange } from "@/lib/range";
+import { useFetch } from "@/lib/use-fetch";
+
+/**
+ * One product (spec 10 page 3 click-through): spend, outcomes and unit cost
+ * in the product's own unit, value and ROI where real, by vendor / person /
+ * day, the keys routed to it (spec 7b) and its manual entries. Every number
+ * links to the raw rows that sum to it.
+ */
+
+export function ProductSkeleton() {
+  return (
+    <div className="space-y-4">
+      <Skeleton className="h-7 w-64" />
+      <div className="grid gap-4 md:grid-cols-4">
+        <Skeleton className="h-28" />
+        <Skeleton className="h-28" />
+        <Skeleton className="h-28" />
+        <Skeleton className="h-28" />
+      </div>
+      <Skeleton className="h-40" />
+      <Skeleton className="h-64" />
+    </div>
+  );
+}
+
+export default function ProductClient() {
+  const { id } = useParams<{ id: string }>();
+  const searchParams = useSearchParams();
+  const range = parseRange(searchParams);
+  const { data, error } = useFetch<ProductDetail>(
+    `/api/products/${id}?from=${range.from}&to=${range.to}`,
+  );
+
+  if (error) {
+    return (
+      <div className="rounded-lg border border-destructive/50 p-4 text-destructive">
+        {error}
+      </div>
+    );
+  }
+  if (!data) return <ProductSkeleton />;
+
+  const ccy = data.displayCurrency;
+  const money = (cents: number) => formatCents(cents, ccy);
+  const drill = (query = "") =>
+    withRange(`/drill?product=${data.product.id}${query}`, range);
+  const outcomesDrill = withRange(
+    `/drill?view=outcomes&product=${data.product.id}`,
+    range,
+  );
+  const m = data.metrics;
+  const basisParts = (
+    [
+      ["estimated", m.spendByBasis.estimated],
+      ["invoiced", m.spendByBasis.invoiced],
+      ["manual", m.spendByBasis.manual],
+    ] as const
+  ).filter(([, cents]) => cents !== 0);
+
+  const keyColumns: Column<ProductKeyRow>[] = [
+    { key: "vendor", header: "Vendor", render: (r) => r.vendor, csv: (r) => r.vendor },
+    {
+      key: "key",
+      header: "Key / seat",
+      render: (r) => (
+        <span className="font-mono text-sm">{r.displayName ?? r.externalId}</span>
+      ),
+      csv: (r) => r.displayName ?? r.externalId,
+    },
+    {
+      key: "tags",
+      header: "Tags",
+      render: (r) =>
+        r.tags.length === 0 ? (
+          "–"
+        ) : (
+          <span className="flex flex-wrap gap-1">
+            {r.tags.map((tag) => (
+              <span key={tag} className="rounded-full border px-2 py-0.5 text-sm">
+                {tag}
+              </span>
+            ))}
+          </span>
+        ),
+      csv: (r) => r.tags.join(" "),
+    },
+    {
+      key: "lastUsed",
+      header: "Last used",
+      render: (r) => (r.lastUsedDay ? shortDay(r.lastUsedDay) : "never"),
+      csv: (r) => r.lastUsedDay,
+    },
+    {
+      key: "spend",
+      header: "Spend",
+      align: "right",
+      render: (r) => money(r.cents),
+      csv: (r) => (r.cents / 100).toFixed(2),
+    },
+  ];
+
+  const entryColumns: Column<ManualEntry>[] = [
+    { key: "month", header: "Month", render: (r) => r.month, csv: (r) => r.month },
+    { key: "kind", header: "Kind", render: (r) => r.kind, csv: (r) => r.kind },
+    {
+      key: "amount",
+      header: "Cost",
+      align: "right",
+      render: (r) =>
+        r.amountCents === null ? "–" : formatCents(r.amountCents, r.currency ?? "USD"),
+      csv: (r) => (r.amountCents === null ? null : (r.amountCents / 100).toFixed(2)),
+    },
+    {
+      key: "outcomes",
+      header: "Outcomes",
+      align: "right",
+      render: (r) => (r.outcomeCount === null ? "–" : formatCount(r.outcomeCount)),
+      csv: (r) => r.outcomeCount,
+    },
+    {
+      key: "value",
+      header: "Value / outcome",
+      align: "right",
+      render: (r) =>
+        r.valueCents === null ? "–" : formatCents(r.valueCents, r.valueCurrency ?? "USD"),
+      csv: (r) => (r.valueCents === null ? null : (r.valueCents / 100).toFixed(2)),
+    },
+    { key: "note", header: "Note", render: (r) => r.note ?? "–", csv: (r) => r.note },
+  ];
+
+  const dailyColumns: Column<ProductDailyRow>[] = [
+    { key: "day", header: "Day", render: (r) => r.day, csv: (r) => r.day },
+    { key: "vendor", header: "Vendor", render: (r) => r.vendor, csv: (r) => r.vendor },
+    {
+      key: "facts",
+      header: "Facts",
+      align: "right",
+      render: (r) => formatCount(r.factCount),
+      csv: (r) => r.factCount,
+    },
+    {
+      key: "tokens",
+      header: "Tokens",
+      align: "right",
+      render: (r) => (r.tokens > 0 ? formatCount(r.tokens) : "–"),
+      csv: (r) => r.tokens,
+    },
+    {
+      key: "spend",
+      header: "Spend",
+      align: "right",
+      render: (r) => money(r.cents),
+      csv: (r) => (r.cents / 100).toFixed(2),
+    },
+  ];
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <h1 className="text-lg font-semibold">{data.product.name}</h1>
+        <span className="text-sm text-muted-foreground">
+          {data.product.attribution} spend
+          {data.product.outcomeKind !== "none" &&
+            ` · ${data.product.outcomeKind} outcomes`}
+        </span>
+        {data.product.archivedAt !== null && (
+          <span className="rounded-full bg-yellow-500/15 px-2 py-0.5 text-sm font-medium text-yellow-500">
+            archived
+          </span>
+        )}
+        <span className="flex-1" />
+        {data.product.defaultValueCents !== null && (
+          <span className="text-sm text-muted-foreground">
+            default value{" "}
+            {formatCents(
+              data.product.defaultValueCents,
+              data.product.defaultValueCurrency ?? "USD",
+            )}
+            /outcome
+          </span>
+        )}
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <Tile title="Spend" href={drill()}>
+          <Link href={drill()} className="text-3xl font-semibold tabular-nums">
+            {money(m.spendCents)}
+          </Link>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {basisParts.length > 1
+              ? basisParts.map(([basis, cents]) => `${basis} ${money(cents)}`).join(" · ")
+              : `${formatCount(m.factCount)} facts`}
+          </p>
+        </Tile>
+        <Tile title="Outcomes" href={outcomesDrill}>
+          <Link href={outcomesDrill} className="text-3xl font-semibold tabular-nums">
+            {formatCount(m.outcomes)}
+          </Link>
+          <div className="mt-1 space-y-0.5 text-sm text-muted-foreground">
+            {data.outcomesByKind.map((k) => (
+              <RowLink
+                key={k.kind}
+                href={withRange(
+                  `/drill?view=outcomes&product=${data.product.id}&kind=${encodeURIComponent(k.kind)}`,
+                  range,
+                )}
+                label={k.kind}
+                value={formatCount(k.count)}
+              />
+            ))}
+            {m.revertedOutcomes > 0 && (
+              <p className="px-1 text-yellow-500">
+                {formatCount(m.revertedOutcomes)} reverted
+              </p>
+            )}
+          </div>
+        </Tile>
+        <Tile
+          title={m.unit !== null ? `${ccy} / ${m.unit}` : `${ccy} / active user`}
+          href={m.unit !== null ? outcomesDrill : drill()}
+        >
+          <p className="text-3xl font-semibold tabular-nums">
+            {(() => {
+              const cents = m.unit !== null ? m.unitCostCents : m.costPerUserCents;
+              return cents === null ? "–" : money(cents);
+            })()}
+          </p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {m.unit !== null
+              ? m.outcomes > 0
+                ? `spend ÷ ${formatCount(m.outcomes)} live`
+                : "no outcomes in range"
+              : m.activeUsers > 0
+                ? `spend ÷ ${formatCount(m.activeUsers)} active users`
+                : "no attributed users in range"}
+          </p>
+        </Tile>
+        <Tile title="ROI" href={outcomesDrill}>
+          <p className="text-3xl font-semibold tabular-nums">
+            {m.roi === null ? "–" : <span className="text-green-500">{m.roi}x</span>}
+          </p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {m.valueCents === null
+              ? "no recorded value"
+              : `${money(m.valueCents)} value ÷ spend`}
+          </p>
+        </Tile>
+      </div>
+
+      <Tile title="Trend">
+        <TrendBars
+          points={data.trend}
+          hrefFor={(day) => drill(`&day=${day}`)}
+          titleFor={(point) => `${shortDay(point.day)} · ${money(point.cents)}`}
+        />
+        <div className="mt-2 flex justify-between text-sm text-muted-foreground">
+          <span>{shortDay(range.from)}</span>
+          <span>{shortDay(range.to)}</span>
+        </div>
+      </Tile>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Tile title="By vendor" href={drill()}>
+          <div className="space-y-1">
+            {data.byVendor.length === 0 && (
+              <p className="py-2 text-sm text-muted-foreground">
+                No spend in this range.
+              </p>
+            )}
+            {data.byVendor.map((v) => (
+              <RowLink
+                key={v.vendor}
+                href={drill(`&vendor=${v.vendor}`)}
+                label={v.vendor}
+                sub={`${formatCount(v.factCount)} facts`}
+                value={money(v.cents)}
+              />
+            ))}
+          </div>
+        </Tile>
+        <Tile title="By person">
+          <div className="space-y-1">
+            {data.byPerson.length === 0 && (
+              <p className="py-2 text-sm text-muted-foreground">
+                No attributed spend or outcomes in this range.
+              </p>
+            )}
+            {data.byPerson.map((p) => (
+              <RowLink
+                key={p.personId ?? "none"}
+                href={drill(`&person=${p.personId ?? "unassigned"}`)}
+                label={
+                  p.personId === null ? "No person" : (p.name ?? p.email ?? p.personId)
+                }
+                sub={
+                  p.outcomeCount > 0
+                    ? `${formatCount(p.outcomeCount)} outcomes`
+                    : undefined
+                }
+                value={money(p.cents)}
+              />
+            ))}
+          </div>
+        </Tile>
+      </div>
+
+      {data.keys.length > 0 && (
+        <section className="space-y-2">
+          <h2 className="text-sm font-medium text-muted-foreground">
+            Keys routed here
+          </h2>
+          <DataTable
+            columns={keyColumns}
+            rows={data.keys}
+            rowKey={(r) => r.id}
+            csvName="ai-pnl-product-keys.csv"
+            rowHref={(r) => withRange(`/keys/${r.id}`, range)}
+            maxHeightClass="max-h-96"
+          />
+        </section>
+      )}
+
+      {data.manualEntries.length > 0 && (
+        <section className="space-y-2">
+          <h2 className="text-sm font-medium text-muted-foreground">
+            Manual entries
+          </h2>
+          <DataTable
+            columns={entryColumns}
+            rows={data.manualEntries}
+            rowKey={(r) => r.id}
+            csvName="ai-pnl-product-manual-entries.csv"
+            rowHref={(r) =>
+              r.kind === "cost"
+                ? `/drill?product=${data.product.id}&vendor=manual&day=${r.month}-01&from=${r.month}-01&to=${r.month}-01`
+                : `/drill?view=outcomes&product=${data.product.id}&kind=manual&from=${r.month}-01&to=${r.month}-01`
+            }
+            maxHeightClass="max-h-96"
+          />
+        </section>
+      )}
+
+      <section className="space-y-2">
+        <h2 className="text-sm font-medium text-muted-foreground">Daily breakdown</h2>
+        <DataTable
+          columns={dailyColumns}
+          rows={data.daily}
+          rowKey={(r) => `${r.day}:${r.vendor}`}
+          csvName="ai-pnl-product-daily.csv"
+          rowHref={(r) => drill(`&day=${r.day}&vendor=${r.vendor}`)}
+          maxHeightClass="max-h-96"
+        />
+      </section>
+    </div>
+  );
+}

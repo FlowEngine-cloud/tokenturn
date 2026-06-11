@@ -3,19 +3,27 @@
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { NAV_ITEMS } from "@/components/shell/nav";
+import { NAV_ITEMS, RESOLVE_CHANGED_EVENT } from "@/components/shell/nav";
 import { DAY_RE } from "@/lib/range";
 import { cn } from "@/lib/utils";
 
 /**
  * Cross-page nav (spec 10). Links carry the active date range so the global
- * picker survives navigation. Resolve shows the live queue badge until the
- * queue is empty.
+ * picker survives navigation. Resolve shows the live queue badge (queue +
+ * tag conflicts, spec 7b) until both are empty; queue mutations announce
+ * themselves so the badge drains without a navigation.
  */
 export function Sidebar() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [resolveCount, setResolveCount] = useState<number>(0);
+  const [version, setVersion] = useState(0);
+
+  useEffect(() => {
+    const bump = () => setVersion((v) => v + 1);
+    window.addEventListener(RESOLVE_CHANGED_EVENT, bump);
+    return () => window.removeEventListener(RESOLVE_CHANGED_EVENT, bump);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -23,14 +31,15 @@ export function Sidebar() {
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (!cancelled && data && Array.isArray(data.queue)) {
-          setResolveCount(data.queue.length);
+          const conflicts = Array.isArray(data.conflicts) ? data.conflicts.length : 0;
+          setResolveCount(data.queue.length + conflicts);
         }
       })
       .catch(() => {});
     return () => {
       cancelled = true;
     };
-  }, [pathname]);
+  }, [pathname, version]);
 
   const from = searchParams.get("from");
   const to = searchParams.get("to");

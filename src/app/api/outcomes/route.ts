@@ -43,6 +43,11 @@ export async function GET(req: Request) {
     if (kind.length < 1 || kind.length > 100) return badRequest("bad kind");
     filters.kind = kind;
   }
+  const tool = params.get("tool");
+  if (tool !== null) {
+    if (tool.length < 1 || tool.length > 100) return badRequest("bad tool");
+    filters.tool = tool;
+  }
   for (const key of ["limit", "offset"] as const) {
     const value = params.get(key);
     if (value === null) continue;

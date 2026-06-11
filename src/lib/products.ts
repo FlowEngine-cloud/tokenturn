@@ -2,8 +2,12 @@ import type { Pool } from "pg";
 import { getPool, type Db } from "./db";
 import { unknownCurrencies } from "./fx";
 import { logger } from "./logger";
+import { assertDay, displayLateral, type TrendPoint } from "./display";
+import { rangeDays } from "./range";
 import { ResolveError } from "./resolve";
 import { fxExpr, recomputeRollups } from "./rollup";
+import { getSetting } from "./settings";
+import { effectiveTagsSql } from "./tag-sql";
 
 /**
  * Products = cost centers (spec section 7). A product is anything that
@@ -264,47 +268,46 @@ export interface DayRange {
   to?: string;
 }
 
+/**
+ * The unit a product measures itself in (spec 7: $/merge, $/ticket, $/user).
+ * github_pr products count merges; an event product whose live outcomes are
+ * all one named kind uses that name ("ticket_resolved"); anything mixed or
+ * hand-counted is a plain "outcome". null = no outcome metric at all - the
+ * product shows cost per active user instead, never a fake ROI.
+ */
+export function productUnit(
+  outcomeKind: OutcomeKind,
+  liveKinds: string[],
+): string | null {
+  if (outcomeKind === "none") return null;
+  if (outcomeKind === "github_pr") return "merge";
+  if (liveKinds.length === 1 && liveKinds[0] !== "manual") return liveKinds[0];
+  return "outcome";
+}
+
 export interface ProductMetrics {
-  /** From the daily rollups, normalized to USD cents. */
-  spendUsdCents: number;
+  /** From the daily rollups, in the org's display currency. */
+  spendCents: number;
   spendByBasis: { estimated: number; invoiced: number; manual: number };
+  factCount: number;
   /** Live outcomes; reverted ones sit in revertedOutcomes, never counted. */
   outcomes: number;
   /** How many of those carry an explicit value (the rest use the default). */
   valuedOutcomes: number;
   revertedOutcomes: number;
   /** spend / outcomes over the range; null when there are no outcomes. */
-  unitCostUsdCents: number | null;
+  unitCostCents: number | null;
+  /** What one unit is called; null = no outcome metric (cost/user instead). */
+  unit: string | null;
   /** Explicit values + the product default for unvalued outcomes; null when
    * neither exists - no fake ROI (spec 7). */
-  valueUsdCents: number | null;
+  valueCents: number | null;
   /** value / spend, 2 decimals; null when value or spend is missing. */
   roi: number | null;
-}
-
-export interface ProductFact {
-  day: string;
-  vendor: string;
-  model: string | null;
-  tokens: number;
-  amountCents: number;
-  currency: string;
-  costBasis: string;
-  /** Vendor record id - or, for manual rows, the manual entry's id. */
-  sourceRef: string;
-  identityExternalId: string | null;
-  personEmail: string | null;
-}
-
-export interface ProductOutcome {
-  ts: string;
-  kind: string;
-  count: number;
-  valueCents: number | null;
-  currency: string | null;
-  sourceRef: string;
-  personEmail: string | null;
-  revertedAt: string | null;
+  /** People with spend attributed on this product in range. */
+  activeUsers: number;
+  /** spend / activeUsers; null when nobody's spend is attributed. */
+  costPerUserCents: number | null;
 }
 
 export interface ManualEntry {
@@ -320,124 +323,352 @@ export interface ManualEntry {
   updatedAt: string;
 }
 
+export interface ProductVendorSpend {
+  vendor: string;
+  cents: number;
+  factCount: number;
+}
+
+export interface ProductPersonRow {
+  /** null = spend with no person on this product (shared keys, agents,
+   * manual entries) - never hidden. */
+  personId: string | null;
+  name: string | null;
+  email: string | null;
+  cents: number;
+  factCount: number;
+  /** Live outcomes this person earned for the product in range. */
+  outcomeCount: number;
+}
+
+export interface ProductDailyRow {
+  day: string;
+  vendor: string;
+  cents: number;
+  factCount: number;
+  tokens: number;
+}
+
+export interface ProductKeyRow {
+  id: string;
+  vendor: string;
+  externalId: string;
+  kind: string;
+  displayName: string | null;
+  tags: string[];
+  /** Spend this key produced in range (raw facts - rollups carry no key
+   * grain; equals the /drill?key= total by construction). */
+  cents: number;
+  factCount: number;
+  /** All-time last fact day - null = never used. */
+  lastUsedDay: string | null;
+}
+
+export interface ProductOutcomeKind {
+  kind: string;
+  count: number;
+}
+
 export interface ProductDetail {
+  displayCurrency: string;
+  from: string | null;
+  to: string | null;
   product: Product;
   metrics: ProductMetrics;
-  /** The drill-down: the rows behind every number above, range-bounded. */
-  facts: ProductFact[];
-  outcomes: ProductOutcome[];
+  outcomesByKind: ProductOutcomeKind[];
+  byVendor: ProductVendorSpend[];
+  byPerson: ProductPersonRow[];
+  trend: TrendPoint[];
+  daily: ProductDailyRow[];
+  /** Keys routed to this product (identities.product_id, spec 7b). */
+  keys: ProductKeyRow[];
   manualEntries: ManualEntry[];
 }
 
-const RANGE_WHERE = `($2::date IS NULL OR day >= $2) AND ($3::date IS NULL OR day <= $3)`;
+interface OutcomeStats {
+  outcomes: number;
+  valued: number;
+  reverted: number;
+  explicitDisplay: number;
+  defaultDisplay: number;
+  byKind: ProductOutcomeKind[];
+}
+
+/** Apply the no-fake-ROI rule (spec 7): value exists when an outcome carries
+ * an explicit value or the product default covers the unvalued ones. */
+function valueAndRoi(
+  product: Pick<Product, "defaultValueCents">,
+  stats: Pick<OutcomeStats, "outcomes" | "valued" | "explicitDisplay" | "defaultDisplay">,
+  spendCents: number,
+): { valueCents: number | null; roi: number | null } {
+  const hasValue =
+    stats.valued > 0 ||
+    (product.defaultValueCents !== null && stats.outcomes > stats.valued);
+  const valueCents = hasValue
+    ? Math.round(stats.explicitDisplay + stats.defaultDisplay)
+    : null;
+  return {
+    valueCents,
+    roi:
+      valueCents !== null && spendCents > 0
+        ? Math.round((valueCents / spendCents) * 100) / 100
+        : null,
+  };
+}
+
+function assertRange(range: DayRange): void {
+  if (range.from !== undefined) assertDay("from", range.from);
+  if (range.to !== undefined) assertDay("to", range.to);
+  if (range.from && range.to && range.from > range.to) {
+    throw new ResolveError(`from ${range.from} is after to ${range.to}`, 400);
+  }
+}
+
+const FX_MISSING = (currency: string) =>
+  new ResolveError(
+    `no FX rate for the display currency ${currency} - sync FX rates first`,
+    409,
+  );
+
+/** Per-day display-currency value of explicit outcome values plus the
+ * product default for unvalued ones - the read-time default-value math.
+ * Expects $1 = display currency and (defCents, defCcy) param slots. */
+function outcomeValueSql(
+  alias: string,
+  defCents: string,
+  defCcy: string,
+): { explicit: string; fallback: string } {
+  return {
+    explicit: `${alias}.value_usd_cents / ${fxExpr("$1::text", `${alias}.day`)}`,
+    fallback: `(${alias}.outcome_count - ${alias}.valued_count) * ${defCents}::bigint
+      * ${fxExpr(`${defCcy}::text`, `${alias}.day`)} / ${fxExpr("$1::text", `${alias}.day`)}`,
+  };
+}
+
+const LIVE_SQL = "kind NOT LIKE '%:reverted'";
 
 /**
- * One product with its metrics over the selected range. Chart numbers come
- * from the rollups; the facts/outcomes arrays are the raw rows behind them,
- * so every displayed number drills to its source (spec 3). Archived products
- * stay fully readable - history never disappears.
+ * One product over the selected range (spec 10 page 3 click-through), in the
+ * org's display currency: spend by basis/vendor/person/day, its outcomes and
+ * unit cost in its own unit, value and ROI, the keys routed to it, and its
+ * manual entries. Every number equals listFacts/listOutcomes under the drill
+ * filter the UI links it to (spec 3). Archived products stay fully readable -
+ * history never disappears.
  */
 export async function productDetail(
   id: string,
   range: DayRange = {},
   db: Db = getPool(),
 ): Promise<ProductDetail> {
+  assertRange(range);
   const { rows: products } = await db.query(
     `SELECT ${PRODUCT_COLUMNS} FROM products p WHERE p.id = $1`,
     [id],
   );
   if (products.length === 0) throw new ResolveError("product not found", 404);
   const product = toProduct(products[0]);
-  const args = [id, range.from ?? null, range.to ?? null];
 
-  const { rows: spendRows } = await db.query(
-    `SELECT cost_basis AS basis, SUM(amount_usd_cents)::bigint AS amount
-     FROM rollup_daily WHERE product_id = $1 AND ${RANGE_WHERE}
-     GROUP BY cost_basis`,
-    args,
+  const displayCurrency = await getSetting("display_currency", db);
+  const params = [displayCurrency, range.from ?? null, range.to ?? null, id];
+  const rangeSql = `($2::date IS NULL OR r.day >= $2) AND ($3::date IS NULL OR r.day <= $3)`;
+
+  // Daily breakdown per vendor - the rollups at full grain for this product.
+  const { rows: dailyRows } = await db.query(
+    `SELECT r.day::text AS day, r.vendor,
+            ROUND(SUM(d.cents))::bigint AS cents,
+            SUM(r.fact_count)::int AS facts,
+            SUM(r.tokens)::bigint AS tokens,
+            COALESCE(BOOL_OR(d.cents IS NULL), false) AS fx_missing
+     FROM rollup_daily r
+     ${displayLateral("r")}
+     WHERE ${rangeSql} AND r.product_id = $4
+     GROUP BY r.day, r.vendor
+     ORDER BY r.day DESC, r.vendor`,
+    params,
+  );
+  if (dailyRows.some((row) => row.fx_missing)) throw FX_MISSING(displayCurrency);
+  const daily: ProductDailyRow[] = dailyRows.map((row) => ({
+    day: row.day,
+    vendor: row.vendor,
+    cents: Number(row.cents),
+    factCount: Number(row.facts),
+    tokens: Number(row.tokens),
+  }));
+
+  // By-vendor, totals and the trend, derived from the same daily rows so
+  // the views can never disagree.
+  const byVendorMap = new Map<string, ProductVendorSpend>();
+  const trendMap = new Map<string, number>();
+  let spendCents = 0;
+  let factCount = 0;
+  for (const row of daily) {
+    spendCents += row.cents;
+    factCount += row.factCount;
+    const vendor = byVendorMap.get(row.vendor) ?? {
+      vendor: row.vendor,
+      cents: 0,
+      factCount: 0,
+    };
+    vendor.cents += row.cents;
+    vendor.factCount += row.factCount;
+    byVendorMap.set(row.vendor, vendor);
+    trendMap.set(row.day, (trendMap.get(row.day) ?? 0) + row.cents);
+  }
+  const byVendor = [...byVendorMap.values()].sort(
+    (a, b) => b.cents - a.cents || a.vendor.localeCompare(b.vendor),
+  );
+  // Trend axis: the picker range; for an all-time read, the data's own span.
+  const from = range.from ?? daily.at(-1)?.day ?? null;
+  const to = range.to ?? daily[0]?.day ?? null;
+  const trend: TrendPoint[] =
+    from !== null && to !== null
+      ? rangeDays(from, to).map((day) => ({ day, cents: trendMap.get(day) ?? 0 }))
+      : [];
+
+  const { rows: basisRows } = await db.query(
+    `SELECT r.cost_basis AS basis, ROUND(SUM(d.cents))::bigint AS cents
+     FROM rollup_daily r
+     ${displayLateral("r")}
+     WHERE ${rangeSql} AND r.product_id = $4
+     GROUP BY r.cost_basis`,
+    params,
   );
   const spendByBasis = { estimated: 0, invoiced: 0, manual: 0 };
-  for (const row of spendRows) {
-    spendByBasis[row.basis as keyof typeof spendByBasis] = Number(row.amount);
+  for (const row of basisRows) {
+    spendByBasis[row.basis as keyof typeof spendByBasis] = Number(row.cents);
   }
-  const spendUsdCents =
-    spendByBasis.estimated + spendByBasis.invoiced + spendByBasis.manual;
 
-  // Live vs reverted split, plus the read-time default-value math: explicit
-  // values roll up in value_usd_cents; outcomes without one (outcome_count -
-  // valued_count) take the product's default, FX-converted on their day.
-  const { rows: outcomeRows } = await db.query(
-    `SELECT
-       COALESCE(SUM(ro.outcome_count) FILTER (WHERE ro.kind NOT LIKE '%:reverted'), 0)::int
-         AS outcomes,
-       COALESCE(SUM(ro.valued_count) FILTER (WHERE ro.kind NOT LIKE '%:reverted'), 0)::int
-         AS valued,
-       SUM(ro.value_usd_cents) FILTER (WHERE ro.kind NOT LIKE '%:reverted')::bigint
-         AS explicit_value,
-       COALESCE(SUM(ro.outcome_count) FILTER (WHERE ro.kind LIKE '%:reverted'), 0)::int
-         AS reverted,
-       ROUND(SUM(
-         (ro.outcome_count - ro.valued_count) * $4::bigint
-           * ${fxExpr("$5::text", "ro.day")}
-       ) FILTER (WHERE ro.kind NOT LIKE '%:reverted'))::bigint AS default_value
-     FROM rollup_outcomes_daily ro
-     WHERE ro.product_id = $1
-       AND ($2::date IS NULL OR ro.day >= $2) AND ($3::date IS NULL OR ro.day <= $3)`,
-    [...args, product.defaultValueCents, product.defaultValueCurrency],
+  // Outcomes per kind, live vs reverted, with the read-time default-value
+  // math (explicit values roll up in value_usd_cents; outcomes without one
+  // take the product default, FX-converted on their day).
+  const value = outcomeValueSql("r", "$5", "$6");
+  const { rows: kindRows } = await db.query(
+    `SELECT CASE WHEN r.${LIVE_SQL} THEN r.kind
+            ELSE left(r.kind, -length(':reverted')) END AS kind,
+            (r.${LIVE_SQL}) AS live,
+            SUM(r.outcome_count)::int AS outcomes,
+            SUM(r.valued_count)::int AS valued,
+            SUM(${value.explicit}) AS explicit_display,
+            SUM(${value.fallback}) AS default_display,
+            COALESCE(BOOL_OR((${fxExpr("$1::text", "r.day")}) IS NULL
+              OR ($6::text IS NOT NULL
+                  AND (${fxExpr("$6::text", "r.day")}) IS NULL)), false) AS fx_missing
+     FROM rollup_outcomes_daily r
+     WHERE ${rangeSql} AND r.product_id = $4
+     GROUP BY 1, 2 ORDER BY 3 DESC, 1`,
+    [...params, product.defaultValueCents, product.defaultValueCurrency],
   );
-  const o = outcomeRows[0];
-  const outcomes = o.outcomes as number;
-  const valuedOutcomes = o.valued as number;
-  const explicit = o.explicit_value === null ? 0 : Number(o.explicit_value);
-  const defaultPart = o.default_value === null ? 0 : Number(o.default_value);
-  // Value is defined when any outcome carries an explicit value, or the
-  // product default covers the unvalued ones. Otherwise null - plain cost
-  // per outcome, no fake ROI (spec 7: the Company Brain case).
-  const hasValue =
-    valuedOutcomes > 0 ||
-    (product.defaultValueCents !== null && outcomes > valuedOutcomes);
-  const valueUsdCents = hasValue ? explicit + defaultPart : null;
-  const metrics: ProductMetrics = {
-    spendUsdCents,
-    spendByBasis,
-    outcomes,
-    valuedOutcomes,
-    revertedOutcomes: o.reverted as number,
-    unitCostUsdCents: outcomes > 0 ? Math.round(spendUsdCents / outcomes) : null,
-    valueUsdCents,
-    roi:
-      valueUsdCents !== null && spendUsdCents > 0
-        ? Math.round((valueUsdCents / spendUsdCents) * 100) / 100
-        : null,
+  if (kindRows.some((row) => row.fx_missing)) throw FX_MISSING(displayCurrency);
+  const stats: OutcomeStats = {
+    outcomes: 0,
+    valued: 0,
+    reverted: 0,
+    explicitDisplay: 0,
+    defaultDisplay: 0,
+    byKind: [],
   };
+  for (const row of kindRows) {
+    if (row.live) {
+      stats.outcomes += Number(row.outcomes);
+      stats.valued += Number(row.valued);
+      stats.explicitDisplay += Number(row.explicit_display ?? 0);
+      stats.defaultDisplay += Number(row.default_display ?? 0);
+      stats.byKind.push({ kind: row.kind, count: Number(row.outcomes) });
+    } else {
+      stats.reverted += Number(row.outcomes);
+    }
+  }
 
-  const { rows: facts } = await db.query(
-    `SELECT f.day::text AS day, f.vendor, f.model, f.tokens::int AS tokens,
-            f.amount_cents::int AS "amountCents", f.currency,
-            f.cost_basis AS "costBasis", f.source_ref AS "sourceRef",
-            i.external_id AS "identityExternalId", pe.email AS "personEmail"
-     FROM spend_facts f
-     LEFT JOIN identities i ON i.id = f.identity_id
-     LEFT JOIN people pe ON pe.id = f.person_id
-     WHERE f.product_id = $1
-       AND ($2::date IS NULL OR f.day >= $2) AND ($3::date IS NULL OR f.day <= $3)
-     ORDER BY f.day DESC, f.source_ref`,
-    args,
+  // By person: spend (rollup person grain) merged with live outcomes - the
+  // person NULL row is shared/agent/manual spend, visible, never dropped.
+  const { rows: personSpend } = await db.query(
+    `SELECT r.person_id AS "personId", p.name, p.email,
+            ROUND(SUM(d.cents))::bigint AS cents,
+            SUM(r.fact_count)::int AS facts
+     FROM rollup_daily r
+     LEFT JOIN people p ON p.id = r.person_id
+     ${displayLateral("r")}
+     WHERE ${rangeSql} AND r.product_id = $4
+     GROUP BY r.person_id, p.name, p.email`,
+    params,
   );
+  const { rows: personOutcomes } = await db.query(
+    `SELECT r.person_id AS "personId", p.name, p.email,
+            SUM(r.outcome_count)::int AS outcomes
+     FROM rollup_outcomes_daily r
+     LEFT JOIN people p ON p.id = r.person_id
+     WHERE ($1::date IS NULL OR r.day >= $1) AND ($2::date IS NULL OR r.day <= $2)
+       AND r.product_id = $3 AND r.${LIVE_SQL}
+     GROUP BY r.person_id, p.name, p.email`,
+    [range.from ?? null, range.to ?? null, id],
+  );
+  const byPersonMap = new Map<string | null, ProductPersonRow>();
+  const personRow = (row: {
+    personId: string | null;
+    name: string | null;
+    email: string | null;
+  }): ProductPersonRow => {
+    let entry = byPersonMap.get(row.personId);
+    if (!entry) {
+      entry = {
+        personId: row.personId,
+        name: row.name,
+        email: row.email,
+        cents: 0,
+        factCount: 0,
+        outcomeCount: 0,
+      };
+      byPersonMap.set(row.personId, entry);
+    }
+    return entry;
+  };
+  for (const row of personSpend) {
+    const entry = personRow(row);
+    entry.cents = Number(row.cents);
+    entry.factCount = Number(row.facts);
+  }
+  for (const row of personOutcomes) {
+    personRow(row).outcomeCount = Number(row.outcomes);
+  }
+  const byPerson = [...byPersonMap.values()].sort(
+    (a, b) =>
+      b.cents - a.cents ||
+      b.outcomeCount - a.outcomeCount ||
+      (a.email ?? "￿").localeCompare(b.email ?? "￿"),
+  );
+  const activeUsers = byPerson.filter(
+    (row) => row.personId !== null && row.factCount > 0,
+  ).length;
 
-  const { rows: outcomeDrill } = await db.query(
-    `SELECT o.ts, o.kind, o.count::int AS count,
-            o.value_cents::int AS "valueCents", o.currency,
-            o.source_ref AS "sourceRef", pe.email AS "personEmail",
-            o.reverted_at AS "revertedAt"
-     FROM outcomes o
-     LEFT JOIN people pe ON pe.id = o.person_id
-     WHERE o.product_id = $1
-       AND ($2::date IS NULL OR (o.ts AT TIME ZONE 'UTC')::date >= $2)
-       AND ($3::date IS NULL OR (o.ts AT TIME ZONE 'UTC')::date <= $3)
-     ORDER BY o.ts DESC, o.source_ref`,
-    args,
+  // Keys routed to this product, with the spend they produced in range and
+  // their all-time last use. Raw facts - rollups carry no key grain, so the
+  // number IS its own drill (/drill?key=).
+  const factDisplaySql = `f.amount_cents::numeric * ${fxExpr("f.currency", "f.day")}
+    / ${fxExpr("$1::text", "f.day")}`;
+  const { rows: keyRows } = await db.query(
+    `SELECT i.id, i.vendor, i.external_id AS "externalId", i.kind,
+            i.display_name AS "displayName",
+            ${effectiveTagsSql("i")} AS tags,
+            COALESCE(ROUND(s.cents), 0)::bigint AS cents,
+            COALESCE(s.facts, 0)::int AS facts,
+            u.last_day::text AS "lastUsedDay",
+            COALESCE(s.fx_missing, false) AS fx_missing
+     FROM identities i
+     LEFT JOIN LATERAL (
+       SELECT SUM(${factDisplaySql}) AS cents, COUNT(*)::int AS facts,
+              BOOL_OR((${factDisplaySql}) IS NULL) AS fx_missing
+       FROM spend_facts f
+       WHERE f.identity_id = i.id
+         AND ($2::date IS NULL OR f.day >= $2) AND ($3::date IS NULL OR f.day <= $3)
+     ) s ON true
+     LEFT JOIN LATERAL (
+       SELECT MAX(f.day) AS last_day FROM spend_facts f WHERE f.identity_id = i.id
+     ) u ON true
+     WHERE i.product_id = $4
+     ORDER BY i.vendor, i.kind, i.external_id`,
+    params,
   );
+  if (keyRows.some((row) => row.fx_missing)) throw FX_MISSING(displayCurrency);
 
   const { rows: entries } = await db.query(
     `SELECT id, kind, to_char(month, 'YYYY-MM') AS month,
@@ -449,22 +680,237 @@ export async function productDetail(
     [id],
   );
 
+  const metrics: ProductMetrics = {
+    spendCents,
+    spendByBasis,
+    factCount,
+    outcomes: stats.outcomes,
+    valuedOutcomes: stats.valued,
+    revertedOutcomes: stats.reverted,
+    unitCostCents:
+      stats.outcomes > 0 ? Math.round(spendCents / stats.outcomes) : null,
+    unit: productUnit(
+      product.outcomeKind,
+      stats.byKind.map((k) => k.kind),
+    ),
+    ...valueAndRoi(product, stats, spendCents),
+    activeUsers,
+    costPerUserCents:
+      activeUsers > 0 ? Math.round(spendCents / activeUsers) : null,
+  };
+
   return {
+    displayCurrency,
+    from,
+    to,
     product,
     metrics,
-    facts: facts as ProductFact[],
-    outcomes: outcomeDrill.map((row) => ({
-      ...(row as unknown as ProductOutcome),
-      ts: new Date(row.ts as string).toISOString(),
-      revertedAt: row.revertedAt
-        ? new Date(row.revertedAt as string).toISOString()
-        : null,
+    outcomesByKind: stats.byKind,
+    byVendor,
+    byPerson,
+    trend,
+    daily,
+    keys: keyRows.map((row) => ({
+      id: row.id,
+      vendor: row.vendor,
+      externalId: row.externalId,
+      kind: row.kind,
+      displayName: row.displayName,
+      tags: [...new Set(row.tags as string[])],
+      cents: Number(row.cents),
+      factCount: Number(row.facts),
+      lastUsedDay: row.lastUsedDay,
     })),
     manualEntries: entries.map((row) => ({
       ...(row as unknown as ManualEntry),
       updatedAt: new Date(row.updatedAt as string).toISOString(),
     })),
   };
+}
+
+// ---- the Products page (spec 10 page 3): every cost center at a glance ----
+
+export interface ProductViewRow {
+  id: string;
+  name: string;
+  attribution: Attribution;
+  outcomeKind: OutcomeKind;
+  spendCents: number;
+  factCount: number;
+  /** Live outcomes in range; reverted ones never count (spec 5). */
+  outcomeCount: number;
+  revertedCount: number;
+  unitCostCents: number | null;
+  /** What one unit is called ($/merge, $/ticket_resolved); null = no
+   * outcome metric - costPerUserCents is the product's number instead. */
+  unit: string | null;
+  valueCents: number | null;
+  roi: number | null;
+  activeUsers: number;
+  costPerUserCents: number | null;
+  /** Per-day cents over the range's days, zero-filled (sparkline). */
+  trend: number[];
+}
+
+export interface ProductsViewData {
+  displayCurrency: string;
+  from: string;
+  to: string;
+  days: string[];
+  products: ProductViewRow[];
+}
+
+/**
+ * Per cost center over the range: spend and its own metric in its own unit
+ * ($/merge, $/ticket, $/user) - manual products included. Archived products
+ * leave this view (spec 4); their history stays in every drill-down. Every
+ * number equals listFacts/listOutcomes under the product's drill filter.
+ */
+export async function productsView(
+  range: { from: string; to: string },
+  db: Db = getPool(),
+): Promise<ProductsViewData> {
+  assertDay("from", range.from);
+  assertDay("to", range.to);
+  if (range.from > range.to) {
+    throw new ResolveError(`from ${range.from} is after to ${range.to}`, 400);
+  }
+  const displayCurrency = await getSetting("display_currency", db);
+  const params = [displayCurrency, range.from, range.to];
+
+  const { rows: roster } = await db.query(
+    `SELECT ${PRODUCT_COLUMNS} FROM products p
+     WHERE p.archived_at IS NULL ORDER BY lower(p.name)`,
+  );
+  const products = roster.map(toProduct);
+
+  const { rows: spendRows } = await db.query(
+    `SELECT r.product_id AS "productId",
+            ROUND(SUM(d.cents))::bigint AS cents,
+            SUM(r.fact_count)::int AS facts,
+            COUNT(DISTINCT r.person_id) FILTER (WHERE r.person_id IS NOT NULL)::int
+              AS users,
+            COALESCE(BOOL_OR(d.cents IS NULL), false) AS fx_missing
+     FROM rollup_daily r
+     JOIN products p ON p.id = r.product_id AND p.archived_at IS NULL
+     ${displayLateral("r")}
+     WHERE r.day BETWEEN $2::date AND $3::date
+     GROUP BY r.product_id`,
+    params,
+  );
+  if (spendRows.some((row) => row.fx_missing)) throw FX_MISSING(displayCurrency);
+
+  const { rows: trendRows } = await db.query(
+    `SELECT r.product_id AS "productId", r.day::text AS day,
+            ROUND(SUM(d.cents))::bigint AS cents
+     FROM rollup_daily r
+     JOIN products p ON p.id = r.product_id AND p.archived_at IS NULL
+     ${displayLateral("r")}
+     WHERE r.day BETWEEN $2::date AND $3::date
+     GROUP BY r.product_id, r.day`,
+    params,
+  );
+
+  const value = outcomeValueSql("r", "p.default_value_cents", "p.default_value_currency");
+  const { rows: outcomeRows } = await db.query(
+    `SELECT r.product_id AS "productId",
+            CASE WHEN r.${LIVE_SQL} THEN r.kind
+            ELSE left(r.kind, -length(':reverted')) END AS kind,
+            (r.${LIVE_SQL}) AS live,
+            SUM(r.outcome_count)::int AS outcomes,
+            SUM(r.valued_count)::int AS valued,
+            SUM(${value.explicit}) AS explicit_display,
+            SUM(${value.fallback}) AS default_display,
+            COALESCE(BOOL_OR((${fxExpr("$1::text", "r.day")}) IS NULL
+              OR (p.default_value_currency IS NOT NULL
+                  AND (${fxExpr("p.default_value_currency", "r.day")}) IS NULL)),
+              false) AS fx_missing
+     FROM rollup_outcomes_daily r
+     JOIN products p ON p.id = r.product_id AND p.archived_at IS NULL
+     WHERE r.day BETWEEN $2::date AND $3::date
+     GROUP BY r.product_id, 2, 3`,
+    params,
+  );
+  if (outcomeRows.some((row) => row.fx_missing)) throw FX_MISSING(displayCurrency);
+
+  const days = rangeDays(range.from, range.to);
+  const dayIndex = new Map(days.map((day, i) => [day, i]));
+  const statsByProduct = new Map<string, OutcomeStats>();
+  for (const row of outcomeRows) {
+    const stats = statsByProduct.get(row.productId) ?? {
+      outcomes: 0,
+      valued: 0,
+      reverted: 0,
+      explicitDisplay: 0,
+      defaultDisplay: 0,
+      byKind: [],
+    };
+    if (row.live) {
+      stats.outcomes += Number(row.outcomes);
+      stats.valued += Number(row.valued);
+      stats.explicitDisplay += Number(row.explicit_display ?? 0);
+      stats.defaultDisplay += Number(row.default_display ?? 0);
+      stats.byKind.push({ kind: row.kind, count: Number(row.outcomes) });
+    } else {
+      stats.reverted += Number(row.outcomes);
+    }
+    statsByProduct.set(row.productId, stats);
+  }
+  const spendByProduct = new Map(spendRows.map((row) => [row.productId, row]));
+  const trendByProduct = new Map<string, number[]>();
+  for (const row of trendRows) {
+    const index = dayIndex.get(row.day);
+    if (index === undefined) continue;
+    let trend = trendByProduct.get(row.productId);
+    if (!trend) {
+      trend = days.map(() => 0);
+      trendByProduct.set(row.productId, trend);
+    }
+    trend[index] += Number(row.cents);
+  }
+
+  const rows: ProductViewRow[] = products.map((product) => {
+    const spend = spendByProduct.get(product.id);
+    const stats = statsByProduct.get(product.id) ?? {
+      outcomes: 0,
+      valued: 0,
+      reverted: 0,
+      explicitDisplay: 0,
+      defaultDisplay: 0,
+      byKind: [],
+    };
+    const spendCents = spend ? Number(spend.cents) : 0;
+    const activeUsers = spend ? Number(spend.users) : 0;
+    return {
+      id: product.id,
+      name: product.name,
+      attribution: product.attribution,
+      outcomeKind: product.outcomeKind,
+      spendCents,
+      factCount: spend ? Number(spend.facts) : 0,
+      outcomeCount: stats.outcomes,
+      revertedCount: stats.reverted,
+      unitCostCents:
+        stats.outcomes > 0 ? Math.round(spendCents / stats.outcomes) : null,
+      unit: productUnit(
+        product.outcomeKind,
+        stats.byKind.map((k) => k.kind),
+      ),
+      ...valueAndRoi(product, stats, spendCents),
+      activeUsers,
+      costPerUserCents:
+        activeUsers > 0 ? Math.round(spendCents / activeUsers) : null,
+      trend: trendByProduct.get(product.id) ?? days.map(() => 0),
+    };
+  });
+  rows.sort(
+    (a, b) =>
+      b.spendCents - a.spendCents ||
+      b.outcomeCount - a.outcomeCount ||
+      a.name.localeCompare(b.name),
+  );
+
+  return { displayCurrency, from: range.from, to: range.to, days, products: rows };
 }
 
 export type ManualEntryInput =

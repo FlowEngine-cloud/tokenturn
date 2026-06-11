@@ -26,6 +26,18 @@ export function addDays(day: string, delta: number): string {
   return utcDay(date);
 }
 
+/** Every UTC day in [from, to], ascending - the trend axis. */
+export function rangeDays(from: string, to: string): string[] {
+  const days: string[] = [];
+  const cursor = new Date(`${from}T00:00:00Z`);
+  const end = new Date(`${to}T00:00:00Z`);
+  while (cursor <= end) {
+    days.push(utcDay(cursor));
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+  return days;
+}
+
 /** Trailing N days ending today (UTC), inclusive. */
 export function trailingRange(days: number, now: Date = new Date()): DateRange {
   const to = utcDay(now);

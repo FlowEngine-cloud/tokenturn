@@ -325,7 +325,7 @@ describe.runIf(TEST_DATABASE_URL)("ingest API (spec 6)", () => {
     const { metrics } = await detail.json();
     expect(metrics.outcomes).toBe(2);
     expect(metrics.valuedOutcomes).toBe(1);
-    expect(metrics.valueUsdCents).toBe(500);
+    expect(metrics.valueCents).toBe(500);
   });
 
   it("a late roster import re-attributes the identity's full history", async () => {

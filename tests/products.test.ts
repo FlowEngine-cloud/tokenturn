@@ -6,12 +6,14 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { GET as productRoute, PATCH as productPatchRoute } from "../src/app/api/products/[id]/route";
 import { PUT as manualPutRoute } from "../src/app/api/products/[id]/manual/route";
 import { GET as productsRoute, POST as productsPostRoute } from "../src/app/api/products/route";
+import { GET as productsViewRoute } from "../src/app/api/products/view/route";
 import { PATCH as tagPatchRoute } from "../src/app/api/tags/[tag]/route";
 import { createSession, SESSION_COOKIE } from "../src/lib/auth";
 import { connectConnector } from "../src/lib/connectors/connect";
 import { clearConnectors, registerConnector } from "../src/lib/connectors/registry";
 import { runSync } from "../src/lib/connectors/sync";
 import { closePool } from "../src/lib/db";
+import { listFacts, listOutcomes } from "../src/lib/overview";
 import { recomputeRollups } from "../src/lib/rollup";
 import { clearSecretKeyCache } from "../src/lib/secrets";
 import { runMigrations } from "../scripts/migrate.mjs";
@@ -196,27 +198,49 @@ describe.runIf(TEST_DATABASE_URL)("products (spec 7)", () => {
     expect(await routed.json()).toMatchObject({ routedIdentities: 1, facts: 2 });
 
     const body = await detail(supportBotId);
+    expect(body.displayCurrency).toBe("USD");
     expect(body.metrics).toEqual({
-      spendUsdCents: 5000,
+      spendCents: 5000,
       spendByBasis: { estimated: 5000, invoiced: 0, manual: 0 },
+      factCount: 2,
       outcomes: 0,
       valuedOutcomes: 0,
       revertedOutcomes: 0,
-      unitCostUsdCents: null,
-      valueUsdCents: null,
+      unitCostCents: null,
+      unit: "outcome",
+      valueCents: null,
       roi: null,
+      activeUsers: 0,
+      costPerUserCents: null,
     });
-    // The drill-down: exactly the vendor rows behind the number, newest
-    // first - Dana's own (non-product) usage is not among them.
-    expect(body.facts).toEqual([
-      { day: "2026-06-02", vendor: VENDOR, model: "claude-sonnet-4", tokens: 8000, amountCents: 2000, currency: "USD", costBasis: "estimated", sourceRef: "p_sb_2", identityExternalId: "key_sb", personEmail: null },
-      { day: "2026-05-20", vendor: VENDOR, model: "claude-sonnet-4", tokens: 10000, amountCents: 3000, currency: "USD", costBasis: "estimated", sourceRef: "p_sb_1", identityExternalId: "key_sb", personEmail: null },
+    expect(body.byVendor).toEqual([{ vendor: VENDOR, cents: 5000, factCount: 2 }]);
+    // Routed spend is person-less: the visible "No person" row, never hidden.
+    expect(body.byPerson).toEqual([
+      {
+        personId: null,
+        name: null,
+        email: null,
+        cents: 5000,
+        factCount: 2,
+        outcomeCount: 0,
+      },
     ]);
-    const drillSum = body.facts.reduce(
-      (sum: number, f: { amountCents: number }) => sum + f.amountCents,
-      0,
-    );
-    expect(drillSum).toBe(body.metrics.spendUsdCents);
+    // The key that routes here, with its all-time last use.
+    expect(body.keys).toEqual([
+      expect.objectContaining({
+        vendor: VENDOR,
+        externalId: "key_sb",
+        cents: 5000,
+        factCount: 2,
+        lastUsedDay: "2026-06-02",
+      }),
+    ]);
+    // The drill-down behind the number (/drill?product=): exactly the
+    // vendor rows, newest first - Dana's own (non-product) usage absent.
+    const drill = await listFacts({ product: supportBotId }, pool);
+    expect(drill.rows.map((f) => f.sourceRef)).toEqual(["p_sb_2", "p_sb_1"]);
+    expect(drill.totalDisplayCents).toBe(body.metrics.spendCents);
+    expect(drill.totalCount).toBe(body.metrics.factCount);
   });
 
   it("manual outcomes: the product's default value applies; an entry value overrides it", async () => {
@@ -244,8 +268,8 @@ describe.runIf(TEST_DATABASE_URL)("products (spec 7)", () => {
     expect(body.metrics).toMatchObject({
       outcomes: 40,
       valuedOutcomes: 0,
-      unitCostUsdCents: 125, // 5000 / 40
-      valueUsdCents: 18000, // 40 x 450 default
+      unitCostCents: 125, // 5000 / 40
+      valueCents: 18000, // 40 x 450 default
       roi: 3.6,
     });
 
@@ -264,15 +288,19 @@ describe.runIf(TEST_DATABASE_URL)("products (spec 7)", () => {
     expect(body.metrics).toMatchObject({
       outcomes: 50,
       valuedOutcomes: 10,
-      unitCostUsdCents: 100, // 5000 / 50
-      valueUsdCents: 23000, // 40 x 450 default + 10 x 500 explicit
+      unitCostCents: 100, // 5000 / 50
+      valueCents: 23000, // 40 x 450 default + 10 x 500 explicit
       roi: 4.6,
     });
-    // The drill-down: one row per entry, count-carrying, pointing AT the
-    // entry (source_ref = the manual entry's id), not at vendor rows.
-    expect(body.outcomes).toEqual([
-      { ts: "2026-06-01T00:00:00.000Z", kind: "manual", count: 10, valueCents: 500, currency: "USD", sourceRef: juneEntryId, personEmail: null, revertedAt: null },
-      { ts: "2026-05-01T00:00:00.000Z", kind: "manual", count: 40, valueCents: null, currency: null, sourceRef: mayEntryId, personEmail: null, revertedAt: null },
+    expect(body.outcomesByKind).toEqual([{ kind: "manual", count: 50 }]);
+    // The drill-down (/drill?view=outcomes&product=): one row per entry,
+    // count-carrying, pointing AT the entry (source_ref = the manual
+    // entry's id), not at vendor rows.
+    const drill = await listOutcomes({ product: supportBotId }, pool);
+    expect(drill.liveCount).toBe(body.metrics.outcomes);
+    expect(drill.rows).toEqual([
+      expect.objectContaining({ ts: "2026-06-01T00:00:00.000Z", kind: "manual", count: 10, valueCents: 500, currency: "USD", sourceRef: juneEntryId, revertedAt: null }),
+      expect.objectContaining({ ts: "2026-05-01T00:00:00.000Z", kind: "manual", count: 40, valueCents: null, currency: null, sourceRef: mayEntryId, revertedAt: null }),
     ]);
     expect(body.manualEntries.map((e: { id: string }) => e.id)).toEqual([
       juneEntryId,
@@ -287,7 +315,7 @@ describe.runIf(TEST_DATABASE_URL)("products (spec 7)", () => {
     );
     expect(raise.status).toBe(200);
     expect((await detail(supportBotId)).metrics).toMatchObject({
-      valueUsdCents: 25000, // 40 x 500 + 10 x 500
+      valueCents: 25000, // 40 x 500 + 10 x 500
       roi: 5,
     });
 
@@ -302,7 +330,7 @@ describe.runIf(TEST_DATABASE_URL)("products (spec 7)", () => {
     expect((await detail(supportBotId)).metrics).toMatchObject({
       outcomes: 50,
       valuedOutcomes: 10,
-      valueUsdCents: 5000,
+      valueCents: 5000,
       roi: 1,
     });
 
@@ -314,16 +342,22 @@ describe.runIf(TEST_DATABASE_URL)("products (spec 7)", () => {
   });
 
   it("unit cost = spend / outcomes over the SELECTED range", async () => {
-    const body = await detail(supportBotId, "?from=2026-06-01&to=2026-06-30");
+    const range = { from: "2026-06-01", to: "2026-06-30" };
+    const body = await detail(supportBotId, `?from=${range.from}&to=${range.to}`);
     expect(body.metrics).toMatchObject({
-      spendUsdCents: 2000,
+      spendCents: 2000,
       outcomes: 10,
-      unitCostUsdCents: 200, // 2000 / 10
-      valueUsdCents: 5000,
+      unitCostCents: 200, // 2000 / 10
+      valueCents: 5000,
       roi: 2.5,
     });
-    expect(body.facts.map((f: { sourceRef: string }) => f.sourceRef)).toEqual(["p_sb_2"]);
-    expect(body.outcomes).toHaveLength(1);
+    // The range-bounded drills agree exactly.
+    const facts = await listFacts({ ...range, product: supportBotId }, pool);
+    expect(facts.rows.map((f) => f.sourceRef)).toEqual(["p_sb_2"]);
+    expect(facts.totalDisplayCents).toBe(body.metrics.spendCents);
+    const outcomes = await listOutcomes({ ...range, product: supportBotId }, pool);
+    expect(outcomes.rows).toHaveLength(1);
+    expect(outcomes.liveCount).toBe(body.metrics.outcomes);
   });
 
   it("a correction rewrites the month in place - never a duplicate", async () => {
@@ -342,12 +376,11 @@ describe.runIf(TEST_DATABASE_URL)("products (spec 7)", () => {
     const body = await detail(supportBotId);
     expect(body.metrics).toMatchObject({
       outcomes: 54,
-      unitCostUsdCents: 93, // 5000 / 54
-      valueUsdCents: 24800, // 44 x 450 + 10 x 500
+      unitCostCents: 93, // 5000 / 54
+      valueCents: 24800, // 44 x 450 + 10 x 500
     });
-    const mayRows = body.outcomes.filter(
-      (o: { sourceRef: string }) => o.sourceRef === mayEntryId,
-    );
+    const drill = await listOutcomes({ product: supportBotId }, pool);
+    const mayRows = drill.rows.filter((o) => o.sourceRef === mayEntryId);
     expect(mayRows).toEqual([expect.objectContaining({ count: 44 })]);
   });
 
@@ -364,20 +397,26 @@ describe.runIf(TEST_DATABASE_URL)("products (spec 7)", () => {
     brainEntryId = (await res.json()).entry.id;
 
     let body = await detail(brainId);
-    // Plain cost, no outcomes, no fake ROI (spec 7: the Company Brain case).
+    // Plain cost, no outcomes, no fake ROI (spec 7: the Company Brain
+    // case) - and no outcome metric means no unit, never an invented one.
     expect(body.metrics).toEqual({
-      spendUsdCents: 20000,
+      spendCents: 20000,
       spendByBasis: { estimated: 0, invoiced: 0, manual: 20000 },
+      factCount: 1,
       outcomes: 0,
       valuedOutcomes: 0,
       revertedOutcomes: 0,
-      unitCostUsdCents: null,
-      valueUsdCents: null,
+      unitCostCents: null,
+      unit: null,
+      valueCents: null,
       roi: null,
+      activeUsers: 0,
+      costPerUserCents: null,
     });
     // Marked manual, drilling to the entry - not vendor rows.
-    expect(body.facts).toEqual([
-      { day: "2026-05-01", vendor: "manual", model: null, tokens: 0, amountCents: 20000, currency: "USD", costBasis: "manual", sourceRef: brainEntryId, identityExternalId: null, personEmail: null },
+    const drill = await listFacts({ product: brainId }, pool);
+    expect(drill.rows).toEqual([
+      expect.objectContaining({ day: "2026-05-01", vendor: "manual", model: null, tokens: 0, amountCents: 20000, currency: "USD", costBasis: "manual", sourceRef: brainEntryId, identityExternalId: null, personEmail: null }),
     ]);
     expect(body.manualEntries).toEqual([
       expect.objectContaining({
@@ -412,8 +451,8 @@ describe.runIf(TEST_DATABASE_URL)("products (spec 7)", () => {
     expect(fixed.status).toBe(200);
     expect((await fixed.json()).entry.id).toBe(brainEntryId);
     body = await detail(brainId);
-    expect(body.metrics.spendUsdCents).toBe(25000);
-    expect(body.facts).toHaveLength(1);
+    expect(body.metrics.spendCents).toBe(25000);
+    expect((await listFacts({ product: brainId }, pool)).totalCount).toBe(1);
 
     // And the list totals stay rollup-true.
     const list = await productsRoute(getJson("/api/products", viewerCookie));
@@ -479,14 +518,14 @@ describe.runIf(TEST_DATABASE_URL)("products (spec 7)", () => {
     expect(body.metrics).toMatchObject({
       outcomes: 54,
       revertedOutcomes: 5,
-      unitCostUsdCents: 93,
-      valueUsdCents: 24800,
+      unitCostCents: 93,
+      valueCents: 24800,
     });
     // Still visible in the drill-down, flagged.
-    const reverted = body.outcomes.find(
-      (o: { sourceRef: string }) => o.sourceRef === "m_rev_1",
-    );
+    const drill = await listOutcomes({ product: supportBotId }, pool);
+    const reverted = drill.rows.find((o) => o.sourceRef === "m_rev_1");
     expect(reverted).toMatchObject({ count: 5, revertedAt: "2026-06-04T00:00:00.000Z" });
+    expect(drill.revertedCount).toBe(body.metrics.revertedOutcomes);
   });
 
   it("archive leaves current views; history and drill-downs stay intact", async () => {
@@ -497,11 +536,18 @@ describe.runIf(TEST_DATABASE_URL)("products (spec 7)", () => {
     expect(archived.status).toBe(200);
     expect((await archived.json()).product.archivedAt).not.toBeNull();
 
-    // Gone from current views...
+    // Gone from current views - the catalog AND the Products page...
     const list = await productsRoute(getJson("/api/products", viewerCookie));
     expect((await (await list).json()).products.map((p: { name: string }) => p.name)).toEqual([
       "Support Bot",
     ]);
+    const view = await productsViewRoute(
+      getJson("/api/products/view?from=2026-05-01&to=2026-06-30", viewerCookie),
+    );
+    expect(view.status).toBe(200);
+    expect(
+      (await view.json()).products.map((p: { name: string }) => p.name),
+    ).toEqual(["Support Bot"]);
     // ...visible on request...
     const all = await productsRoute(getJson("/api/products?archived=1", viewerCookie));
     expect((await all.json()).products.map((p: { name: string }) => p.name)).toEqual([
@@ -510,8 +556,8 @@ describe.runIf(TEST_DATABASE_URL)("products (spec 7)", () => {
     ]);
     // ...history fully readable...
     const body = await detail(brainId);
-    expect(body.metrics.spendUsdCents).toBe(25000);
-    expect(body.facts).toHaveLength(1);
+    expect(body.metrics.spendCents).toBe(25000);
+    expect((await listFacts({ product: brainId }, pool)).totalCount).toBe(1);
     // ...but no new entries while archived.
     const entry = await manualPutRoute(
       putJson(
@@ -532,6 +578,65 @@ describe.runIf(TEST_DATABASE_URL)("products (spec 7)", () => {
     expect((await restored.json()).product.archivedAt).toBeNull();
     const again = await productsRoute(getJson("/api/products", viewerCookie));
     expect((await again.json()).products).toHaveLength(2);
+  });
+
+  it("the Products page: spend, each product's own metric in its own unit", async () => {
+    const res = await productsViewRoute(
+      getJson("/api/products/view?from=2026-05-01&to=2026-06-30", viewerCookie),
+    );
+    expect(res.status).toBe(200);
+    const view = await res.json();
+    expect(view.displayCurrency).toBe("USD");
+    expect(view.products).toEqual([
+      // Company Brain: manual cost, no outcome metric - plain cost, no
+      // fake unit, no fake ROI (spec 7).
+      expect.objectContaining({
+        name: "Company Brain",
+        attribution: "manual",
+        spendCents: 25000,
+        outcomeCount: 0,
+        unit: null,
+        unitCostCents: null,
+        valueCents: null,
+        roi: null,
+        activeUsers: 0,
+        costPerUserCents: null,
+      }),
+      // Support Bot: $ per hand-counted outcome, reverted ones excluded.
+      expect.objectContaining({
+        name: "Support Bot",
+        spendCents: 5000,
+        outcomeCount: 54,
+        revertedCount: 5,
+        unitCostCents: 93,
+        unit: "outcome",
+        valueCents: 24800,
+        roi: 4.96,
+      }),
+    ]);
+    // Every row equals its drill (spec 3) - the page's numbers are proofs.
+    for (const row of view.products) {
+      const facts = await listFacts(
+        { from: "2026-05-01", to: "2026-06-30", product: row.id },
+        pool,
+      );
+      expect(facts.totalDisplayCents).toBe(row.spendCents);
+      expect(facts.totalCount).toBe(row.factCount);
+      const outcomes = await listOutcomes(
+        { from: "2026-05-01", to: "2026-06-30", product: row.id },
+        pool,
+      );
+      expect(outcomes.liveCount).toBe(row.outcomeCount);
+      expect(outcomes.revertedCount).toBe(row.revertedCount);
+    }
+
+    for (const query of ["?from=junk", "?from=2026-06-10&to=2026-06-01"]) {
+      const bad = await productsViewRoute(
+        getJson(`/api/products/view${query}`, viewerCookie),
+      );
+      expect(bad.status).toBe(400);
+    }
+    expect((await productsViewRoute(getJson("/api/products/view"))).status).toBe(401);
   });
 
   it("rejects bad requests with the precise reason", async () => {

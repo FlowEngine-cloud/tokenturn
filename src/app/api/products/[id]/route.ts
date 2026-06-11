@@ -32,9 +32,10 @@ function readRange(req: Request): DayRange | Response {
 }
 
 /**
- * One product: spend, outcomes, unit cost, value and ROI over the selected
- * range - with the raw rows behind every number (facts, outcomes, manual
- * entries). Archived products stay fully readable.
+ * One product over the selected range, in the display currency: spend by
+ * basis/vendor/person/day, outcomes by kind, unit cost in the product's own
+ * unit, value, ROI, the keys routed to it, and its manual entries - every
+ * number equal to its drill filter. Archived products stay fully readable.
  */
 export async function GET(
   req: Request,

@@ -4,6 +4,7 @@ import {
   displayLateral,
   type TrendPoint,
 } from "./overview";
+import { rangeDays } from "./range";
 import { ResolveError } from "./resolve";
 import { fxExpr } from "./rollup";
 import { getSetting } from "./settings";
@@ -65,17 +66,6 @@ export interface PeopleListData {
   /** The trend axis - every UTC day in range, ascending. */
   days: string[];
   people: PersonListRow[];
-}
-
-function rangeDays(from: string, to: string): string[] {
-  const days: string[] = [];
-  const cursor = new Date(`${from}T00:00:00Z`);
-  const end = new Date(`${to}T00:00:00Z`);
-  while (cursor <= end) {
-    days.push(cursor.toISOString().slice(0, 10));
-    cursor.setUTCDate(cursor.getUTCDate() + 1);
-  }
-  return days;
 }
 
 export async function listPeople(

@@ -4,16 +4,25 @@ import { useSearchParams } from "next/navigation";
 import { DataTable, type Column } from "@/components/data-table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCents, formatCentsSigned, formatCount } from "@/lib/format";
-import type { FactPage, FactRow, OutcomePage, OutcomeRow, SyncRunRow } from "@/lib/overview";
+import type {
+  FactPage,
+  FactRow,
+  MetricPage,
+  MetricRow,
+  OutcomePage,
+  OutcomeRow,
+  SyncRunRow,
+} from "@/lib/overview";
 import { parseRange } from "@/lib/range";
 import { useFetch } from "@/lib/use-fetch";
 
 /**
  * The drill-down page every tile clicks through to (spec 3: every number
- * drills to the vendor rows behind it). Three views over raw rows:
- * facts (spend_facts), runs (sync_runs), invoices (imported invoices with
- * their drift). Sticky header, CSV export, totals across the whole filter
- * so the page proves it sums to the tile it came from.
+ * drills to the vendor rows behind it). Views over raw rows: facts
+ * (spend_facts), outcomes, metrics (vendor usage counters), runs
+ * (sync_runs), invoices (imported invoices with their drift). Sticky
+ * header, CSV export, totals across the whole filter so the page proves it
+ * sums to the tile it came from.
  */
 
 interface InvoiceRow {
@@ -177,6 +186,12 @@ function OutcomesView({ query, chips }: { query: string; chips: string[] }) {
       csv: (r) => r.personEmail,
     },
     {
+      key: "tools",
+      header: "Tools",
+      render: (r) => (r.tools.length > 0 ? r.tools.join(", ") : "–"),
+      csv: (r) => r.tools.join(" "),
+    },
+    {
       key: "value",
       header: "Value",
       align: "right",
@@ -225,6 +240,82 @@ function OutcomesView({ query, chips }: { query: string; chips: string[] }) {
         note={
           data.rows.length === data.limit
             ? `first ${formatCount(data.rows.length)} rows - narrow the filter for the rest`
+            : undefined
+        }
+      />
+    </div>
+  );
+}
+
+function MetricsView({ query, chips }: { query: string; chips: string[] }) {
+  const { data, error } = useFetch<MetricPage>(`/api/metrics?${query}&limit=1000`);
+  if (error) return <ErrorBox message={error} />;
+  if (!data) return <DrillSkeletonBlock />;
+
+  const columns: Column<MetricRow>[] = [
+    { key: "day", header: "Day", render: (r) => r.day, csv: (r) => r.day },
+    { key: "vendor", header: "Vendor", render: (r) => r.vendor, csv: (r) => r.vendor },
+    { key: "metric", header: "Metric", render: (r) => r.metric, csv: (r) => r.metric },
+    {
+      key: "value",
+      header: "Value",
+      align: "right",
+      render: (r) => formatCount(r.value),
+      csv: (r) => r.value,
+    },
+    {
+      key: "person",
+      header: "Person",
+      render: (r) =>
+        r.personId ? (
+          (r.personName ?? r.personEmail)
+        ) : (
+          <span className="text-muted-foreground">Unassigned</span>
+        ),
+      csv: (r) => r.personEmail ?? (r.personId ? r.personId : "unassigned"),
+    },
+    {
+      key: "identity",
+      header: "Key / user",
+      render: (r) => (
+        <span className="block max-w-48 truncate font-mono text-sm">
+          {r.identityExternalId ?? "–"}
+        </span>
+      ),
+      csv: (r) => r.identityExternalId,
+    },
+    {
+      key: "ref",
+      header: "Source ref",
+      render: (r) => (
+        <span className="block max-w-56 truncate font-mono text-sm" title={r.sourceRef}>
+          {r.sourceRef}
+        </span>
+      ),
+      csv: (r) => r.sourceRef,
+    },
+  ];
+
+  return (
+    <div className="space-y-3">
+      <Header
+        chips={chips}
+        summary={
+          data.byMetric.length === 0
+            ? "No counters match"
+            : `${data.byMetric
+                .map((m) => `${m.metric} ${formatCount(m.value)}`)
+                .join(" · ")} across ${formatCount(data.totalCount)} rows`
+        }
+      />
+      <DataTable
+        columns={columns}
+        rows={data.rows}
+        rowKey={(r) => r.id}
+        csvName="ai-pnl-metrics.csv"
+        note={
+          data.rows.length < data.totalCount
+            ? `first ${formatCount(data.rows.length)} of ${formatCount(data.totalCount)} - narrow the filter for the rest`
             : undefined
         }
       />
@@ -396,8 +487,10 @@ export default function DrillClient() {
   const query = new URLSearchParams({ from: range.from, to: range.to });
   const keys =
     view === "outcomes"
-      ? (["person", "product", "kind"] as const)
-      : (["day", "vendor", "person", "product", "key", "model", "basis"] as const);
+      ? (["person", "product", "kind", "tool"] as const)
+      : view === "metrics"
+        ? (["vendor", "metric", "person", "key"] as const)
+        : (["day", "vendor", "person", "product", "key", "model", "basis"] as const);
   for (const key of keys) {
     const value = searchParams.get(key);
     if (!value) continue;
@@ -405,6 +498,7 @@ export default function DrillClient() {
     if (key === "person" && value === "unassigned") chips.push("Unassigned");
     else if (key === "product" && value === "none") chips.push("No product");
     else if (key === "model" && value === "none") chips.push("No model");
+    else if (key === "metric") chips.push(value);
     else chips.push(`${key}: ${value.length > 12 ? `${value.slice(0, 8)}…` : value}`);
   }
 
@@ -422,6 +516,9 @@ export default function DrillClient() {
   }
   if (view === "outcomes") {
     return <OutcomesView query={query.toString()} chips={chips} />;
+  }
+  if (view === "metrics") {
+    return <MetricsView query={query.toString()} chips={chips} />;
   }
   return <FactsView query={query.toString()} chips={chips} />;
 }

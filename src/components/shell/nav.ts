@@ -9,6 +9,10 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+/** Fired by the Resolve page after a queue mutation so the sidebar badge
+ * refetches without a navigation. */
+export const RESOLVE_CHANGED_EVENT = "ai-pnl:resolve-changed";
+
 /** The dashboard's pages (spec 10) - one definition for the sidebar and the
  * cmd-K "Pages" group. */
 export interface NavItem {

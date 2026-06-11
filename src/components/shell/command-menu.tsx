@@ -94,7 +94,7 @@ export function CommandMenu() {
           group: "Products",
           label: p.name,
           sub: p.archived ? "archived" : undefined,
-          href: withRange(`/drill?product=${p.id}`, range),
+          href: withRange(`/products/${p.id}`, range),
         }),
       ),
       ...results.vendors.map(

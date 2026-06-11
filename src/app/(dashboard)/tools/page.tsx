@@ -1,15 +1,12 @@
-import { Wrench } from "lucide-react";
-import { EmptyState } from "@/components/empty-state";
+import { Suspense } from "react";
+import ToolsClient, { ToolsSkeleton } from "./tools-client";
 
-/** Spec 10 page 4 - built in its own loop. */
+/** Tools (spec 10 page 4): cost per merged PR per tool per person, accept
+ * rates, revert rates - side by side. */
 export default function ToolsPage() {
   return (
-    <EmptyState
-      icon={Wrench}
-      title="Tool comparisons"
-      body="Cost per merged PR, accept rates, and revert rates per tool, side by side - built from Anthropic, Cursor, and GitHub analytics."
-      actionHref="/settings"
-      actionLabel="Open Settings"
-    />
+    <Suspense fallback={<ToolsSkeleton />}>
+      <ToolsClient />
+    </Suspense>
   );
 }
