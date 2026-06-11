@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { Check, Loader2, Package, Users } from "lucide-react";
 import { ConnectorCard } from "@/components/connector-card";
 import { ErrorLine, send, useLatest } from "@/components/form-utils";
+import { APP_NAME } from "@/lib/brand";
 import { PeopleCsvImport } from "@/components/people-csv-import";
 import { NewProductForm } from "@/components/product-form";
 import { Button } from "@/components/ui/button";
@@ -45,7 +46,7 @@ function StartPopup({ onChanged }: { onChanged: () => void }) {
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-foreground/25 p-4">
       <div className="w-full max-w-lg space-y-5 rounded-xl border bg-card p-8 shadow-xl">
-        <h1 className="text-xl font-semibold">{"Welcome to AI P&L"}</h1>
+        <h1 className="text-xl font-semibold">Welcome to {APP_NAME}</h1>
         <div className="grid gap-3">
           <button
             type="button"

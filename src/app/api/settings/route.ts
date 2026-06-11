@@ -107,7 +107,9 @@ function isHttpsUrl(value: string): boolean {
  * to - no fake numbers from a currency with no FX rates. Secret keys take a
  * value to set (encrypted at rest, never echoed back) or null to clear: the
  * Slack webhook (spec 9) takes an https URL, the email provider config
- * (spec 12b) takes { provider, from, apiKey | accessKeyId+secretAccessKey+region }.
+ * (spec 12b) takes { provider, from, ...that provider's fields } - SMTP:
+ * host+port+username+password; SES: accessKeyId+secretAccessKey+region;
+ * Resend/Postmark/Mailgun: apiKey.
  */
 export async function PATCH(req: Request) {
   const db = getPool();

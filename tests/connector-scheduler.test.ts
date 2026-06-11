@@ -4,7 +4,7 @@ import path from "node:path";
 import { Pool } from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { connectConnector } from "../src/lib/connectors/connect";
-import { clearConnectors, registerConnector } from "../src/lib/connectors/registry";
+import { clearConnectors, getConnector, registerConnector } from "../src/lib/connectors/registry";
 import {
   checkSilentConnectors,
   schedulerTick,
@@ -51,10 +51,12 @@ describe.runIf(TEST_DATABASE_URL)("hourly scheduler + silent alerts", () => {
     if (dataDir) rmSync(dataDir, { recursive: true, force: true });
   });
 
-  it("refuses duplicate registrations", () => {
-    expect(() => registerConnector(makeStubConnector("stub_a"))).toThrow(
-      /already registered/,
-    );
+  it("re-registering a vendor replaces it (dev hot reload)", () => {
+    const replacement = makeStubConnector("stub_a");
+    registerConnector(replacement);
+    expect(getConnector("stub_a")).toBe(replacement);
+    registerConnector(stubA);
+    expect(getConnector("stub_a")).toBe(stubA);
   });
 
   it("a tick syncs connected connectors only, starting with a full backfill", async () => {

@@ -9,9 +9,8 @@ import type { Connector } from "./types";
 const connectors = new Map<string, Connector>();
 
 export function registerConnector(connector: Connector): void {
-  if (connectors.has(connector.vendor)) {
-    throw new Error(`connector ${connector.vendor} is already registered`);
-  }
+  // Last write wins: in dev, hot reload re-evaluates index.ts against the
+  // surviving registry instance, so the same vendors register again.
   connectors.set(connector.vendor, connector);
 }
 

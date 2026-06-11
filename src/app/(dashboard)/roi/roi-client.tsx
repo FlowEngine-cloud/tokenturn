@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { Popover } from "radix-ui";
@@ -368,6 +369,26 @@ export default function RoiClient() {
           </Button>
         )}
       </div>
+
+      <details className="group rounded-lg border bg-card px-4 py-3 text-sm text-muted-foreground">
+        <summary className="flex cursor-pointer list-none items-center gap-2 [&::-webkit-details-marker]:hidden">
+          <span>Each row pairs a slice of spend with a success you define - $ and tokens per result.</span>
+          <span className="flex-1" />
+          <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" />
+        </summary>
+        <ul className="mt-3 space-y-1.5">
+          <li>Coding tools are built in: their spend, with merged PRs as the success.</li>
+          <li>Add your own: pick where spend comes from (a tagged key, the SDK, a whole vendor) and what counts as success.</li>
+          <li>Tags: name a key in the vendor console (stripe-agent-…) and filter by it here.</li>
+          <li>
+            Full story in{" "}
+            <Link href="/help" className="underline underline-offset-2">
+              Help
+            </Link>
+            .
+          </li>
+        </ul>
+      </details>
 
       {adding && (
         <div className="rounded-lg border bg-card p-4">

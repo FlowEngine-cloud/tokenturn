@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { HELP_ITEM, NAV_ITEMS, RESOLVE_CHANGED_EVENT } from "@/components/shell/nav";
+import { APP_NAME } from "@/lib/brand";
 import { DAY_RE } from "@/lib/range";
 import { cn } from "@/lib/utils";
 
@@ -52,7 +53,7 @@ export function Sidebar() {
     <aside className="fixed inset-y-0 left-0 z-30 hidden w-56 flex-col border-r bg-sidebar md:flex print:hidden">
       <div className="flex h-14 items-center border-b px-5">
         <Link href={`/${rangeQuery}`} className="font-semibold tracking-tight">
-          {"AI P&L"}
+          {APP_NAME}
         </Link>
       </div>
       <nav className="flex-1 space-y-1 p-3">

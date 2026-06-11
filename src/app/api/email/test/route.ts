@@ -1,4 +1,5 @@
 import { badRequest, readJson, requireAdmin } from "@/lib/api";
+import { APP_NAME } from "@/lib/brand";
 import { getPool } from "@/lib/db";
 import { isEmailAddress, sendEmail } from "@/lib/email";
 import { ResolveError } from "@/lib/resolve";
@@ -22,8 +23,8 @@ export async function POST(req: Request) {
     const { provider } = await sendEmail(
       {
         to: body!.to as string,
-        subject: "AI P&L test email",
-        text: "Your AI P&L email provider works. This is a test send from Settings.",
+        subject: `${APP_NAME} test email`,
+        text: `Your ${APP_NAME} email provider works. This is a test send from Settings.`,
       },
       { db },
     );

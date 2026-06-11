@@ -158,7 +158,6 @@ export async function tagDetail(tag: string, db: Db = getPool()): Promise<TagDet
      ORDER BY i.vendor, i.kind, i.external_id`,
     [tag],
   );
-  if (identities.length === 0) throw new ResolveError("no key carries that tag", 404);
 
   const { rows: settings } = await db.query(
     `SELECT ts.counts_personal AS "countsPersonal",
@@ -168,6 +167,11 @@ export async function tagDetail(tag: string, db: Db = getPool()): Promise<TagDet
      WHERE ts.tag = $1`,
     [tag],
   );
+  // A tag exists when a key carries it OR it was added ahead of its keys
+  // (tag_settings row, spec 7b) - the latter answers with zero keys/facts.
+  if (identities.length === 0 && settings.length === 0) {
+    throw new ResolveError("no such tag", 404);
+  }
 
   const { rows: facts } = await db.query(
     `SELECT f.day::text AS day, f.vendor, f.model, f.tokens::int AS tokens,
@@ -343,11 +347,19 @@ export async function updateTag(
   const touched = { facts: 0, metrics: 0, outcomes: 0 };
   try {
     await client.query("BEGIN");
+    // Carried by a key, or added ahead of its keys (tag_settings row) -
+    // settings set now apply when the first key named after it syncs in.
     const { rows: carried } = await client.query(
       `SELECT 1 FROM identities i WHERE $1 = ANY ${effectiveTagsSql("i")} LIMIT 1`,
       [tag],
     );
-    if (carried.length === 0) throw new ResolveError("no key carries that tag", 404);
+    if (carried.length === 0) {
+      const { rows: ahead } = await client.query(
+        "SELECT 1 FROM tag_settings WHERE tag = $1",
+        [tag],
+      );
+      if (ahead.length === 0) throw new ResolveError("no such tag", 404);
+    }
     if (typeof update.productId === "string") {
       const { rows } = await client.query(
         "SELECT 1 FROM products WHERE id = $1 AND archived_at IS NULL",

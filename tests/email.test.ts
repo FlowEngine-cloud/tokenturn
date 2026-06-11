@@ -8,8 +8,15 @@ import {
 } from "../src/app/api/settings/route";
 import { createSession, SESSION_COOKIE } from "../src/lib/auth";
 import { closePool } from "../src/lib/db";
-import { signSesSendEmail } from "../src/lib/email";
+import { buildMailgunBody, signSesSendEmail } from "../src/lib/email";
 import { runMigrations } from "../scripts/migrate.mjs";
+
+const { sendMail, createTransport } = vi.hoisted(() => {
+  const sendMail = vi.fn(async () => ({ messageId: "m-1" }));
+  const createTransport = vi.fn(() => ({ sendMail }));
+  return { sendMail, createTransport };
+});
+vi.mock("nodemailer", () => ({ default: { createTransport } }));
 import { getJson, patchJson, postJson } from "./helpers/http";
 import { TEST_DATABASE_URL, createScratchDb, dropScratchDb } from "./helpers/pg";
 
@@ -85,11 +92,23 @@ describe.runIf(TEST_DATABASE_URL)("email provider (spec 12b)", () => {
   });
 
   it("rejects invalid configs with the problem named", async () => {
+    const smtp = {
+      provider: "smtp",
+      from: "a@b.co",
+      host: "smtp.b.co",
+      port: 587,
+      username: "u",
+      password: "p",
+    };
     const cases: [Record<string, unknown> | string, string][] = [
       ["smtp://nope", "email_provider_config must be an object, or null to clear it"],
-      [{ provider: "smtp", from: "a@b.co", apiKey: "k" }, "provider must be resend, postmark, or ses"],
+      [
+        { provider: "sendgrid", from: "a@b.co", apiKey: "k" },
+        "provider must be smtp, resend, postmark, ses, or mailgun",
+      ],
       [{ provider: "resend", from: "nope", apiKey: "k" }, "from must be an email address"],
       [{ provider: "resend", from: "a@b.co" }, "apiKey is required for resend"],
+      [{ provider: "mailgun", from: "a@b.co" }, "apiKey is required for mailgun"],
       [{ provider: "ses", from: "a@b.co", accessKeyId: "A", secretAccessKey: "S" }, "region is required for ses"],
       [
         { provider: "ses", from: "a@b.co", accessKeyId: "A", secretAccessKey: "S", region: "us-east" },
@@ -99,6 +118,10 @@ describe.runIf(TEST_DATABASE_URL)("email provider (spec 12b)", () => {
         { provider: "resend", from: "a@b.co", apiKey: "k", region: "us-east-1" },
         "unknown email config field region",
       ],
+      [{ ...smtp, port: undefined }, "port must be a whole number between 1 and 65535"],
+      [{ ...smtp, port: 0 }, "port must be a whole number between 1 and 65535"],
+      [{ ...smtp, host: "  " }, "host is required for smtp"],
+      [{ ...smtp, apiKey: "k" }, "unknown email config field apiKey"],
     ];
     for (const [value, message] of cases) {
       const res = await settingsPatch(
@@ -226,6 +249,117 @@ describe.runIf(TEST_DATABASE_URL)("email provider (spec 12b)", () => {
     );
     expect(bad.status).toBe(502);
     expect((await bad.json()).error).toBe("No Account found.");
+  });
+
+  it("SMTP: nodemailer transport with the configured host/port/auth", async () => {
+    await settingsPatch(
+      patchJson(
+        "/api/settings",
+        {
+          email_provider_config: {
+            provider: "smtp",
+            from: "reports@acme.com",
+            host: "smtp.acme.com",
+            port: 587,
+            username: "mailer",
+            password: "SMTP_SECRET",
+          },
+        },
+        adminCookie,
+      ),
+    );
+    createTransport.mockClear();
+    sendMail.mockClear();
+    const res = await testSendRoute(
+      postJson("/api/email/test", { to: "cfo@acme.com" }, adminCookie),
+    );
+    expect(await res.json()).toEqual({ ok: true, provider: "smtp" });
+    expect(createTransport).toHaveBeenCalledWith({
+      host: "smtp.acme.com",
+      port: 587,
+      secure: false,
+      auth: { user: "mailer", pass: "SMTP_SECRET" },
+    });
+    expect(sendMail).toHaveBeenCalledWith({
+      from: "reports@acme.com",
+      to: "cfo@acme.com",
+      subject: "AI P&L test email",
+      text: "Your AI P&L email provider works. This is a test send from Settings.",
+      attachments: [],
+    });
+
+    // The SMTP server's rejection, verbatim.
+    sendMail.mockRejectedValueOnce(new Error("Invalid login: 535 Authentication failed"));
+    const bad = await testSendRoute(
+      postJson("/api/email/test", { to: "cfo@acme.com" }, adminCookie),
+    );
+    expect(bad.status).toBe(502);
+    expect((await bad.json()).error).toBe("Invalid login: 535 Authentication failed");
+  });
+
+  it("Mailgun: basic auth against the from-domain, multipart fields", async () => {
+    await settingsPatch(
+      patchJson(
+        "/api/settings",
+        {
+          email_provider_config: {
+            provider: "mailgun",
+            from: "reports@mg.acme.com",
+            apiKey: "mg_SECRET_321",
+          },
+        },
+        adminCookie,
+      ),
+    );
+    const calls = stubFetch(
+      new Response(JSON.stringify({ id: "<x>", message: "Queued." }), { status: 200 }),
+    );
+    const res = await testSendRoute(
+      postJson("/api/email/test", { to: "cfo@acme.com" }, adminCookie),
+    );
+    expect(await res.json()).toEqual({ ok: true, provider: "mailgun" });
+    expect(calls[0].url).toBe("https://api.mailgun.net/v3/mg.acme.com/messages");
+    expect(calls[0].headers.authorization).toBe(
+      `Basic ${Buffer.from("api:mg_SECRET_321").toString("base64")}`,
+    );
+    expect(calls[0].headers["content-type"]).toContain("multipart/form-data");
+    const body = Buffer.from(calls[0].body as unknown as Uint8Array).toString("utf8");
+    expect(body).toContain('name="from"\r\n\r\nreports@mg.acme.com');
+    expect(body).toContain('name="to"\r\n\r\ncfo@acme.com');
+    expect(body).toContain('name="subject"\r\n\r\nAI P&L test email');
+
+    stubFetch(new Response(JSON.stringify({ message: "Forbidden" }), { status: 401 }));
+    const bad = await testSendRoute(
+      postJson("/api/email/test", { to: "cfo@acme.com" }, adminCookie),
+    );
+    expect(bad.status).toBe(502);
+    expect((await bad.json()).error).toBe("Forbidden");
+  });
+
+  it("Mailgun multipart bytes are pinned (attachment as a file part)", () => {
+    const { contentType, body } = buildMailgunBody({
+      from: "a@mg.b.co",
+      to: "c@d.co",
+      subject: "s",
+      text: "t",
+      attachments: [
+        {
+          filename: "r.pdf",
+          contentType: "application/pdf",
+          content: Buffer.from("PDF").toString("base64"),
+        },
+      ],
+    });
+    expect(contentType).toBe('multipart/form-data; boundary="=_ai-pnl-form-boundary"');
+    expect(body.toString("utf8")).toBe(
+      '--=_ai-pnl-form-boundary\r\nContent-Disposition: form-data; name="from"\r\n\r\na@mg.b.co\r\n' +
+        '--=_ai-pnl-form-boundary\r\nContent-Disposition: form-data; name="to"\r\n\r\nc@d.co\r\n' +
+        '--=_ai-pnl-form-boundary\r\nContent-Disposition: form-data; name="subject"\r\n\r\ns\r\n' +
+        '--=_ai-pnl-form-boundary\r\nContent-Disposition: form-data; name="text"\r\n\r\nt\r\n' +
+        '--=_ai-pnl-form-boundary\r\nContent-Disposition: form-data; name="attachment"; filename="r.pdf"\r\n' +
+        "Content-Type: application/pdf\r\n\r\nPDF\r\n" +
+        "--=_ai-pnl-form-boundary--\r\n",
+    );
   });
 
   it("SES: SigV4-signed SendEmail against the region endpoint", async () => {

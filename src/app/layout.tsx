@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist_Mono, Inter } from "next/font/google";
+import { APP_NAME } from "@/lib/brand";
 import "./globals.css";
 
 /** Spec 10: light UI built for the CFO - Inter with tabular numerals. */
@@ -14,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AI P&L",
+  title: APP_NAME,
   description: "Per-employee AI spend and ROI ledger",
 };
 

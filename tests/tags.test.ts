@@ -448,7 +448,7 @@ describe.runIf(TEST_DATABASE_URL)("tags (spec 7b)", () => {
       tagParams("ghost-tag"),
     );
     expect(unknownTag.status).toBe(404);
-    expect((await unknownTag.json()).error).toBe("no key carries that tag");
+    expect((await unknownTag.json()).error).toBe("no such tag");
 
     const unknownDetail = await tagRoute(
       getJson("/api/tags/ghost-tag", viewerCookie),
@@ -537,6 +537,33 @@ describe.runIf(TEST_DATABASE_URL)("tags (spec 7b)", () => {
     // An existing carried tag stays untouched by a duplicate add.
     const carried = tags.find((t: { tag: string }) => t.tag === "devin");
     expect(carried.identityCount).toBeGreaterThan(0);
+
+    // The detail page answers for it too - zero keys, zero facts, not a 404.
+    const detail = await tagRoute(
+      getJson("/api/tags/future-agent", viewerCookie),
+      tagParams("future-agent"),
+    );
+    expect(detail.status).toBe(200);
+    expect(await detail.json()).toMatchObject({
+      tag: "future-agent",
+      countsPersonal: true,
+      productId: null,
+      identities: [],
+      facts: [],
+    });
+
+    // And its settings can be staged before any key carries it: the first
+    // key named after it routes on sync.
+    const staged = await tagPatchRoute(
+      patchJson("/api/tags/future-agent", { countsPersonal: false }, adminCookie),
+      tagParams("future-agent"),
+    );
+    expect(staged.status).toBe(200);
+    expect(await staged.json()).toMatchObject({
+      tag: "future-agent",
+      countsPersonal: false,
+      routedIdentities: 0,
+    });
 
     const blank = await tagsPostRoute(postJson("/api/tags", { tag: "  " }, adminCookie));
     expect(blank.status).toBe(400);

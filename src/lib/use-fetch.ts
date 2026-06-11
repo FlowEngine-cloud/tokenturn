@@ -17,10 +17,10 @@ export function useFetch<T>(url: string): { data: T | null; error: string | null
     let cancelled = false;
     fetch(url)
       .then(async (res) => {
-        const body = await res.json();
+        const body = await res.json().catch(() => null);
         if (cancelled) return;
-        if (!res.ok) {
-          setState({ url, data: null, error: body.error ?? `request failed (${res.status})` });
+        if (!res.ok || body === null) {
+          setState({ url, data: null, error: body?.error ?? `request failed (${res.status})` });
         } else {
           setState({ url, data: body, error: null });
         }

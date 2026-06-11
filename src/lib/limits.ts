@@ -4,6 +4,7 @@ import {
   getConnectorConfig,
   type ConnectorOpts,
 } from "./connectors/connect";
+import { APP_NAME } from "./brand";
 import { cursorConnector, setCursorUserSpendLimit } from "./connectors/cursor";
 import { addDays, utcDay } from "./connectors/sync";
 import { getPool, type Db } from "./db";
@@ -215,12 +216,12 @@ export const VENDOR_LIMIT_POLICIES = {
   anthropic: {
     enforcement: "vendor-enforced",
     canWrite: false,
-    note: "Anthropic workspace caps are real hard-stops, but they are set in the Anthropic Console and the Admin API does not expose them - AI P&L can neither read nor set them.",
+    note: `Anthropic workspace caps are real hard-stops, but they are set in the Anthropic Console and the Admin API does not expose them - ${APP_NAME} can neither read nor set them.`,
   },
   openai: {
     enforcement: "alert-only",
     canWrite: false,
-    note: "OpenAI has no budget API. AI P&L alerts at your thresholds; nothing is hard-stopped on the vendor side.",
+    note: `OpenAI has no budget API. ${APP_NAME} alerts at your thresholds; nothing is hard-stopped on the vendor side.`,
   },
 } as const;
 

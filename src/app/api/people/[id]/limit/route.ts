@@ -1,4 +1,5 @@
 import { badRequest, cleanUuid, readJson, requireAdmin } from "@/lib/api";
+import { APP_NAME } from "@/lib/brand";
 import { getPool } from "@/lib/db";
 import { pushLimitToCursor, type CursorPushResult } from "@/lib/limits";
 import { logger } from "@/lib/logger";
@@ -45,7 +46,7 @@ export async function PUT(
   }
   if (push && limit === null) {
     return badRequest(
-      "pushToCursor needs a limit - clearing only clears the AI P&L limit",
+      `pushToCursor needs a limit - clearing only clears the ${APP_NAME} limit`,
     );
   }
 

@@ -1,7 +1,21 @@
 "use client";
 
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useRef, useState } from "react";
-import { Check, Copy, Loader2, Upload } from "lucide-react";
+import {
+  BadgeCheck,
+  Banknote,
+  Bell,
+  Cable,
+  Check,
+  Copy,
+  Loader2,
+  Mail,
+  SlidersHorizontal,
+  Upload,
+  Users,
+  type LucideIcon,
+} from "lucide-react";
 import { ConnectorCard } from "@/components/connector-card";
 import { EnterpriseSections, LicenseSection, StatusDot } from "@/components/ee-settings";
 import {
@@ -24,21 +38,26 @@ import type { ImportResult, ParsedInvoiceCsv } from "@/lib/invoices";
 import type { ProductListItem } from "@/lib/products";
 import type { SettingValues } from "@/lib/settings";
 import { useFetch } from "@/lib/use-fetch";
+import { cn } from "@/lib/utils";
 
 /**
- * Settings (spec 10.6): real controls grouped in cards, a label and a
- * control per row - Connectors, Alerts, Money, Email, Ingest keys (spec 6:
- * minted here, shown once), Users, Defaults, License, then the ee/ cards.
- * Writes are admin-only; the server's word comes back verbatim.
+ * Settings (spec 10.6): a left section nav with icons, one section on
+ * screen at a time - Connections (the landing section), Alerts, Money,
+ * Email, Users, Defaults, License. A label and a control per row. Writes
+ * are admin-only; the server's word comes back verbatim. Ingest keys
+ * (spec 6: minted here, shown once) live under Users with the sign-in
+ * users - both are access. The ee/ features live under License, which
+ * gates them.
  */
 
 export function SettingsSkeleton() {
   return (
     <div className="space-y-6">
       <Skeleton className="h-7 w-40" />
-      <Skeleton className="h-48" />
-      <Skeleton className="h-48" />
-      <Skeleton className="h-48" />
+      <div className="flex flex-col gap-6 md:flex-row">
+        <Skeleton className="h-72 md:w-44" />
+        <Skeleton className="h-72 flex-1" />
+      </div>
     </div>
   );
 }
@@ -425,7 +444,45 @@ function MoneyCard({
   );
 }
 
-// ---- Email provider (spec 12b: API key in Settings, encrypted, test-send) -
+// ---- Email provider (spec 12b: pick a provider, get exactly its fields) ---
+
+interface EmailField {
+  key: string;
+  label: string;
+  secret?: boolean;
+  placeholder?: string;
+  width?: string;
+}
+
+/** Per-provider fields (spec 10.6): picking one shows exactly these. */
+const EMAIL_PROVIDER_DEFS: { id: string; label: string; fields: EmailField[] }[] = [
+  {
+    id: "smtp",
+    label: "SMTP",
+    fields: [
+      { key: "host", label: "Host", placeholder: "smtp.acme.com" },
+      { key: "port", label: "Port", placeholder: "587", width: "w-24" },
+      { key: "username", label: "Username" },
+      { key: "password", label: "Password", secret: true },
+    ],
+  },
+  { id: "resend", label: "Resend", fields: [{ key: "apiKey", label: "API key", secret: true }] },
+  {
+    id: "postmark",
+    label: "Postmark",
+    fields: [{ key: "apiKey", label: "Server token", secret: true }],
+  },
+  {
+    id: "ses",
+    label: "Amazon SES",
+    fields: [
+      { key: "accessKeyId", label: "Access key ID" },
+      { key: "secretAccessKey", label: "Secret access key", secret: true },
+      { key: "region", label: "Region", placeholder: "us-east-1", width: "w-32" },
+    ],
+  },
+  { id: "mailgun", label: "Mailgun", fields: [{ key: "apiKey", label: "API key", secret: true }] },
+];
 
 function EmailCard({
   email,
@@ -436,17 +493,21 @@ function EmailCard({
   isAdmin: boolean;
   onChanged: () => void;
 }) {
-  const [provider, setProvider] = useState("resend");
+  const [provider, setProvider] = useState(email?.provider ?? "smtp");
   const [from, setFrom] = useState("");
-  const [apiKey, setApiKey] = useState("");
-  const [accessKeyId, setAccessKeyId] = useState("");
-  const [secretAccessKey, setSecretAccessKey] = useState("");
-  const [region, setRegion] = useState("");
+  const [values, setValues] = useState<Record<string, string>>({});
   const [to, setTo] = useState("");
   const [busy, setBusy] = useState(false);
   const [testBusy, setTestBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+
+  const def =
+    EMAIL_PROVIDER_DEFS.find((p) => p.id === provider) ?? EMAIL_PROVIDER_DEFS[0];
+  const ready =
+    from.trim() !== "" &&
+    def.fields.every((f) => (values[f.key] ?? "").trim() !== "") &&
+    (provider !== "smtp" || /^\d+$/.test((values.port ?? "").trim()));
 
   async function patch(value: Record<string, unknown> | null) {
     setBusy(true);
@@ -459,26 +520,19 @@ function EmailCard({
     if (failure) {
       setError(failure);
     } else {
-      setApiKey("");
-      setAccessKeyId("");
-      setSecretAccessKey("");
-      setNotice(value === null ? "cleared" : "saved - key encrypted at rest");
+      setValues({});
+      setNotice(value === null ? "cleared" : "saved");
       onChanged();
     }
   }
 
   function save() {
-    const base = { provider, from: from.trim() };
-    void patch(
-      provider === "ses"
-        ? {
-            ...base,
-            accessKeyId: accessKeyId.trim(),
-            secretAccessKey: secretAccessKey.trim(),
-            region: region.trim(),
-          }
-        : { ...base, apiKey: apiKey.trim() },
-    );
+    const payload: Record<string, unknown> = { provider, from: from.trim() };
+    for (const f of def.fields) {
+      const raw = (values[f.key] ?? "").trim();
+      payload[f.key] = f.key === "port" ? Number(raw) : raw;
+    }
+    void patch(payload);
   }
 
   async function testSend() {
@@ -517,11 +571,17 @@ function EmailCard({
               className="h-8 rounded-md border bg-transparent px-2 text-sm"
               disabled={busy}
               value={provider}
-              onChange={(e) => setProvider(e.target.value)}
+              onChange={(e) => {
+                setProvider(e.target.value);
+                setValues({});
+                setNotice(null);
+              }}
             >
-              <option value="resend">Resend</option>
-              <option value="postmark">Postmark</option>
-              <option value="ses">Amazon SES</option>
+              {EMAIL_PROVIDER_DEFS.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.label}
+                </option>
+              ))}
             </select>
           </SettingsRow>
           <SettingsRow label="From" htmlFor="email-from">
@@ -535,69 +595,24 @@ function EmailCard({
               onChange={(e) => setFrom(e.target.value)}
             />
           </SettingsRow>
-          {provider === "ses" ? (
-            <>
-              <SettingsRow label="Access key ID" htmlFor="email-access-key">
-                <Input
-                  id="email-access-key"
-                  className="h-8 w-64"
-                  disabled={busy}
-                  value={accessKeyId}
-                  onChange={(e) => setAccessKeyId(e.target.value)}
-                />
-              </SettingsRow>
-              <SettingsRow label="Secret access key" htmlFor="email-secret-key">
-                <Input
-                  id="email-secret-key"
-                  type="password"
-                  autoComplete="off"
-                  className="h-8 w-64"
-                  disabled={busy}
-                  value={secretAccessKey}
-                  onChange={(e) => setSecretAccessKey(e.target.value)}
-                />
-              </SettingsRow>
-              <SettingsRow label="Region" htmlFor="email-region">
-                <Input
-                  id="email-region"
-                  className="h-8 w-32"
-                  placeholder="us-east-1"
-                  disabled={busy}
-                  value={region}
-                  onChange={(e) => setRegion(e.target.value)}
-                />
-              </SettingsRow>
-            </>
-          ) : (
-            <SettingsRow
-              label={provider === "postmark" ? "Server token" : "API key"}
-              htmlFor="email-api-key"
-            >
+          {def.fields.map((f) => (
+            <SettingsRow key={f.key} label={f.label} htmlFor={`email-${f.key}`}>
               <Input
-                id="email-api-key"
-                type="password"
+                id={`email-${f.key}`}
+                type={f.secret ? "password" : "text"}
                 autoComplete="off"
-                className="h-8 w-64"
+                className={cn("h-8", f.width ?? "w-64")}
+                placeholder={f.placeholder}
                 disabled={busy}
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
+                value={values[f.key] ?? ""}
+                onChange={(e) =>
+                  setValues((prev) => ({ ...prev, [f.key]: e.target.value }))
+                }
               />
             </SettingsRow>
-          )}
+          ))}
           <SettingsRow>
-            <Button
-              size="sm"
-              disabled={
-                busy ||
-                from.trim() === "" ||
-                (provider === "ses"
-                  ? accessKeyId.trim() === "" ||
-                    secretAccessKey.trim() === "" ||
-                    region.trim() === ""
-                  : apiKey.trim() === "")
-              }
-              onClick={save}
-            >
+            <Button size="sm" disabled={busy || !ready} onClick={save}>
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : email ? "Replace" : "Save"}
             </Button>
             {notice && <span className="text-sm text-green-700">{notice}</span>}
@@ -960,9 +975,37 @@ function DefaultsCard({
 
 // ---- Page ------------------------------------------------------------------
 
+const SECTIONS = [
+  { id: "connections", label: "Connections", icon: Cable },
+  { id: "alerts", label: "Alerts", icon: Bell },
+  { id: "money", label: "Money", icon: Banknote },
+  { id: "email", label: "Email", icon: Mail },
+  { id: "users", label: "Users", icon: Users },
+  { id: "defaults", label: "Defaults", icon: SlidersHorizontal },
+  { id: "license", label: "License", icon: BadgeCheck },
+] as const satisfies readonly { id: string; label: string; icon: LucideIcon }[];
+
+type SectionId = (typeof SECTIONS)[number]["id"];
+
 export default function SettingsClient() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [version, setVersion] = useState(0);
   const reload = () => setVersion((v) => v + 1);
+
+  const param = searchParams.get("section");
+  const section: SectionId = SECTIONS.some((s) => s.id === param)
+    ? (param as SectionId)
+    : "connections";
+
+  function show(id: SectionId) {
+    const params = new URLSearchParams(searchParams);
+    if (id === "connections") params.delete("section");
+    else params.set("section", id);
+    const qs = params.toString();
+    router.replace(qs === "" ? pathname : `${pathname}?${qs}`, { scroll: false });
+  }
 
   // Role never changes with settings writes - no ?v= bump, so isAdmin never
   // flickers false mid-refetch (which would unmount every admin-only block).
@@ -1008,55 +1051,93 @@ export default function SettingsClient() {
     <div className="space-y-6">
       <h1 className="text-lg font-semibold">Settings</h1>
 
-      <Section title="Connectors">
-        <div className="space-y-3">
-          {connectorData.connectors.map((c) => (
-            <ConnectorCard key={c.vendor} c={c} isAdmin={isAdmin} onChanged={reload} />
+      <div className="flex flex-col gap-6 md:flex-row md:items-start">
+        <nav className="flex shrink-0 gap-1 overflow-x-auto md:w-44 md:flex-col md:overflow-visible">
+          {SECTIONS.map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              type="button"
+              aria-current={id === section || undefined}
+              onClick={() => show(id)}
+              className={cn(
+                "flex items-center gap-2.5 whitespace-nowrap rounded-md px-3 py-2 text-sm",
+                id === section
+                  ? "bg-accent font-medium text-foreground"
+                  : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+              )}
+            >
+              <Icon className="h-4 w-4 shrink-0" />
+              {label}
+            </button>
           ))}
+        </nav>
+
+        <div className="min-w-0 flex-1 space-y-6">
+          {section === "connections" && (
+            <div className="space-y-3">
+              {connectorData.connectors.map((c) => (
+                <ConnectorCard key={c.vendor} c={c} isAdmin={isAdmin} onChanged={reload} />
+              ))}
+            </div>
+          )}
+
+          {section === "alerts" && (
+            <AlertsCard
+              settings={settingsData.settings}
+              configured={settingsData.secrets.slack_webhook_url}
+              isAdmin={isAdmin}
+              onChanged={reload}
+            />
+          )}
+
+          {section === "money" && (
+            <MoneyCard settings={settingsData.settings} isAdmin={isAdmin} onChanged={reload} />
+          )}
+
+          {section === "email" && (
+            <EmailCard email={settingsData.email} isAdmin={isAdmin} onChanged={reload} />
+          )}
+
+          {section === "users" && (
+            <>
+              {userData && (
+                <UsersCard
+                  users={userData.users}
+                  moreAdminsLicensed={eeFeatures.includes("more_admins")}
+                  onChanged={reload}
+                />
+              )}
+              <IngestKeysCard
+                keys={keyData.keys}
+                products={productData.products}
+                isAdmin={isAdmin}
+                onChanged={reload}
+              />
+            </>
+          )}
+
+          {section === "defaults" && (
+            <DefaultsCard settings={settingsData.settings} isAdmin={isAdmin} onChanged={reload} />
+          )}
+
+          {section === "license" && (
+            <>
+              <LicenseSection
+                license={settingsData.license}
+                isAdmin={isAdmin}
+                onChanged={reload}
+              />
+              <EnterpriseSections
+                features={eeFeatures}
+                isAdmin={isAdmin}
+                scheduledReports={settingsData.scheduledReports}
+                emailConfigured={settingsData.email !== null}
+                onChanged={reload}
+              />
+            </>
+          )}
         </div>
-      </Section>
-
-      <AlertsCard
-        settings={settingsData.settings}
-        configured={settingsData.secrets.slack_webhook_url}
-        isAdmin={isAdmin}
-        onChanged={reload}
-      />
-
-      <MoneyCard settings={settingsData.settings} isAdmin={isAdmin} onChanged={reload} />
-
-      <EmailCard email={settingsData.email} isAdmin={isAdmin} onChanged={reload} />
-
-      <IngestKeysCard
-        keys={keyData.keys}
-        products={productData.products}
-        isAdmin={isAdmin}
-        onChanged={reload}
-      />
-
-      {userData && (
-        <UsersCard
-          users={userData.users}
-          moreAdminsLicensed={eeFeatures.includes("more_admins")}
-          onChanged={reload}
-        />
-      )}
-
-      <DefaultsCard settings={settingsData.settings} isAdmin={isAdmin} onChanged={reload} />
-
-      <LicenseSection
-        license={settingsData.license}
-        isAdmin={isAdmin}
-        onChanged={reload}
-      />
-
-      <EnterpriseSections
-        features={eeFeatures}
-        isAdmin={isAdmin}
-        scheduledReports={settingsData.scheduledReports}
-        emailConfigured={settingsData.email !== null}
-        onChanged={reload}
-      />
+      </div>
     </div>
   );
 }

@@ -9,6 +9,7 @@ import {
   type RegistrationResponseJSON,
   type WebAuthnCredential,
 } from "@simplewebauthn/server";
+import { APP_NAME } from "./brand";
 import { getPool, type Db } from "./db";
 
 /**
@@ -21,7 +22,7 @@ import { getPool, type Db } from "./db";
  * var, so there is nothing to configure.
  */
 
-export const RP_NAME = "AI P&L";
+export const RP_NAME = APP_NAME;
 const CHALLENGE_TTL_MS = 5 * 60 * 1000;
 
 export interface RelyingParty {

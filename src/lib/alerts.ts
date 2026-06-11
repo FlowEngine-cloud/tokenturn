@@ -1,3 +1,4 @@
+import { APP_NAME } from "./brand";
 import { getPool, type Db } from "./db";
 import { onEvent, type AppEvents } from "./events";
 import { logger } from "./logger";
@@ -38,7 +39,7 @@ export function formatLimitAlert(p: AppEvents["limit.threshold"]): string {
     `monthly AI limit: ${usd(p.monthSpendUsdCents)} spent in ${p.month}.`;
   // Never pretend to hard-stop what we can't (spec 9).
   return p.thresholdPct >= 100
-    ? `${base} AI P&L does not hard-stop spend - check vendor-side limits.`
+    ? `${base} ${APP_NAME} does not hard-stop spend - check vendor-side limits.`
     : base;
 }
 

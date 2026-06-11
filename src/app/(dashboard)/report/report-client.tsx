@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft, ChevronRight, Download, FileText, Printer } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
+import { APP_NAME } from "@/lib/brand";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCents, formatCount, unitCostLabel } from "@/lib/format";
@@ -126,7 +127,7 @@ export default function ReportClient() {
             <div>
               <h2 className="text-xl font-semibold">AI spend · {monthLabel(month)}</h2>
               <p className="text-sm text-muted-foreground">
-                {"AI P&L"} · {data.from} → {data.to} · all amounts in {ccy}
+                {APP_NAME} · {data.from} → {data.to} · all amounts in {ccy}
               </p>
             </div>
             <div className="text-right">

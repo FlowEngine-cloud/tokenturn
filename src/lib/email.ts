@@ -1,32 +1,40 @@
 import { createHash, createHmac } from "node:crypto";
+import nodemailer from "nodemailer";
 import { getPool, type Db } from "./db";
 import { logger } from "./logger";
 import { ResolveError } from "./resolve";
 import { getSecretSetting, setSecretSetting, deleteSetting } from "./settings";
 
 /**
- * Outbound email (spec 12b): a provider API key (Resend / Postmark / SES)
- * stored in Settings, encrypted like vendor tokens. No SMTP. Email is
- * optional - alerts default to the Slack webhook; only scheduled features
- * need a provider. The whole config (key included) lives in one secret
- * setting; reads only ever surface the provider name and from address.
+ * Outbound email (spec 12b): plain SMTP or a provider key (Resend /
+ * Postmark / SES / Mailgun), stored in Settings, encrypted like vendor
+ * tokens. Email is optional - alerts default to the Slack webhook; only
+ * scheduled features need a provider. The whole config (credentials
+ * included) lives in one secret setting; reads only ever surface the
+ * provider name and from address. The HTTP providers are dependency-free;
+ * SMTP rides nodemailer.
  */
 
 export const EMAIL_CONFIG_SETTING = "email_provider_config";
 
-export const EMAIL_PROVIDERS = ["resend", "postmark", "ses"] as const;
+export const EMAIL_PROVIDERS = ["smtp", "resend", "postmark", "ses", "mailgun"] as const;
 export type EmailProvider = (typeof EMAIL_PROVIDERS)[number];
 
 export interface EmailConfig {
   provider: EmailProvider;
   /** The From address - must be a sender the provider has verified. */
   from: string;
-  /** Resend API key / Postmark server token. */
+  /** Resend API key / Postmark server token / Mailgun API key. */
   apiKey?: string;
   /** SES (SigV4) credentials. */
   accessKeyId?: string;
   secretAccessKey?: string;
   region?: string;
+  /** SMTP. Port 465 = implicit TLS; anything else negotiates STARTTLS. */
+  host?: string;
+  port?: number;
+  username?: string;
+  password?: string;
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -47,7 +55,7 @@ export function validateEmailConfig(raw: unknown): EmailConfig {
   const record = raw as Record<string, unknown>;
   const provider = record.provider;
   if (!(EMAIL_PROVIDERS as readonly unknown[]).includes(provider)) {
-    throw new ResolveError("provider must be resend, postmark, or ses", 400);
+    throw new ResolveError("provider must be smtp, resend, postmark, ses, or mailgun", 400);
   }
   if (!isEmailAddress(record.from)) {
     throw new ResolveError("from must be an email address", 400);
@@ -62,7 +70,9 @@ export function validateEmailConfig(raw: unknown): EmailConfig {
   const allowed =
     provider === "ses"
       ? ["provider", "from", "accessKeyId", "secretAccessKey", "region"]
-      : ["provider", "from", "apiKey"];
+      : provider === "smtp"
+        ? ["provider", "from", "host", "port", "username", "password"]
+        : ["provider", "from", "apiKey"];
   const extra = Object.keys(record).find((key) => !allowed.includes(key));
   if (extra !== undefined) {
     throw new ResolveError(`unknown email config field ${extra}`, 400);
@@ -78,6 +88,25 @@ export function validateEmailConfig(raw: unknown): EmailConfig {
       accessKeyId: str("accessKeyId"),
       secretAccessKey: str("secretAccessKey"),
       region,
+    };
+  }
+  if (provider === "smtp") {
+    const port = record.port;
+    if (
+      typeof port !== "number" ||
+      !Number.isInteger(port) ||
+      port < 1 ||
+      port > 65535
+    ) {
+      throw new ResolveError("port must be a whole number between 1 and 65535", 400);
+    }
+    return {
+      provider,
+      from: record.from as string,
+      host: str("host"),
+      port,
+      username: str("username"),
+      password: str("password"),
     };
   }
   return {
@@ -232,9 +261,51 @@ export function buildMimeMessage(from: string, message: EmailMessage): string {
   return parts.join("\r\n");
 }
 
+/**
+ * multipart/form-data body for Mailgun, which takes attachments only as
+ * file parts. Deterministic (fixed boundary) so tests pin bytes; the
+ * boundary never collides because every part it could echo is ours.
+ */
+export function buildMailgunBody(message: EmailMessage & { from: string }): {
+  contentType: string;
+  body: Buffer;
+} {
+  const boundary = "=_ai-pnl-form-boundary";
+  const chunks: Buffer[] = [];
+  const field = (name: string, value: string) => {
+    chunks.push(
+      Buffer.from(
+        `--${boundary}\r\nContent-Disposition: form-data; name="${name}"\r\n\r\n${value}\r\n`,
+        "utf8",
+      ),
+    );
+  };
+  field("from", message.from);
+  field("to", message.to);
+  field("subject", message.subject);
+  field("text", message.text);
+  for (const att of message.attachments ?? []) {
+    chunks.push(
+      Buffer.from(
+        `--${boundary}\r\nContent-Disposition: form-data; name="attachment"; filename="${att.filename}"\r\n` +
+          `Content-Type: ${att.contentType}\r\n\r\n`,
+        "utf8",
+      ),
+      Buffer.from(att.content, "base64"),
+      Buffer.from("\r\n", "utf8"),
+    );
+  }
+  chunks.push(Buffer.from(`--${boundary}--\r\n`, "utf8"));
+  return {
+    contentType: `multipart/form-data; boundary="${boundary}"`,
+    body: Buffer.concat(chunks),
+  };
+}
+
 async function providerError(res: Response, fallback: string): Promise<string> {
   // The provider's error, verbatim - each names its message field
-  // differently (Resend: message, Postmark: Message, SES: message).
+  // differently (Resend: message, Postmark: Message, SES: message,
+  // Mailgun: message).
   const text = await res.text();
   try {
     const body = JSON.parse(text) as Record<string, unknown>;
@@ -260,6 +331,29 @@ export async function sendEmail(
     throw new ResolveError("no email provider configured - set one in Settings", 409);
   }
   const fetchImpl = opts.fetch ?? fetch;
+
+  if (config.provider === "smtp") {
+    // The one non-HTTP path; the SMTP server's rejection throws verbatim.
+    const transport = nodemailer.createTransport({
+      host: config.host ?? "",
+      port: config.port ?? 587,
+      secure: config.port === 465,
+      auth: { user: config.username ?? "", pass: config.password ?? "" },
+    });
+    await transport.sendMail({
+      from: config.from,
+      to: message.to,
+      subject: message.subject,
+      text: message.text,
+      attachments: (message.attachments ?? []).map((att) => ({
+        filename: att.filename,
+        content: Buffer.from(att.content, "base64"),
+        contentType: att.contentType,
+      })),
+    });
+    logger.info("email sent", { provider: config.provider, to: message.to });
+    return { provider: config.provider };
+  }
 
   let res: Response;
   if (config.provider === "resend") {
@@ -309,6 +403,19 @@ export async function sendEmail(
             }
           : {}),
       }),
+    });
+  } else if (config.provider === "mailgun") {
+    // The sending domain is the from address's domain - Mailgun's own
+    // convention (reports@mg.acme.com sends through mg.acme.com).
+    const domain = config.from.split("@")[1];
+    const { contentType, body } = buildMailgunBody({ ...message, from: config.from });
+    res = await fetchImpl(`https://api.mailgun.net/v3/${domain}/messages`, {
+      method: "POST",
+      headers: {
+        authorization: `Basic ${Buffer.from(`api:${config.apiKey ?? ""}`).toString("base64")}`,
+        "content-type": contentType,
+      },
+      body: new Uint8Array(body),
     });
   } else {
     const signed = signSesSendEmail(
