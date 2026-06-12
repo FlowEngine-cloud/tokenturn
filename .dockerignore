@@ -4,6 +4,7 @@
 node_modules
 tests
 docker-compose.yml
+docker-compose.coolify.yml
 Dockerfile
 .dockerignore
 README.md

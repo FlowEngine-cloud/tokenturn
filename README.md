@@ -31,17 +31,20 @@ docker compose up
 
 Open [http://localhost:3000](http://localhost:3000). The Compose setup creates PostgreSQL, waits for it, creates the application database, and applies all migrations automatically. Backup = the Postgres volume. `GET /healthz` reports app and database health.
 
-### Dockerfile / Coolify deployment
+### Coolify deployment
 
-The application image needs a PostgreSQL server; a Dockerfile deploy creates only the application container. In Coolify:
+Use the repository's Coolify Compose file to provision the application and PostgreSQL together:
 
-1. Create a PostgreSQL resource in the same project/environment as the application.
-2. Set the application's `DATABASE_URL` to the PostgreSQL resource's internal connection URL, for example `postgresql://user:password@postgres-service:5432/tokenturn`.
-3. Deploy the application from this repository's `Dockerfile`.
+1. Create a new Coolify resource from this Git repository.
+2. Select **Docker Compose** as the build pack.
+3. Set the Compose file to `/docker-compose.coolify.yml`.
+4. Assign your domain to the `app` service on port `3000`, then deploy.
 
-On every container start, Tokenturn waits up to 60 seconds for PostgreSQL, creates the database named in `DATABASE_URL` if it is missing and the configured role has `CREATEDB` permission, and applies pending migrations. The database server itself must still be provisioned by Coolify (or another provider). Do not use a public database URL when an internal URL is available.
+No database resource or `DATABASE_URL` needs to be created manually. Coolify generates `SERVICE_PASSWORD_POSTGRES`; the Compose file uses it for both PostgreSQL and the application's internal `db:5432` connection. Both the database and application secret key use persistent volumes.
 
-`DATABASE_URL` is the only required application environment variable; everything else lives in Settings. If the database already exists, the configured role only needs permission to connect and create/alter objects in that database.
+For a Dockerfile-only deployment, provision PostgreSQL separately and set the runtime `DATABASE_URL` to a URL reachable from the application container. Do not use `localhost` or a public URL when an internal URL is available.
+
+On every container start, Tokenturn waits up to 60 seconds for PostgreSQL, creates the database named in `DATABASE_URL` if it is missing and the configured role has `CREATEDB` permission, and applies pending migrations. `DATABASE_URL` is the only required application environment variable; everything else lives in Settings.
 
 Set `DEMO_MODE=1` to run the instance read-only for live demos: everyone can sign in, browse, and drill into everything, but every change is rejected - including password changes, so a shared demo login stays safe. Claiming a fresh instance and seeding the demo data still work (each runs only once), so a demo box can bootstrap itself with the flag already on.
 
