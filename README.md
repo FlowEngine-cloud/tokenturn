@@ -29,7 +29,19 @@ OpenAI, Anthropic (including Claude Code analytics), Cursor, GitHub Copilot. Jir
 docker compose up
 ```
 
-Open [http://localhost:3000](http://localhost:3000). `DATABASE_URL` is the only required environment variable; everything else lives in Settings. Migrations run on boot. Backup = the Postgres volume. `GET /healthz` reports app and database health.
+Open [http://localhost:3000](http://localhost:3000). The Compose setup creates PostgreSQL, waits for it, creates the application database, and applies all migrations automatically. Backup = the Postgres volume. `GET /healthz` reports app and database health.
+
+### Dockerfile / Coolify deployment
+
+The application image needs a PostgreSQL server; a Dockerfile deploy creates only the application container. In Coolify:
+
+1. Create a PostgreSQL resource in the same project/environment as the application.
+2. Set the application's `DATABASE_URL` to the PostgreSQL resource's internal connection URL, for example `postgresql://user:password@postgres-service:5432/tokenturn`.
+3. Deploy the application from this repository's `Dockerfile`.
+
+On every container start, Tokenturn waits up to 60 seconds for PostgreSQL, creates the database named in `DATABASE_URL` if it is missing and the configured role has `CREATEDB` permission, and applies pending migrations. The database server itself must still be provisioned by Coolify (or another provider). Do not use a public database URL when an internal URL is available.
+
+`DATABASE_URL` is the only required application environment variable; everything else lives in Settings. If the database already exists, the configured role only needs permission to connect and create/alter objects in that database.
 
 Set `DEMO_MODE=1` to run the instance read-only for live demos: everyone can sign in, browse, and drill into everything, but every change is rejected - including password changes, so a shared demo login stays safe. Claiming a fresh instance and seeding the demo data still work (each runs only once), so a demo box can bootstrap itself with the flag already on.
 

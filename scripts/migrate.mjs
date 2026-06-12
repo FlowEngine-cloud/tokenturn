@@ -5,6 +5,8 @@
  * - Each migration runs in its own transaction and is recorded in
  *   schema_migrations; already-applied files are skipped.
  * - A Postgres advisory lock serializes concurrent boots.
+ * - Startup waits for Postgres and creates the target database when it is
+ *   missing and the configured role has CREATEDB permission.
  * - Any failure rolls back that migration and exits non-zero, so the
  *   container never starts on a half-applied schema.
  */
@@ -20,6 +22,18 @@ const LOCK_KEY = parseInt(
   createHash("sha256").update("ai-pnl:migrate").digest("hex").slice(0, 8),
   16,
 );
+const DEFAULT_STARTUP_TIMEOUT_MS = 60_000;
+const RETRY_INTERVAL_MS = 2_000;
+const TRANSIENT_CONNECTION_CODES = new Set([
+  "57P03", // cannot_connect_now
+  "53300", // too_many_connections
+  "EAI_AGAIN",
+  "ECONNREFUSED",
+  "ECONNRESET",
+  "ENETUNREACH",
+  "ENOTFOUND",
+  "ETIMEDOUT",
+]);
 
 function log(level, msg, fields = {}) {
   const line = JSON.stringify({
@@ -43,15 +57,97 @@ async function listMigrationFiles(dir) {
   return entries.filter((f) => f.endsWith(".sql")).sort();
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function targetDatabase(databaseUrl) {
+  const url = new URL(databaseUrl);
+  if (url.protocol !== "postgres:" && url.protocol !== "postgresql:") {
+    throw new Error("DATABASE_URL must use the postgres:// or postgresql:// scheme");
+  }
+  const name = decodeURIComponent(url.pathname.slice(1));
+  if (!name) throw new Error("DATABASE_URL must include a database name");
+  return { name, url };
+}
+
+async function createTargetDatabase(databaseUrl) {
+  const { name, url } = targetDatabase(databaseUrl);
+  url.pathname = "/postgres";
+  const admin = new pg.Client({ connectionString: url.toString() });
+
+  try {
+    await admin.connect();
+    await admin.query(`CREATE DATABASE ${pg.escapeIdentifier(name)}`);
+    log("info", "database created", { database: name });
+  } catch (err) {
+    if (err.code !== "42P04") {
+      throw new Error(
+        `database "${name}" does not exist and could not be created: ${err.message}`,
+        { cause: err },
+      );
+    }
+  } finally {
+    await admin.end().catch(() => {});
+  }
+}
+
+function isTransientConnectionError(err) {
+  return (
+    TRANSIENT_CONNECTION_CODES.has(err.code) ||
+    (typeof err.code === "string" && err.code.startsWith("08"))
+  );
+}
+
+async function connectToDatabase(databaseUrl, startupTimeoutMs) {
+  const deadline = Date.now() + startupTimeoutMs;
+  let provisioned = false;
+
+  for (;;) {
+    const client = new pg.Client({
+      connectionString: databaseUrl,
+      connectionTimeoutMillis: Math.min(5_000, startupTimeoutMs),
+    });
+    try {
+      await client.connect();
+      return client;
+    } catch (err) {
+      await client.end().catch(() => {});
+
+      if (err.code === "3D000" && !provisioned) {
+        await createTargetDatabase(databaseUrl);
+        provisioned = true;
+        continue;
+      }
+
+      if (!isTransientConnectionError(err) || Date.now() >= deadline) {
+        throw err;
+      }
+
+      log("info", "waiting for database", {
+        code: err.code,
+        retryInMs: RETRY_INTERVAL_MS,
+      });
+      await sleep(Math.min(RETRY_INTERVAL_MS, Math.max(0, deadline - Date.now())));
+    }
+  }
+}
+
 /**
  * Apply pending migrations from `dir` against `databaseUrl`.
  * Returns the list of migration names applied in this run.
  */
-export async function runMigrations({ databaseUrl, dir }) {
+export async function runMigrations({
+  databaseUrl,
+  dir,
+  startupTimeoutMs = DEFAULT_STARTUP_TIMEOUT_MS,
+}) {
   if (!databaseUrl) throw new Error("DATABASE_URL is not set");
+  if (!Number.isFinite(startupTimeoutMs) || startupTimeoutMs < 0) {
+    throw new Error("startupTimeoutMs must be a non-negative number");
+  }
 
-  const client = new pg.Client({ connectionString: databaseUrl });
-  await client.connect();
+  const client = await connectToDatabase(databaseUrl, startupTimeoutMs);
   const applied = [];
   try {
     await client.query("SELECT pg_advisory_lock($1)", [LOCK_KEY]);

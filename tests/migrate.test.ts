@@ -12,6 +12,7 @@ const FIXTURES = path.resolve(__dirname, "fixtures");
 
 describe.runIf(TEST_DATABASE_URL)("runMigrations", () => {
   let dbUrl: string;
+  let autoCreatedDbUrl: string | undefined;
 
   beforeAll(async () => {
     dbUrl = await createScratchDb("migrate_test");
@@ -19,6 +20,7 @@ describe.runIf(TEST_DATABASE_URL)("runMigrations", () => {
 
   afterAll(async () => {
     if (dbUrl) await dropScratchDb(dbUrl);
+    if (autoCreatedDbUrl) await dropScratchDb(autoCreatedDbUrl);
   });
 
   it("applies migrations in order and records them", async () => {
@@ -91,5 +93,26 @@ describe.runIf(TEST_DATABASE_URL)("runMigrations", () => {
       dir: path.join(FIXTURES, "does-not-exist"),
     });
     expect(applied).toEqual([]);
+  });
+
+  it("creates the target database when it does not exist", async () => {
+    const url = new URL(TEST_DATABASE_URL!);
+    const name = `migrate_auto_${Date.now()}_${Math.floor(Math.random() * 1e6)}`;
+    url.pathname = `/${name}`;
+    autoCreatedDbUrl = url.toString();
+
+    const applied = await runMigrations({
+      databaseUrl: autoCreatedDbUrl,
+      dir: path.join(FIXTURES, "migrations-basic"),
+      startupTimeoutMs: 0,
+    });
+
+    expect(applied).toEqual([
+      "001_create_widgets.sql",
+      "002_seed_widgets.sql",
+    ]);
+    await expect(
+      queryScratch(autoCreatedDbUrl, "SELECT name FROM widgets ORDER BY id"),
+    ).resolves.toEqual([{ name: "alpha" }, { name: "beta" }]);
   });
 });
