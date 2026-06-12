@@ -3,23 +3,35 @@
 import { usePathname, useSearchParams } from "next/navigation";
 import { CommandMenu } from "@/components/shell/command-menu";
 import { DateRangePicker } from "@/components/shell/date-range-picker";
+import { MobileNav } from "@/components/shell/mobile-nav";
 import { APP_NAME } from "@/lib/brand";
 import { topBarMode } from "@/lib/range";
 
 /** The top bar (spec 10): cmd-K search and the global date-range picker -
- * nothing else. The picker appears only where the calendar drives the data;
- * where dates mean nothing the whole bar disappears and cmd-K keeps working
- * through its keyboard shortcut. */
+ * nothing else. The picker appears only where the calendar drives the data.
+ * Where dates mean nothing the bar disappears on desktop (cmd-K keeps
+ * working through its keyboard shortcut) but stays on phones - below md it
+ * is the only chrome, so it always carries the nav drawer. */
 export function TopBar() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const mode = topBarMode(pathname, searchParams);
 
-  if (mode === "hidden") return <CommandMenu trigger={false} />;
+  if (mode === "hidden") {
+    return (
+      <header className="sticky top-0 z-40 flex h-14 items-center gap-3 border-b bg-background px-4 md:hidden print:hidden">
+        <MobileNav />
+        <span className="flex-1 font-semibold tracking-tight">{APP_NAME}</span>
+        {/* Mounted (CSS-hidden at md+), so ⌘K works on desktop too. */}
+        <CommandMenu />
+      </header>
+    );
+  }
 
   return (
-    <header className="sticky top-0 z-40 flex h-14 items-center justify-between gap-4 border-b bg-background px-4 md:px-6 print:hidden">
+    <header className="sticky top-0 z-40 flex h-14 flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b bg-background px-4 max-[420px]:h-auto max-[420px]:py-2 md:px-6 print:hidden">
       <div className="flex flex-1 items-center gap-3">
+        <MobileNav />
         <span className="font-semibold tracking-tight md:hidden">{APP_NAME}</span>
         <CommandMenu />
       </div>

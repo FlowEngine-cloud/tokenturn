@@ -6,6 +6,7 @@ import { Fingerprint, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { APP_NAME } from "@/lib/brand";
 
 async function postJson(url: string, body: unknown): Promise<Response> {
   return fetch(url, {
@@ -83,7 +84,7 @@ export function LoginClient({ claimed }: { claimed: boolean }) {
     <main className="flex flex-1 items-center justify-center p-6">
       <div className="w-full max-w-sm space-y-8">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">AI P&amp;L</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">{APP_NAME}</h1>
           <p className="mt-1 text-base text-muted-foreground">
             {claimed ? "Sign in" : "Claim this instance as its admin"}
           </p>

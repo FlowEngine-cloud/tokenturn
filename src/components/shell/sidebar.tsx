@@ -2,45 +2,26 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
-import { HELP_ITEM, NAV_ITEMS, RESOLVE_CHANGED_EVENT } from "@/components/shell/nav";
+import {
+  HELP_ITEM,
+  isNavActive,
+  NAV_ITEMS,
+  useResolveBadge,
+} from "@/components/shell/nav";
 import { APP_NAME } from "@/lib/brand";
 import { rangeFromParams } from "@/lib/range";
 import { cn } from "@/lib/utils";
 
 /**
- * Cross-page nav (spec 10). Links carry the active date range so the global
- * picker survives navigation. Resolve shows the live queue badge (queue +
- * tag conflicts, spec 7b) until both are empty; queue mutations announce
- * themselves so the badge drains without a navigation.
+ * Cross-page nav (spec 10), desktop: fixed sidebar at md+. Below md the
+ * drawer in mobile-nav.tsx takes over. Links carry the active date range so
+ * the global picker survives navigation. Resolve shows the live queue badge
+ * (queue + tag conflicts, spec 7b) until both are empty.
  */
 export function Sidebar() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [resolveCount, setResolveCount] = useState<number>(0);
-  const [version, setVersion] = useState(0);
-
-  useEffect(() => {
-    const bump = () => setVersion((v) => v + 1);
-    window.addEventListener(RESOLVE_CHANGED_EVENT, bump);
-    return () => window.removeEventListener(RESOLVE_CHANGED_EVENT, bump);
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    fetch("/api/resolve")
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (!cancelled && data && Array.isArray(data.queue)) {
-          const conflicts = Array.isArray(data.conflicts) ? data.conflicts.length : 0;
-          setResolveCount(data.queue.length + conflicts);
-        }
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [pathname, version]);
+  const resolveCount = useResolveBadge();
 
   const range = rangeFromParams(searchParams);
   const rangeQuery = range ? `?from=${range.from}&to=${range.to}` : "";
@@ -54,12 +35,7 @@ export function Sidebar() {
       </div>
       <nav className="flex-1 space-y-1 p-3">
         {NAV_ITEMS.map((item) => {
-          const active =
-            item.href === "/"
-              ? pathname === "/"
-              : pathname.startsWith(item.href) ||
-                // ROI detail routes kept their original paths (spec 10.3).
-                (item.href === "/roi" && pathname.startsWith("/products"));
+          const active = isNavActive(item.href, pathname);
           return (
             <Link
               key={item.href}

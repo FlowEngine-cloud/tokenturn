@@ -123,7 +123,7 @@ export default function ReportClient() {
         />
       ) : (
         <div className="space-y-6 rounded-lg border bg-card p-6 print:border-0 print:p-0">
-          <div className="flex items-baseline justify-between">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
             <div>
               <h2 className="text-xl font-semibold">AI spend · {monthLabel(month)}</h2>
               <p className="text-sm text-muted-foreground">
@@ -145,6 +145,8 @@ export default function ReportClient() {
             </div>
           </div>
 
+          {/* Phones scroll the sheet's tables in place; print keeps the flow. */}
+          <div className="overflow-x-auto print:overflow-visible">
           <table className="w-full text-sm">
             <thead>
               <tr>
@@ -233,10 +235,12 @@ export default function ReportClient() {
               </tr>
             </tbody>
           </table>
+          </div>
 
           {data.people.length > 0 && (
             <section>
               <h3 className="mb-2 text-sm font-medium text-muted-foreground">By person</h3>
+              <div className="overflow-x-auto print:overflow-visible">
               <table className="w-full text-sm">
                 <thead>
                   <tr>
@@ -275,6 +279,7 @@ export default function ReportClient() {
                   ))}
                 </tbody>
               </table>
+              </div>
             </section>
           )}
 
