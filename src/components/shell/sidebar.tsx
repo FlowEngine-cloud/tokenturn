@@ -8,8 +8,8 @@ import {
   NAV_ITEMS,
   useResolveBadge,
 } from "@/components/shell/nav";
+import { Brand } from "@/components/shell/brand";
 import { SignedInRow } from "@/components/shell/signed-in";
-import { APP_NAME } from "@/lib/brand";
 import { rangeFromParams } from "@/lib/range";
 import { cn } from "@/lib/utils";
 
@@ -30,8 +30,8 @@ export function Sidebar() {
   return (
     <aside className="fixed inset-y-0 left-0 z-30 hidden w-56 flex-col border-r bg-sidebar md:flex print:hidden">
       <div className="flex h-14 items-center border-b px-5">
-        <Link href={`/${rangeQuery}`} className="font-semibold tracking-tight">
-          {APP_NAME}
+        <Link href={`/${rangeQuery}`}>
+          <Brand />
         </Link>
       </div>
       <nav className="flex-1 space-y-1 p-3">

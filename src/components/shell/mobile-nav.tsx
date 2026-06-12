@@ -11,8 +11,8 @@ import {
   NAV_ITEMS,
   useResolveBadge,
 } from "@/components/shell/nav";
+import { Brand } from "@/components/shell/brand";
 import { SignedInRow } from "@/components/shell/signed-in";
-import { APP_NAME } from "@/lib/brand";
 import { rangeFromParams } from "@/lib/range";
 import { cn } from "@/lib/utils";
 
@@ -46,12 +46,8 @@ export function MobileNav() {
         <Dialog.Content className="fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r bg-sidebar md:hidden">
           <Dialog.Title className="sr-only">Navigation</Dialog.Title>
           <div className="flex h-14 items-center justify-between border-b px-5">
-            <Link
-              href={`/${rangeQuery}`}
-              onClick={() => setOpen(false)}
-              className="font-semibold tracking-tight"
-            >
-              {APP_NAME}
+            <Link href={`/${rangeQuery}`} onClick={() => setOpen(false)}>
+              <Brand />
             </Link>
             <Dialog.Close asChild>
               <button

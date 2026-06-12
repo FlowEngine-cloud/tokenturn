@@ -26,6 +26,10 @@ export function isPublicPath(pathname: string): boolean {
   return (
     pathname === "/healthz" ||
     pathname === "/login" ||
+    // Brand assets: the logo and the generated icon route must load on
+    // /login too, where there is no session yet.
+    pathname === "/logo.svg" ||
+    pathname === "/icon.png" ||
     pathname.startsWith("/reset/") ||
     pathname === "/api/ingest" ||
     pathname.startsWith("/api/ingest/") ||
