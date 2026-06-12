@@ -6,6 +6,7 @@ import {
   HELP_ITEM,
   isNavActive,
   NAV_ITEMS,
+  SETTINGS_ITEM,
   useResolveBadge,
 } from "@/components/shell/nav";
 import { Brand } from "@/components/shell/brand";
@@ -60,18 +61,21 @@ export function Sidebar() {
         })}
       </nav>
       <div className="border-t p-3">
-        <Link
-          href={`${HELP_ITEM.href}${rangeQuery}`}
-          className={cn(
-            "flex items-center gap-3 rounded-md px-3 py-2 text-sm",
-            pathname.startsWith(HELP_ITEM.href)
-              ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
-              : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-          )}
-        >
-          <HELP_ITEM.icon className="h-4 w-4" />
-          {HELP_ITEM.label}
-        </Link>
+        {[SETTINGS_ITEM, HELP_ITEM].map((item) => (
+          <Link
+            key={item.href}
+            href={`${item.href}${rangeQuery}`}
+            className={cn(
+              "flex items-center gap-3 rounded-md px-3 py-2 text-sm",
+              pathname.startsWith(item.href)
+                ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
+                : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+            )}
+          >
+            <item.icon className="h-4 w-4" />
+            {item.label}
+          </Link>
+        ))}
         <SignedInRow />
       </div>
     </aside>

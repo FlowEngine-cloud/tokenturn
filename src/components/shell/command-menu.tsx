@@ -4,7 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Dialog } from "radix-ui";
 import { CornerDownLeft, Search } from "lucide-react";
-import { HELP_ITEM, NAV_ITEMS } from "@/components/shell/nav";
+import { HELP_ITEM, NAV_ITEMS, SETTINGS_ITEM } from "@/components/shell/nav";
 import { rangeFromParams, withRange } from "@/lib/range";
 import { cn } from "@/lib/utils";
 
@@ -72,7 +72,7 @@ export function CommandMenu({ trigger = true }: { trigger?: boolean }) {
   }, [q, open]);
 
   const items = useMemo<Item[]>(() => {
-    const pages: Item[] = [...NAV_ITEMS, HELP_ITEM].filter((n) =>
+    const pages: Item[] = [...NAV_ITEMS, SETTINGS_ITEM, HELP_ITEM].filter((n) =>
       n.label.toLowerCase().includes(q.toLowerCase()),
     ).map((n) => ({
       key: `page:${n.href}`,

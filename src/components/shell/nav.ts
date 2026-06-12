@@ -31,10 +31,14 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/roi", label: "ROI", icon: TrendingUp },
   { href: "/resolve", label: "Resolve", icon: GitMerge },
   { href: "/report", label: "Report", icon: FileText },
-  { href: "/settings", label: "Settings", icon: Settings },
 ];
 
-/** Pinned to the bottom of the sidebar, below the page list. */
+/** Utility pages pinned together at the bottom of the sidebar. */
+export const SETTINGS_ITEM: NavItem = {
+  href: "/settings",
+  label: "Settings",
+  icon: Settings,
+};
 export const HELP_ITEM: NavItem = { href: "/help", label: "Help", icon: CircleHelp };
 
 /** The Resolve queue badge (queue + tag conflicts, spec 7b): refetches on
