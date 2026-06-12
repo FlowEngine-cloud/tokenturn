@@ -11,20 +11,21 @@ const MIGRATIONS_DIR = path.resolve(__dirname, "..", "migrations");
 /**
  * The one ROI list (spec 7 + 10 page 3), driven through the real pipeline:
  * products/facts/metrics/outcomes -> recomputeRollups -> roiView. Built-in
- * coding-tool rows (merged PRs, accept/revert rates, tokens from the
- * vendors' own counters) sit next to the user-defined rows, all with the
- * same columns: spend, tokens, successes, $ and tokens per success, value,
- * ROI multiple - and survival stays null until the survival job has
- * checked a PR, never invented. Every row carries tags and vendors for
- * the filter bar.
+ * coding-tool rows (success = lines surviving 30 days after the merge,
+ * accept rates and tokens from the vendors' own counters) sit next to the
+ * user-defined rows, all with the same columns: spend, tokens, successes,
+ * $ and tokens per success, value, ROI multiple. No PR has been survival-
+ * checked in this fixture, so every coding ROI stays a dash - merged PRs
+ * are not a success and never stand in for one (survival.test.ts covers
+ * the checked path). Every row carries tags and vendors for the filter bar.
  *
  * Fixture (USD display), June range 06-01..06-04:
  *   claude_code (built-in, metric-sourced): 1,500c vendor estimate,
  *     150k tokens from the vendor's counter, accepted 80 / rejected 20;
- *     PRs pr1+pr2 live, pr4 reverted -> 2 merges, $7.50/merge, 75k tok/merge
- *   cursor (built-in, vendor-billed): dana 2,000c; PRs pr2+pr3 -> 2 merges
+ *     PRs pr1+pr2 live, pr4 reverted - none survival-checked
+ *   cursor (built-in, vendor-billed): dana 2,000c; PRs pr2+pr3
  *   devin (built-in, product-routed): key tagged devin spends 3,000c /
- *     10k tokens on the Devin row; pr5 live, pr6 reverted -> 50% revert
+ *     10k tokens on the Devin row; pr5 live, pr6 reverted
  *   supportbot (sdk, sdk_event, default value 450c): 1,500c / 75k tokens,
  *     3 tickets (one valued 500c), 1 reverted -> value 1,400c, ROI 0.93
  *   Coding (connector, github_pr): owns the PR outcomes, no spend routed
@@ -186,39 +187,40 @@ describe.runIf(TEST_DATABASE_URL)("the one ROI list (spec 7)", () => {
     // No survival checks recorded: a dash on every row, never a number
     // (the survival job's own coverage lives in survival.test.ts).
     expect(view.rows.every((r) => r.survivalPct === null)).toBe(true);
-    expect(view.rows.every((r) => r.costPer1kSurvivingCents === null)).toBe(true);
   });
 
-  it("a metric-sourced coding row: vendor estimate, vendor tokens, $ and tokens per merge", async () => {
+  it("a metric-sourced coding row: vendor estimate, vendor tokens - no survival check, no ROI", async () => {
     const view = await roiView(JUNE, pool);
     const cc = view.rows.find((r) => r.key === "coding:claude_code")!;
     expect(cc).toMatchObject({
       kind: "coding",
       name: "Claude Code",
-      unit: "merge",
+      unit: "1k lines",
       spendCents: 1_500,
       tokens: 150_000, // the May counter stays out
-      successes: 2, // pr1 + pr2 live; pr4 flipped out
+      // pr1 + pr2 merged, but a merge is not a success - until the survival
+      // job has measured surviving lines, there is nothing to price.
+      successes: 0,
       revertedCount: 1,
-      costPerSuccessCents: 750,
-      tokensPerSuccess: 75_000,
+      costPerSuccessCents: null,
+      tokensPerSuccess: null,
       valueCents: null, // no value recorded, none invented
       roi: null,
       acceptRatePct: 80,
-      revertRatePct: 33.3,
+      survivalPct: null,
       vendors: ["anthropic"],
     });
     expect(cc.tags).toContain("claude_code");
   });
 
-  it("a vendor-billed coding row counts each PR for each tool that touched it", async () => {
+  it("a vendor-billed coding row: spend and vendor facts, ROI dashes until lines are checked", async () => {
     const view = await roiView(JUNE, pool);
     const cursor = view.rows.find((r) => r.key === "coding:cursor")!;
     expect(cursor).toMatchObject({
       spendCents: 2_000,
-      successes: 2, // pr2 (shared with claude_code) + pr3
-      costPerSuccessCents: 1_000,
-      tokensPerSuccess: null, // the vendor reports no tokens - no fake number
+      successes: 0, // pr2 + pr3 merged - merges are not successes
+      costPerSuccessCents: null,
+      tokensPerSuccess: null,
       vendors: ["cursor"],
     });
   });
@@ -229,9 +231,8 @@ describe.runIf(TEST_DATABASE_URL)("the one ROI list (spec 7)", () => {
     expect(coding).toMatchObject({
       spendCents: 3_000,
       tokens: 10_000,
-      successes: 1,
+      successes: 0, // pr5 merged, nothing survival-checked yet
       revertedCount: 1,
-      revertRatePct: 50,
       vendors: ["anthropic"],
     });
     expect(coding.spendSource).toMatchObject({
@@ -267,7 +268,6 @@ describe.runIf(TEST_DATABASE_URL)("the one ROI list (spec 7)", () => {
       valueCents: 1_400, // 500 explicit + 2 x 450 default
       roi: 0.93,
       acceptRatePct: null,
-      revertRatePct: null,
       tags: ["support-bot"],
       vendors: ["openai"],
     });

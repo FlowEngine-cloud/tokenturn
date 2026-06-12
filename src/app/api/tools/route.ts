@@ -7,9 +7,9 @@ import { toolsData } from "@/lib/tools";
 export const dynamic = "force-dynamic";
 
 /**
- * Tools (spec 10 page 4): cost per merged PR per tool per person, accept
- * rates and revert rates over the range, side by side - every number
- * sourced from the rows its drill link returns.
+ * Tools (spec 10 page 4): line survival and cost per 1,000 surviving lines
+ * per tool per person, accept rates and revert rates over the range, side
+ * by side - every number sourced from the rows its drill link returns.
  */
 export async function GET(req: Request) {
   const db = getPool();

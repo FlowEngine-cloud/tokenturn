@@ -20,10 +20,11 @@ import { useFetch } from "@/lib/use-fetch";
 
 /**
  * ROI (spec 7 + 10 page 3): one list of ROI calculations - the built-in
- * coding-tool rows (merged PRs, accept/revert rates, line survival and
- * cost per 1k surviving lines) and the user-defined ones. The filter
- * bar slices by tag and vendor; "Add ROI" opens the form; a row click goes
- * to its detail (per-person split, daily breakdown, drills).
+ * coding-tool rows (success = lines still alive 30 days after the merge,
+ * $ and tokens per 1k surviving lines, accept rates) and the user-defined
+ * ones. The filter bar slices by tag and vendor; "Add ROI" opens the form;
+ * a row click goes to its detail (per-person split, daily breakdown,
+ * drills).
  */
 
 export function RoiSkeleton() {
@@ -269,6 +270,14 @@ export default function RoiClient() {
           ) : (
             "–"
           )
+        ) : r.kind === "coding" ? (
+          // Lines alive at 30 days; a dash until the survival job has
+          // measured a PR in range.
+          r.survivalPct === null ? (
+            "–"
+          ) : (
+            <span>{formatCount(r.successes)} lines</span>
+          )
         ) : (
           <span>
             {formatCount(r.successes)}
@@ -322,29 +331,11 @@ export default function RoiClient() {
       csv: (r) => r.acceptRatePct,
     },
     {
-      key: "revert",
-      header: "Revert",
-      align: "right",
-      render: (r) => formatPct(r.revertRatePct),
-      csv: (r) => r.revertRatePct,
-    },
-    {
       key: "survival",
       header: "Survival",
       align: "right",
       render: (r) => formatPct(r.survivalPct),
       csv: (r) => r.survivalPct,
-    },
-    {
-      key: "costPer1kSurviving",
-      header: "$ / 1k lines",
-      align: "right",
-      render: (r) =>
-        r.costPer1kSurvivingCents === null ? "–" : money(r.costPer1kSurvivingCents),
-      csv: (r) =>
-        r.costPer1kSurvivingCents === null
-          ? null
-          : (r.costPer1kSurvivingCents / 100).toFixed(2),
     },
   ];
 
@@ -388,7 +379,7 @@ export default function RoiClient() {
           <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" />
         </summary>
         <ul className="mt-3 space-y-1.5">
-          <li>Coding tools are built in: their spend, with merged PRs as the success.</li>
+          <li>Coding tools are built in: their spend against the code still alive in prod 30 days after it lands.</li>
           <li>Add your own: pick where spend comes from (a tagged key, the SDK, a whole vendor) and what counts as success.</li>
           <li>Tags: name a key in the vendor console (stripe-agent-…) and filter by it here.</li>
           <li>

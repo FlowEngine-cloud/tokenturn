@@ -42,8 +42,8 @@ import { logger } from "./logger";
  *                            copies present). A deleted file is dead lines.
  *
  * Output per tool (tools.ts aggregates over the PRs merged in range):
- * lines written, % alive, cost per 1,000 surviving lines. $/merge stays
- * the headline; survival says whether the code stuck. Reverted PRs are
+ * lines written, % alive, cost per 1,000 surviving lines - the coding ROI;
+ * merging was never the success, code that stuck is. Reverted PRs are
  * checked like any other - their lines are simply (honestly) dead.
  *
  * PRs that can never be measured (repo or base branch gone, PR too large)

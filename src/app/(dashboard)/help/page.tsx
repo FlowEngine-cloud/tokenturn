@@ -54,9 +54,10 @@ export default function HelpPage() {
         <p>
           An ROI is a named calculation: a slice of spend &divide; a definition of
           success. The slice comes from a whole vendor, tagged keys, the SDK, or manual
-          entry. Successes come from merged PRs (reverts within the window flip them
-          back), <Code>track()</Code> events, or manual entry - each one points at a
-          real record. Coding tools are built-in rows.
+          entry. Successes come from <Code>track()</Code> events or manual entry - each
+          one points at a real record. Coding tools are built-in rows whose success is
+          the code that survives: lines still in prod 30 days after the merge, priced
+          per 1,000 surviving lines. A merge by itself counts for nothing.
         </p>
         <p>$ per success = spend &divide; successes over the date range you pick. No success defined, no fake ROI - just cost.</p>
         <p>

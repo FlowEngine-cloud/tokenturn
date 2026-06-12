@@ -13,12 +13,12 @@ import type { ToolPersonRow, ToolsData, ToolSummary } from "@/lib/tools";
 import { useFetch } from "@/lib/use-fetch";
 
 /**
- * One built-in coding-tool ROI (spec 10 page 3 click-through): cost per
- * merged PR per person, accept and revert rates, and line survival (lines
- * written, % alive at 30/90 days, cost per 1,000 surviving lines - the
- * background git checks, spec 5). Every cell links to the raw rows behind
- * it: vendor facts, the vendor's own usage counters, or the routed spend -
- * each labeled for what it is.
+ * One built-in coding-tool ROI (spec 10 page 3 click-through): line
+ * survival per person - lines written, % alive at 30/90 days, cost per
+ * 1,000 surviving lines (the background git checks, spec 5) - with merged
+ * PRs, accept and revert rates alongside as diagnostics. Every cell links
+ * to the raw rows behind it: vendor facts, the vendor's own usage
+ * counters, or the routed spend - each labeled for what it is.
  */
 
 export function CodingToolSkeleton() {
@@ -183,12 +183,33 @@ export default function CodingToolClient() {
       csv: (r) => r.merges,
     },
     {
-      key: "unit",
-      header: "$ / merge",
+      key: "survival",
+      header: "Survival 30d",
       align: "right",
-      render: (r) => (r.costPerMergeCents === null ? "–" : money(r.costPerMergeCents)),
+      render: (r) =>
+        r.survivalPct === null ? (
+          "–"
+        ) : (
+          <span className="tabular-nums">
+            {formatPct(r.survivalPct)}
+            <span className="text-muted-foreground">
+              {" "}
+              · {formatCount(r.linesAlive)} of {formatCount(r.linesWritten)}
+            </span>
+          </span>
+        ),
+      csv: (r) => r.survivalPct,
+    },
+    {
+      key: "costPer1k",
+      header: "$ / 1k lines",
+      align: "right",
+      render: (r) =>
+        r.costPer1kSurvivingCents === null ? "–" : money(r.costPer1kSurvivingCents),
       csv: (r) =>
-        r.costPerMergeCents === null ? null : (r.costPerMergeCents / 100).toFixed(2),
+        r.costPer1kSurvivingCents === null
+          ? null
+          : (r.costPer1kSurvivingCents / 100).toFixed(2),
     },
     {
       key: "accept",
@@ -251,6 +272,27 @@ export default function CodingToolClient() {
             <p className="text-3xl font-semibold text-muted-foreground">–</p>
           )}
         </Tile>
+        <Tile title="Survival 30d" href={mergesHref(tool, range)}>
+          {summary.survivalPct !== null ? (
+            <>
+              <Link
+                href={mergesHref(tool, range)}
+                className="text-3xl font-semibold tabular-nums"
+              >
+                {formatPct(summary.survivalPct)}
+              </Link>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {formatCount(summary.linesAlive)} of {formatCount(summary.linesWritten)} lines
+                {summary.survival90Pct !== null &&
+                  ` · 90d ${formatPct(summary.survival90Pct)}`}
+                {summary.costPer1kSurvivingCents !== null &&
+                  ` · ${money(summary.costPer1kSurvivingCents)} / 1k lines`}
+              </p>
+            </>
+          ) : (
+            <p className="text-3xl font-semibold text-muted-foreground">–</p>
+          )}
+        </Tile>
         <Tile title="Merged PRs" href={mergesHref(tool, range)}>
           <Link
             href={mergesHref(tool, range)}
@@ -258,12 +300,11 @@ export default function CodingToolClient() {
           >
             {formatCount(summary.merges)}
           </Link>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {summary.costPerMergeCents !== null &&
-              `${money(summary.costPerMergeCents)} / merge`}
-            {summary.peopleCount > 0 &&
-              `${summary.costPerMergeCents !== null ? " · " : ""}${formatCount(summary.peopleCount)} people`}
-          </p>
+          {summary.peopleCount > 0 && (
+            <p className="mt-1 text-sm text-muted-foreground">
+              {formatCount(summary.peopleCount)} people
+            </p>
+          )}
         </Tile>
         <Tile title="Accept rate" href={acceptHref(summary, range) ?? undefined}>
           {summary.acceptRatePct !== null ? (
@@ -290,27 +331,6 @@ export default function CodingToolClient() {
                   {formatCount(summary.reverted)} reverted
                 </p>
               )}
-            </>
-          ) : (
-            <p className="text-3xl font-semibold text-muted-foreground">–</p>
-          )}
-        </Tile>
-        <Tile title="Survival 30d" href={mergesHref(tool, range)}>
-          {summary.survivalPct !== null ? (
-            <>
-              <Link
-                href={mergesHref(tool, range)}
-                className="text-3xl font-semibold tabular-nums"
-              >
-                {formatPct(summary.survivalPct)}
-              </Link>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {formatCount(summary.linesAlive)} of {formatCount(summary.linesWritten)} lines
-                {summary.survival90Pct !== null &&
-                  ` · 90d ${formatPct(summary.survival90Pct)}`}
-                {summary.costPer1kSurvivingCents !== null &&
-                  ` · ${money(summary.costPer1kSurvivingCents)} / 1k lines`}
-              </p>
             </>
           ) : (
             <p className="text-3xl font-semibold text-muted-foreground">–</p>

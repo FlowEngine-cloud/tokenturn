@@ -5,8 +5,9 @@ import { fxExpr } from "./rollup";
 import { getSetting } from "./settings";
 
 /**
- * Tools page readers (spec 10 page 4): cost per merged PR per tool per
- * person, accept rates, revert rates, side by side.
+ * Tools page readers (spec 10 page 4): per tool and per person - spend
+ * against the code still alive 30 days after it lands (the coding ROI,
+ * spec 5), with accept and revert rates alongside as diagnostics.
  *
  * A "tool" is the AI authorship tag GitHub outcomes carry (bot authors +
  * co-author trailers, spec 5) - claude_code, cursor, copilot, devin, codex.
@@ -97,7 +98,12 @@ export interface ToolPersonRow {
   /** Live merged PRs carrying this tool (reverted ones flipped out, spec 5). */
   merges: number;
   reverted: number;
-  costPerMergeCents: number | null;
+  /** Line survival at the 30-day horizon over this person's checked PRs
+   * (spec 5); rates stay null until the survival job has measured one. */
+  linesWritten: number;
+  linesAlive: number;
+  survivalPct: number | null;
+  costPer1kSurvivingCents: number | null;
   accepted: number | null;
   against: number | null;
   acceptRatePct: number | null;
@@ -114,7 +120,6 @@ export interface ToolSummary {
   tokens: number;
   merges: number;
   reverted: number;
-  costPerMergeCents: number | null;
   acceptRatePct: number | null;
   /** reverted / (live + reverted), 1 decimal; null with no merges at all. */
   revertRatePct: number | null;
@@ -205,7 +210,10 @@ export async function toolsData(
         spendCents: null,
         merges: 0,
         reverted: 0,
-        costPerMergeCents: null,
+        linesWritten: 0,
+        linesAlive: 0,
+        survivalPct: null,
+        costPer1kSurvivingCents: null,
         accepted: null,
         against: null,
         acceptRatePct: null,
@@ -242,27 +250,37 @@ export async function toolsData(
     ...Object.keys(TOOL_SOURCES),
   ]);
 
-  // Line survival per (tool, horizon) over the PRs merged in range - only
-  // measured checks; unmeasurable PRs (error rows) stay absent (spec 5).
+  // Line survival per (tool, person, horizon) over the PRs merged in range -
+  // only measured checks; unmeasurable PRs (error rows) stay absent (spec 5).
+  // The 30-day horizon lands on the person rows; both horizons roll up per
+  // tool for the summary.
   const { rows: survivalRows } = await db.query(
-    `SELECT t.tool, sc.horizon_days AS horizon,
+    `SELECT t.tool, o.person_id AS "personId", p.name, p.email,
+            sc.horizon_days AS horizon,
             SUM(sc.lines_written)::bigint AS written,
             SUM(sc.lines_alive)::bigint AS alive
      FROM outcomes o
      CROSS JOIN LATERAL unnest(o.tools) AS t(tool)
      JOIN survival_checks sc
        ON sc.source_ref = o.source_ref AND sc.error IS NULL
+     LEFT JOIN people p ON p.id = o.person_id
      WHERE o.kind = 'github_pr'
        AND (o.ts AT TIME ZONE 'UTC')::date BETWEEN $1::date AND $2::date
-     GROUP BY t.tool, sc.horizon_days`,
+     GROUP BY t.tool, o.person_id, p.name, p.email, sc.horizon_days`,
     [range.from, range.to],
   );
   const survivalByTool = new Map<string, { written: number; alive: number }>();
   for (const row of survivalRows) {
-    survivalByTool.set(`${row.tool}:${row.horizon}`, {
-      written: Number(row.written),
-      alive: Number(row.alive),
-    });
+    const key = `${row.tool}:${row.horizon}`;
+    const agg = survivalByTool.get(key) ?? { written: 0, alive: 0 };
+    agg.written += Number(row.written);
+    agg.alive += Number(row.alive);
+    survivalByTool.set(key, agg);
+    if (Number(row.horizon) === 30) {
+      const cell = rowFor(row.tool, row);
+      cell.linesWritten = Number(row.written);
+      cell.linesAlive = Number(row.alive);
+    }
   }
 
   const spendSources = new Map<string, ToolSpendSource>();
@@ -387,8 +405,11 @@ export async function toolsData(
 
   const rows = [...rowsByKey.values()];
   for (const row of rows) {
-    if (row.spendCents !== null && row.merges > 0) {
-      row.costPerMergeCents = Math.round(row.spendCents / row.merges);
+    if (row.linesWritten > 0) {
+      row.survivalPct = Math.round((row.linesAlive / row.linesWritten) * 1000) / 10;
+    }
+    if (row.spendCents !== null && row.linesAlive > 0) {
+      row.costPer1kSurvivingCents = Math.round((row.spendCents / row.linesAlive) * 1000);
     }
   }
 
@@ -421,8 +442,6 @@ export async function toolsData(
       tokens: tokensByTool.get(tool) ?? 0,
       merges,
       reverted,
-      costPerMergeCents:
-        spendCents !== null && merges > 0 ? Math.round(spendCents / merges) : null,
       acceptRatePct: acceptRate(
         accepted,
         against,

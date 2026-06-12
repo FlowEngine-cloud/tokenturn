@@ -207,10 +207,27 @@ describe.runIf(TEST_DATABASE_URL)("survival job (spec 5)", () => {
     // 3,000c spend over 1 surviving line -> per 1,000 surviving lines.
     expect(cc.costPer1kSurvivingCents).toBe(3_000_000);
 
+    // The per-person split carries the same ROI (everything here is
+    // unassigned - the fixture's outcomes have no person).
+    const cell = tools.rows.find(
+      (r) => r.tool === "claude_code" && r.personId === null,
+    )!;
+    expect(cell).toMatchObject({
+      linesWritten: 2,
+      linesAlive: 1,
+      survivalPct: 50,
+      costPer1kSurvivingCents: 3_000_000,
+    });
+
+    // The ROI row's success IS the surviving code - merges are no factor.
     const roi = await roiView(range, pool);
     const row = roi.rows.find((r) => r.key === "coding:claude_code")!;
-    expect(row.survivalPct).toBe(50);
-    expect(row.costPer1kSurvivingCents).toBe(3_000_000);
+    expect(row).toMatchObject({
+      unit: "1k lines",
+      successes: 1,
+      survivalPct: 50,
+      costPerSuccessCents: 3_000_000,
+    });
 
     // The unmeasurable PR's tool shows a dash, not a number.
     const mayTools = await toolsData({ from: "2026-05-01", to: "2026-05-31" }, pool);

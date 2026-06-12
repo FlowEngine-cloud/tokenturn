@@ -8,10 +8,10 @@ import { toolsData, type ToolSpendSource } from "./tools";
  * The ROI page reader (spec 7 + 10 page 3). An ROI is a named calculation:
  * a slice of spend ÷ a definition of success. One list holds them all:
  *
- * - built-in coding-tool rows (toolsData): success = merged PRs, with the
- *   vendors' accept rates, the revert rate, and line survival (the
- *   background git checks, spec 5) alongside - a dash until a PR has been
- *   checked, never invented.
+ * - built-in coding-tool rows (toolsData): success = code that survives -
+ *   lines still alive in prod 30 days after the merge (the background git
+ *   checks, spec 5), with the vendors' accept rates alongside - a dash
+ *   until a PR has been checked, never invented. Merges are not a factor.
  * - user-defined rows (productsView - the products table keeps its name,
  *   only the language changed): success = whatever the row defines, or
  *   none - then it is plain cost, no fake ROI.
@@ -31,11 +31,13 @@ export interface RoiRow {
   attribution: Attribution | null;
   spendCents: number | null;
   tokens: number;
-  /** Live successes in range (merged PRs for coding rows; reverted ones out). */
+  /** Live successes in range. Coding rows: lines still alive at 30 days
+   * (0 until the survival job has checked a PR - survivalPct says whether
+   * anything was measured). Custom rows: outcomes, reverted ones out. */
   successes: number;
   revertedCount: number;
-  /** What one success is called ("merge", "ticket_resolved"); null = none
-   * defined - costPerUserCents is the row's number instead. */
+  /** What one success is called ("1k lines", "ticket_resolved"); null =
+   * none defined - costPerUserCents is the row's number instead. */
   unit: string | null;
   costPerSuccessCents: number | null;
   tokensPerSuccess: number | null;
@@ -45,12 +47,9 @@ export interface RoiRow {
   costPerUserCents: number | null;
   /** Coding rows only - from the vendors' own counters. */
   acceptRatePct: number | null;
-  revertRatePct: number | null;
   /** % of AI-written lines still alive 30 days after merge (spec 5);
    * null until the survival job has checked a PR in range. */
   survivalPct: number | null;
-  /** Spend per 1,000 lines still alive at 30 days. */
-  costPer1kSurvivingCents: number | null;
   /** For the filter bar. Coding rows carry their own tool tag. */
   tags: string[];
   vendors: string[];
@@ -63,19 +62,6 @@ export interface RoiViewData {
   from: string;
   to: string;
   rows: RoiRow[];
-}
-
-function perSuccess(
-  spendCents: number | null,
-  tokens: number,
-  successes: number,
-): { costPerSuccessCents: number | null; tokensPerSuccess: number | null } {
-  return {
-    costPerSuccessCents:
-      spendCents !== null && successes > 0 ? Math.round(spendCents / successes) : null,
-    tokensPerSuccess:
-      tokens > 0 && successes > 0 ? Math.round(tokens / successes) : null,
-  };
 }
 
 export async function roiView(
@@ -118,18 +104,20 @@ export async function roiView(
       attribution: null,
       spendCents: t.spendCents,
       tokens: t.tokens,
-      successes: t.merges,
+      successes: t.linesAlive,
       revertedCount: t.reverted,
-      unit: "merge",
-      ...perSuccess(t.spendCents, t.tokens, t.merges),
+      unit: "1k lines",
+      costPerSuccessCents: t.costPer1kSurvivingCents,
+      tokensPerSuccess:
+        t.tokens > 0 && t.linesAlive > 0
+          ? Math.round((t.tokens / t.linesAlive) * 1000)
+          : null,
       valueCents: null,
       roi: null,
       activeUsers: t.peopleCount,
       costPerUserCents: null,
       acceptRatePct: t.acceptRatePct,
-      revertRatePct: t.revertRatePct,
       survivalPct: t.survivalPct,
-      costPer1kSurvivingCents: t.costPer1kSurvivingCents,
       tags: [
         ...new Set([t.tool, ...(routed ? (tagsByProduct.get(routed.id) ?? []) : [])]),
       ],
@@ -166,9 +154,7 @@ export async function roiView(
       activeUsers: p.activeUsers,
       costPerUserCents: p.costPerUserCents,
       acceptRatePct: null,
-      revertRatePct: null,
       survivalPct: null,
-      costPer1kSurvivingCents: null,
       tags: tagsByProduct.get(p.id) ?? [],
       vendors: p.vendors,
       spendSource: null,

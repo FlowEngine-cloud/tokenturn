@@ -211,7 +211,6 @@ describe.runIf(TEST_DATABASE_URL)("tools page readers", () => {
       spendCents: 1_800, // dana 1,500 + unmapped 300; May stays out
       merges: 2,
       reverted: 1,
-      costPerMergeCents: 900,
       acceptRatePct: 77.3, // (80+5) / (80+5+20+5)
       revertRatePct: 33.3,
       peopleCount: 1,
@@ -221,7 +220,6 @@ describe.runIf(TEST_DATABASE_URL)("tools page readers", () => {
       spendCents: 4_000, // dana 2,500 (EUR converted) + omer 1,000 + unassigned 500
       merges: 2,
       reverted: 0,
-      costPerMergeCents: 2_000,
       acceptRatePct: 75, // omer's 0/0 adds nothing and invents nothing
       revertRatePct: 0,
       peopleCount: 2,
@@ -230,7 +228,6 @@ describe.runIf(TEST_DATABASE_URL)("tools page readers", () => {
       spendSource: { type: "vendor", vendor: "github" },
       spendCents: 800,
       merges: 1,
-      costPerMergeCents: 800,
       acceptRatePct: 40, // of-total: 40 acceptances / 100 generations
       revertRatePct: 0,
     });
@@ -242,7 +239,6 @@ describe.runIf(TEST_DATABASE_URL)("tools page readers", () => {
       spendCents: 3_400,
       merges: 1,
       reverted: 1,
-      costPerMergeCents: 3_400,
       acceptRatePct: null,
       revertRatePct: 50,
       peopleCount: 0,
@@ -260,7 +256,11 @@ describe.runIf(TEST_DATABASE_URL)("tools page readers", () => {
       spendCents: 1_500,
       merges: 2,
       reverted: 1,
-      costPerMergeCents: 750,
+      // No survival check in this fixture: the ROI cells stay a dash -
+      // merges alone price nothing (the checked path: survival.test.ts).
+      linesWritten: 0,
+      survivalPct: null,
+      costPer1kSurvivingCents: null,
       accepted: 80,
       against: 20,
       acceptRatePct: 80,
@@ -273,7 +273,6 @@ describe.runIf(TEST_DATABASE_URL)("tools page readers", () => {
     expect(cell("cursor", dana)).toMatchObject({
       spendCents: 2_500,
       merges: 2, // pr2 counts for cursor AND claude_code
-      costPerMergeCents: 1_250,
       acceptRatePct: 75,
     });
     expect(cell("cursor", omer)).toMatchObject({
