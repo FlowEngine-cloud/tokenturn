@@ -238,7 +238,7 @@ export function ConnectorCard({
       onToggle={() => setOpen((v) => !v)}
     >
       {c.connected && c.lastRun?.error && (
-        <p className="text-sm text-red-600" title={c.lastRun.error}>
+        <p className="break-words text-sm text-red-600" title={c.lastRun.error}>
           {c.lastRun.error}
         </p>
       )}

@@ -132,7 +132,7 @@ function PersonSearch({
 
 function ErrorLine({ message }: { message: string | null }) {
   if (!message) return null;
-  return <p className="text-sm text-destructive">{message}</p>;
+  return <p className="min-w-0 break-words text-sm text-destructive">{message}</p>;
 }
 
 function QueueCard({

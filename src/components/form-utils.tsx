@@ -29,7 +29,9 @@ export async function send(
 
 export function ErrorLine({ message }: { message: string | null }) {
   if (!message) return null;
-  return <p className="text-sm text-destructive">{message}</p>;
+  // min-w-0 + break-words: vendor errors come back verbatim and can be one
+  // long token (a URL, a JSON blob) - they must wrap, never blow out a card.
+  return <p className="min-w-0 break-words text-sm text-destructive">{message}</p>;
 }
 
 /** One titled settings card. */

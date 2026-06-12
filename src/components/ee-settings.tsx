@@ -270,7 +270,7 @@ function OktaBody({ status, reload }: { status: OktaStatus; reload: () => void }
         </div>
       )}
       {status.connected && status.lastRun?.error && (
-        <p className="text-sm text-destructive">{status.lastRun.error}</p>
+        <p className="break-words text-sm text-destructive">{status.lastRun.error}</p>
       )}
       {status.connected && status.hookSecret && (
         <div className="space-y-1 text-sm">
@@ -406,7 +406,7 @@ function GoogleBody({ status, reload }: { status: GoogleStatus; reload: () => vo
         </div>
       )}
       {status.connected && status.lastRun?.error && (
-        <p className="text-sm text-destructive">{status.lastRun.error}</p>
+        <p className="break-words text-sm text-destructive">{status.lastRun.error}</p>
       )}
       <div className="space-y-2">
         <textarea

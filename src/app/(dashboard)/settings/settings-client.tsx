@@ -469,7 +469,7 @@ function SdkCard({
             value={productId}
             onChange={(e) => setProductId(e.target.value)}
           >
-            <option value="">Mint for ROI…</option>
+            <option value="">Choose ROI…</option>
             {products.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name}
@@ -694,14 +694,14 @@ function AlertsCard({
 
   return (
     <Section title="Alerts">
-      <SettingsRow label="Slack webhook">
+      <SettingsRow label="Slack webhook URL">
         <SlackWebhookControl
           configured={slackConfigured}
           isAdmin={isAdmin}
           onChanged={onChanged}
         />
       </SettingsRow>
-      <SettingsRow label="Email to" htmlFor="alerts-alert_email_recipients">
+      <SettingsRow label="Email alerts to" htmlFor="alerts-alert_email_recipients">
         <Input
           id="alerts-alert_email_recipients"
           className="h-8 w-96 max-w-full"
@@ -711,7 +711,7 @@ function AlertsCard({
           onChange={(e) => set({ alert_email_recipients: e.target.value })}
         />
       </SettingsRow>
-      {numeric("Limit alerts", "limit_alert_thresholds_pct", "% of monthly limit", "w-28")}
+      {numeric("Alert at", "limit_alert_thresholds_pct", "% of a person's monthly limit", "w-28")}
       <SettingsRow label="Anomaly alerts" htmlFor="alerts-anomaly_enabled">
         <input
           id="alerts-anomaly_enabled"
@@ -722,14 +722,25 @@ function AlertsCard({
         />
       </SettingsRow>
       {numeric(
-        "Anomaly trigger",
+        "Daily burn over",
         "anomaly_burn_multiplier",
-        "× 30-day average",
+        "× their 30-day average",
         "w-16",
         !form.anomaly_enabled,
       )}
-      {numeric("Anomaly floor", "anomaly_min_day", "$ / day", "w-20", !form.anomaly_enabled)}
-      {numeric("Silent connector", "connector_silent_alert_hours", "hours", "w-16")}
+      {numeric(
+        "And at least",
+        "anomaly_min_day",
+        "USD that day",
+        "w-20",
+        !form.anomaly_enabled,
+      )}
+      {numeric(
+        "Connector silent",
+        "connector_silent_alert_hours",
+        "hours before an alert",
+        "w-16",
+      )}
       {isAdmin && (
         <SettingsRow>
           <Button size="sm" disabled={busy} onClick={save}>
@@ -982,7 +993,9 @@ function DataCard({
           value={form.revert_window_days}
           onChange={(e) => set({ revert_window_days: e.target.value })}
         />
-        <span className="text-sm text-muted-foreground">days</span>
+        <span className="text-sm text-muted-foreground">
+          days a revert can flip a merged PR
+        </span>
       </SettingsRow>
       <SettingsRow label="Update check" htmlFor="data-update">
         <input

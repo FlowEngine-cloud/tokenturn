@@ -36,7 +36,7 @@ function ItemStatus({ item }: { item: OffboardRow }) {
     case "pending":
       return <span className="text-amber-700">pending</span>;
     case "failed":
-      return <span className="text-red-600">{item.error}</span>;
+      return <span className="min-w-0 break-words text-red-600">{item.error}</span>;
     case "removed":
       return (
         <span className="flex items-center gap-1.5 text-green-700">
