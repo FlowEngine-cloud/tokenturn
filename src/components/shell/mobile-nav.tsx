@@ -11,6 +11,7 @@ import {
   NAV_ITEMS,
   useResolveBadge,
 } from "@/components/shell/nav";
+import { SignedInRow } from "@/components/shell/signed-in";
 import { APP_NAME } from "@/lib/brand";
 import { rangeFromParams } from "@/lib/range";
 import { cn } from "@/lib/utils";
@@ -101,6 +102,7 @@ export function MobileNav() {
               <HELP_ITEM.icon className="h-4 w-4" />
               {HELP_ITEM.label}
             </Link>
+            <SignedInRow />
           </div>
         </Dialog.Content>
       </Dialog.Portal>

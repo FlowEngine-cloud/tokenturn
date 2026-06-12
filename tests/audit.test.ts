@@ -2,14 +2,14 @@ import path from "node:path";
 import { Pool } from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { GET as auditRoute } from "../src/app/api/audit/route";
-import { POST as addUserRoute } from "../src/app/api/users/route";
+import { PUT as accessRoute } from "../src/app/api/people/[id]/access/route";
 import { DELETE as deleteUserRoute } from "../src/app/api/users/[id]/route";
 import { audit, auditLogCsv, listAuditLog } from "../src/lib/audit";
 import { createSession, SESSION_COOKIE } from "../src/lib/auth";
 import { closePool } from "../src/lib/db";
 import { EE_LOCKED_COPY } from "../src/lib/license";
 import { runMigrations } from "../scripts/migrate.mjs";
-import { getJson, postJson } from "./helpers/http";
+import { getJson, putJson } from "./helpers/http";
 import { licenseInstance, unpinTestLicenseKey } from "./helpers/license";
 import { TEST_DATABASE_URL, createScratchDb, dropScratchDb } from "./helpers/pg";
 
@@ -109,28 +109,41 @@ describe.runIf(TEST_DATABASE_URL)("audit log + more admins (spec 11)", () => {
 
   it("more admins: locked without the feature (exact line), granted with it", async () => {
     await licenseInstance(pool, ["audit_log"]); // no more_admins
-    const locked = await addUserRoute(
-      postJson("/api/users", { name: "Second", password: "longpassword", role: "admin" }, adminCookie),
-    );
+    const addPerson = async (email: string): Promise<string> => {
+      const { rows } = await pool.query(
+        "INSERT INTO people (email) VALUES ($1) RETURNING id",
+        [email],
+      );
+      return rows[0].id as string;
+    };
+    const putRole = (personId: string, body: unknown) =>
+      accessRoute(putJson(`/api/people/${personId}/access`, body, adminCookie), {
+        params: Promise.resolve({ id: personId }),
+      });
+
+    const secondId = await addPerson("second@acme.com");
+    const locked = await putRole(secondId, { role: "admin", password: "longpassword" });
     expect(locked.status).toBe(403);
     expect((await locked.json()).error).toBe(EE_LOCKED_COPY);
 
     // Viewers stay free.
     expect(
       (
-        await addUserRoute(
-          postJson("/api/users", { name: "Free Viewer", password: "longpassword" }, adminCookie),
-        )
+        await putRole(await addPerson("free.viewer@acme.com"), {
+          role: "viewer",
+          password: "longpassword",
+        })
       ).status,
-    ).toBe(201);
+    ).toBe(200);
 
     await licenseInstance(pool, ["more_admins"]);
-    const res = await addUserRoute(
-      postJson("/api/users", { name: "Second", password: "longpassword", role: "admin" }, adminCookie),
+    const res = await putRole(secondId, { role: "admin", password: "longpassword" });
+    expect(res.status).toBe(200);
+    expect((await res.json()).access.role).toBe("admin");
+    const { rows: granted } = await pool.query(
+      "SELECT id FROM users WHERE person_id = $1",
+      [secondId],
     );
-    expect(res.status).toBe(201);
-    const { user } = await res.json();
-    expect(user.role).toBe("admin");
 
     // A second admin is removable; yourself never (so the last admin can
     // never disappear - lost-credential recovery is reset-admin, not delete).
@@ -141,7 +154,11 @@ describe.runIf(TEST_DATABASE_URL)("audit log + more admins (spec 11)", () => {
     const self = await del(adminId);
     expect(self.status).toBe(403);
     expect((await self.json()).error).toContain("yourself");
-    expect((await del(user.id)).status).toBe(200);
+    expect((await del(granted[0].id as string)).status).toBe(200);
+
+    // Every grant landed in the log (spec 11: every settings change).
+    const actions = (await listAuditLog({}, pool)).map((entry) => entry.action);
+    expect(actions).toContain("person.access");
   });
 });
 

@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Upload, UserPlus, Users } from "lucide-react";
 import { DataTable, type Column } from "@/components/data-table";
 import { EmptyState } from "@/components/empty-state";
-import { useLatest } from "@/components/form-utils";
+import { ConfirmButton, ErrorLine, send, useLatest } from "@/components/form-utils";
 import { PeopleCsvImport } from "@/components/people-csv-import";
 import { PeopleAdd } from "@/components/people-invite";
 import { Sparkline } from "@/components/trend-bars";
@@ -25,7 +25,64 @@ import { useFetch } from "@/lib/use-fetch";
  *
  * Admins bring people in from here (spec 8): the CSV roster import
  * (re-import upserts by email, never removes) and the invite fan-out.
+ * Login access lives on each person's page (spec 10.6); the logins that
+ * matched no roster email (the first-boot admin, legacy viewers) keep
+ * working and stay listed below the roster, removable here.
  */
+
+interface LoginRow {
+  id: string;
+  name: string;
+  role: "admin" | "viewer";
+  person_id: string | null;
+  passkeys: number;
+  has_password: boolean;
+}
+
+/** Sign-ins not tied to any person - listed so they never go invisible. */
+function PersonlessLogins() {
+  const [version, setVersion] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+  const data = useLatest(useFetch<{ users: LoginRow[] }>(`/api/users?v=${version}`).data);
+  const rows = (data?.users ?? []).filter((u) => u.person_id === null);
+  if (rows.length === 0) return null;
+
+  return (
+    <section className="space-y-2">
+      <h2 className="text-sm font-medium text-muted-foreground">
+        Sign-ins without a person
+      </h2>
+      <ul className="divide-y rounded-lg border bg-card">
+        {rows.map((u) => (
+          <li key={u.id} className="flex flex-wrap items-center gap-3 px-4 py-2">
+            <span className="font-medium">{u.name}</span>
+            <span className="text-sm text-muted-foreground">{u.role}</span>
+            <span className="flex-1" />
+            <span className="text-sm text-muted-foreground">
+              {[
+                u.passkeys > 0 && `${u.passkeys} passkey${u.passkeys > 1 ? "s" : ""}`,
+                u.has_password && "password",
+              ]
+                .filter(Boolean)
+                .join(" + ") || "no credentials"}
+            </span>
+            <ConfirmButton
+              label="Remove"
+              confirmLabel="Confirm remove"
+              onConfirm={() => {
+                void send(`/api/users/${u.id}`, "DELETE").then(({ error: failure }) => {
+                  if (failure) setError(failure);
+                  else setVersion((v) => v + 1);
+                });
+              }}
+            />
+          </li>
+        ))}
+      </ul>
+      <ErrorLine message={error} />
+    </section>
+  );
+}
 
 export function PeopleSkeleton() {
   return (
@@ -121,6 +178,7 @@ export default function PeopleClient() {
             actionLabel="Open Settings"
           />
         )}
+        {isAdmin && <PersonlessLogins />}
       </div>
     );
   }
@@ -220,6 +278,7 @@ export default function PeopleClient() {
             : withRange(`/people/${r.personId}`, range)
         }
       />
+      {isAdmin && <PersonlessLogins />}
     </div>
   );
 }

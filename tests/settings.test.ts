@@ -48,6 +48,8 @@ describe.runIf(TEST_DATABASE_URL)("settings service", () => {
     expect(await getSetting("limit_alert_thresholds_pct", pool)).toEqual([80, 100]);
     expect(await getSetting("raw_facts_retention_months", pool)).toBe(13);
     expect(await getSetting("update_check_enabled", pool)).toBe(false);
+    expect(await getSetting("anomaly_enabled", pool)).toBe(true);
+    expect(await getSetting("alert_email_recipients", pool)).toEqual([]);
   });
 
   it("set / get / delete round-trips through the DB", async () => {

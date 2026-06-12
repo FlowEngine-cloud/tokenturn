@@ -2,10 +2,10 @@ import path from "node:path";
 import { NextRequest } from "next/server";
 import { Pool } from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { POST as createUser } from "../src/app/api/users/route";
 import { POST as loginPassword } from "../src/app/api/auth/login/password/route";
 import { POST as setupPassword } from "../src/app/api/auth/setup/password/route";
 import { closePool } from "../src/lib/db";
+import { hashPassword } from "../src/lib/password";
 import { resetRateLimits } from "../src/lib/rate-limit";
 import { isPublicPath, proxy } from "../src/proxy";
 import { runMigrations } from "../scripts/migrate.mjs";
@@ -64,8 +64,9 @@ describe.runIf(TEST_DATABASE_URL)("auth gate", () => {
       postJson("/api/auth/setup/password", { name: "Amit", password: "first-boot-pass" }),
     );
     adminCookie = sessionCookieOf(claim);
-    await createUser(
-      postJson("/api/users", { name: "Dana", password: "viewer-pass-1" }, adminCookie),
+    await pool.query(
+      "INSERT INTO users (name, role, password_hash) VALUES ('Dana', 'viewer', $1)",
+      [await hashPassword("viewer-pass-1")],
     );
     const login = await loginPassword(
       postJson("/api/auth/login/password", { name: "Dana", password: "viewer-pass-1" }),

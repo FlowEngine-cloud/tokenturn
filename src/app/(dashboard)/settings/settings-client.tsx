@@ -4,25 +4,25 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useRef, useState } from "react";
 import {
   BadgeCheck,
-  Banknote,
   Bell,
   Cable,
   Check,
+  Code2,
   Copy,
+  Database,
   Loader2,
   Mail,
-  SlidersHorizontal,
   Upload,
-  Users,
   Webhook,
   type LucideIcon,
 } from "lucide-react";
 import { ConnectorCard, PlugCard } from "@/components/connector-card";
 import {
-  EnterpriseSections,
+  AuditSection,
   GoogleConnectionCard,
   LicenseSection,
   OktaConnectionCard,
+  ScheduledReportsSection,
 } from "@/components/ee-settings";
 import {
   ConfirmButton,
@@ -37,7 +37,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ConnectorHealth } from "@/lib/connectors/health";
-import { EE_LOCKED_COPY, type LicenseStatus } from "@/lib/ee";
+import { type LicenseStatus } from "@/lib/ee";
 import { formatCount, timeAgo } from "@/lib/format";
 import type { IngestKey } from "@/lib/ingest";
 import type { ImportResult, ParsedInvoiceCsv } from "@/lib/invoices";
@@ -47,14 +47,22 @@ import { useFetch } from "@/lib/use-fetch";
 import { cn } from "@/lib/utils";
 
 /**
- * Settings (spec 10.6): icon tabs inside the page, one tab on screen at a
- * time - Connections (the landing tab), Alerts, Money, Users, Defaults,
- * License. Connections holds EVERYTHING that plugs in as one card grid on
- * the one PlugCard shape: the vendors, Jira + Linear (success-only), the
- * email provider, the Slack webhook, and the Google Workspace + Okta ee
- * cards - visible, locked without a license, never hidden. Everywhere: one
- * label and one control per row, zero explanatory sentences. Writes are
- * admin-only; the server's word comes back verbatim.
+ * Settings (spec 10.6): exactly four icon tabs, one on screen at a time -
+ * Connections (the landing tab), Alerts, Data, License.
+ * - Connections holds EVERYTHING that plugs in as one card grid on the one
+ *   PlugCard shape: the vendors, Jira + Linear (success-only), the SDK's
+ *   ingest keys, the email provider, the Slack webhook, and the Google
+ *   Workspace + Okta ee cards - visible, locked without a license, never
+ *   hidden.
+ * - Alerts = where alerts go (Slack webhook, email recipients) and when
+ *   (limit thresholds, the anomaly toggle + its two numbers), units in the
+ *   labels.
+ * - Data = display currency, invoice import, retention, revert window.
+ * - License = one card.
+ * There is no Users tab and no Defaults tab: login access and limits are
+ * properties of the person (their page); offboard lives there too.
+ * Everywhere: one label and one control per row, zero explanatory
+ * sentences. Writes are admin-only; the server's word comes back verbatim.
  */
 
 export function SettingsSkeleton() {
@@ -76,21 +84,13 @@ interface SettingsPayload {
   scheduledReports: { enabled: boolean; recipients: string[] };
 }
 
-interface UserRow {
-  id: string;
-  name: string;
-  role: "admin" | "viewer";
-  passkeys: number;
-  has_password: boolean;
-}
-
 const OFF_DOT = "bg-muted-foreground/40";
 const ON_DOT = "bg-green-600";
 
-// ---- Slack webhook card (spec 9 alerts target; it plugs in, so it lives
-// in Connections) -------------------------------------------------------------
+// ---- Slack webhook (spec 9: the default alert destination). The control is
+// shared: the Connections card body and the Alerts tab "where" row ----------
 
-function SlackCard({
+function SlackWebhookControl({
   configured,
   isAdmin,
   onChanged,
@@ -99,7 +99,6 @@ function SlackCard({
   isAdmin: boolean;
   onChanged: () => void;
 }) {
-  const [open, setOpen] = useState(false);
   const [url, setUrl] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -119,46 +118,63 @@ function SlackCard({
     }
   }
 
+  if (!isAdmin) {
+    return <span className="text-sm">{configured ? "configured" : "not set"}</span>;
+  }
+  return (
+    <>
+      <Input
+        aria-label="Slack webhook URL"
+        type="url"
+        className="h-8 w-80 max-w-full"
+        placeholder="https://hooks.slack.com/services/…"
+        disabled={busy}
+        value={url}
+        onChange={(e) => setUrl(e.target.value)}
+      />
+      <Button
+        size="sm"
+        disabled={busy || url.trim() === ""}
+        onClick={() => void patch(url.trim())}
+      >
+        {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : configured ? "Replace" : "Save"}
+      </Button>
+      {configured && (
+        <ConfirmButton
+          label="Clear"
+          confirmLabel="Confirm clear"
+          disabled={busy}
+          onConfirm={() => void patch(null)}
+        />
+      )}
+      <ErrorLine message={error} />
+    </>
+  );
+}
+
+function SlackCard({
+  configured,
+  isAdmin,
+  onChanged,
+}: {
+  configured: boolean;
+  isAdmin: boolean;
+  onChanged: () => void;
+}) {
+  const [open, setOpen] = useState(false);
   return (
     <PlugCard
       icon={Webhook}
       name="Slack"
       dot={configured ? ON_DOT : OFF_DOT}
+      status={configured ? "connected" : null}
       action={configured ? null : "Connect"}
       open={open}
       onToggle={() => setOpen((v) => !v)}
     >
-      {isAdmin ? (
-        <SettingsRow label="Webhook URL" htmlFor="slack-webhook">
-          <Input
-            id="slack-webhook"
-            type="url"
-            className="h-8 w-80"
-            placeholder="https://hooks.slack.com/services/…"
-            disabled={busy}
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-          />
-          <Button
-            size="sm"
-            disabled={busy || url.trim() === ""}
-            onClick={() => void patch(url.trim())}
-          >
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : configured ? "Replace" : "Save"}
-          </Button>
-          {configured && (
-            <ConfirmButton
-              label="Clear"
-              confirmLabel="Confirm clear"
-              disabled={busy}
-              onConfirm={() => void patch(null)}
-            />
-          )}
-        </SettingsRow>
-      ) : (
-        <span className="text-sm">{configured ? "configured" : "not set"}</span>
-      )}
-      <ErrorLine message={error} />
+      <SettingsRow label="Webhook URL">
+        <SlackWebhookControl configured={configured} isAdmin={isAdmin} onChanged={onChanged} />
+      </SettingsRow>
     </PlugCard>
   );
 }
@@ -324,7 +340,7 @@ function EmailCard({
             <Input
               id="email-from"
               type="email"
-              className="h-8 w-64"
+              className="h-8 w-64 max-w-full"
               placeholder="reports@acme.com"
               disabled={busy}
               value={from}
@@ -354,7 +370,7 @@ function EmailCard({
                   id={`email-${f.key}`}
                   type={f.secret ? "password" : "text"}
                   autoComplete="off"
-                  className={cn("h-8", f.width ?? "w-64")}
+                  className={cn("h-8 max-w-full", f.width ?? "w-64")}
                   placeholder={f.placeholder}
                   disabled={busy}
                   value={values[f.key] ?? ""}
@@ -384,7 +400,7 @@ function EmailCard({
               <Input
                 id="email-test-to"
                 type="email"
-                className="h-8 w-64"
+                className="h-8 w-64 max-w-full"
                 placeholder="you@acme.com"
                 disabled={testBusy}
                 value={to}
@@ -407,16 +423,162 @@ function EmailCard({
   );
 }
 
+// ---- SDK card (spec 6: ingest keys minted in Settings, shown once, scoped
+// per ROI - the SDK plugs in, so it lives in Connections) ---------------------
+
+function SdkCard({
+  keys,
+  products,
+  isAdmin,
+  onChanged,
+}: {
+  keys: IngestKey[];
+  products: ProductListItem[];
+  isAdmin: boolean;
+  onChanged: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [productId, setProductId] = useState("");
+  const [name, setName] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [minted, setMinted] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const live = keys.filter((key) => !key.revokedAt);
+
+  return (
+    <PlugCard
+      icon={Code2}
+      name="SDK"
+      dot={live.length > 0 ? ON_DOT : OFF_DOT}
+      status={
+        live.length > 0
+          ? `${formatCount(live.length)} ingest ${live.length === 1 ? "key" : "keys"}`
+          : "no ingest keys"
+      }
+      open={open}
+      onToggle={() => setOpen((v) => !v)}
+    >
+      {isAdmin && (
+        <SettingsRow label="Mint" htmlFor="ingest-product">
+          <select
+            id="ingest-product"
+            className="h-8 rounded-md border bg-transparent px-2 text-sm"
+            disabled={busy}
+            value={productId}
+            onChange={(e) => setProductId(e.target.value)}
+          >
+            <option value="">Mint for ROI…</option>
+            {products.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+          <Input
+            aria-label="Key name"
+            className="h-8 w-40 max-w-full"
+            placeholder="name (optional)"
+            disabled={busy}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+          <Button
+            size="sm"
+            disabled={busy || productId === ""}
+            onClick={async () => {
+              setBusy(true);
+              setError(null);
+              setMinted(null);
+              const { error: failure, data } = await send("/api/ingest-keys", "POST", {
+                productId,
+                ...(name.trim() !== "" ? { name: name.trim() } : {}),
+              });
+              setBusy(false);
+              if (failure) {
+                setError(failure);
+              } else {
+                setMinted((data?.token as string) ?? null);
+                setCopied(false);
+                setName("");
+                onChanged();
+              }
+            }}
+          >
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Mint key"}
+          </Button>
+        </SettingsRow>
+      )}
+      {minted && (
+        <SettingsRow>
+          <span className="flex min-w-0 flex-wrap items-center gap-2 rounded-md border border-amber-500/40 p-2">
+            <code className="break-all font-mono text-sm">{minted}</code>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                void navigator.clipboard.writeText(minted).then(() => setCopied(true));
+              }}
+            >
+              {copied ? <Check className="h-4 w-4 text-green-700" /> : <Copy className="h-4 w-4" />}
+            </Button>
+            <span className="text-sm text-amber-700">shown once - store it now</span>
+          </span>
+        </SettingsRow>
+      )}
+      {keys.length > 0 && (
+        <div className="space-y-2">
+          {keys.map((key) => (
+            <div key={key.id} className="flex flex-wrap items-center gap-3">
+              <code className="font-mono text-sm">{key.tokenPrefix}…</code>
+              {key.name && <span className="text-sm">{key.name}</span>}
+              <span className="text-sm text-muted-foreground">→ {key.productName}</span>
+              <span className="flex-1" />
+              <span className="text-sm text-muted-foreground">
+                {key.lastUsedAt ? `used ${timeAgo(key.lastUsedAt)}` : "never used"}
+              </span>
+              {key.revokedAt ? (
+                <span className="text-sm text-red-600">revoked</span>
+              ) : (
+                isAdmin && (
+                  <ConfirmButton
+                    label="Revoke"
+                    confirmLabel="Confirm revoke"
+                    onConfirm={() => {
+                      void send(`/api/ingest-keys/${key.id}`, "PATCH", { revoked: true }).then(
+                        ({ error: failure }) => {
+                          if (failure) setError(failure);
+                          else onChanged();
+                        },
+                      );
+                    }}
+                  />
+                )
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+      <ErrorLine message={error} />
+    </PlugCard>
+  );
+}
+
 // ---- Connections (spec 10.6: one card grid for everything that plugs in) ---
 
 function ConnectionsTab({
   connectors,
   payload,
+  keys,
+  products,
   isAdmin,
   onChanged,
 }: {
   connectors: ConnectorHealth[];
   payload: SettingsPayload;
+  keys: IngestKey[];
+  products: ProductListItem[];
   isAdmin: boolean;
   onChanged: () => void;
 }) {
@@ -431,6 +593,7 @@ function ConnectionsTab({
       {[...vendors, ...successOnly].map((c) => (
         <ConnectorCard key={c.vendor} c={c} isAdmin={isAdmin} onChanged={onChanged} />
       ))}
+      <SdkCard keys={keys} products={products} isAdmin={isAdmin} onChanged={onChanged} />
       <EmailCard email={payload.email} isAdmin={isAdmin} onChanged={onChanged} />
       <SlackCard
         configured={payload.secrets.slack_webhook_url}
@@ -451,19 +614,24 @@ function ConnectionsTab({
   );
 }
 
-// ---- Alerts (spec 9: every alert threshold; the webhook is a Connection) ---
+// ---- Alerts (spec 10.6: where they go - Slack webhook, email recipients -
+// and when - thresholds, the anomaly toggle + its two numbers) ---------------
 
 function AlertsCard({
   settings,
+  slackConfigured,
   isAdmin,
   onChanged,
 }: {
   settings: SettingValues;
+  slackConfigured: boolean;
   isAdmin: boolean;
   onChanged: () => void;
 }) {
   const [form, setForm] = useState({
+    alert_email_recipients: settings.alert_email_recipients.join(", "),
     limit_alert_thresholds_pct: settings.limit_alert_thresholds_pct.join(", "),
+    anomaly_enabled: settings.anomaly_enabled,
     anomaly_burn_multiplier: String(settings.anomaly_burn_multiplier),
     anomaly_min_day: (settings.anomaly_min_day_cents / 100).toFixed(2),
     connector_silent_alert_hours: String(settings.connector_silent_alert_hours),
@@ -481,12 +649,17 @@ function AlertsCard({
     setBusy(true);
     setError(null);
     setSaved(false);
-    const thresholds = form.limit_alert_thresholds_pct
-      .split(",")
-      .map((t) => Number(t.trim()))
-      .filter((t) => !Number.isNaN(t));
+    const list = (text: string) =>
+      text
+        .split(",")
+        .map((t) => t.trim())
+        .filter((t) => t !== "");
     const { error: failure } = await send("/api/settings", "PATCH", {
-      limit_alert_thresholds_pct: thresholds,
+      alert_email_recipients: list(form.alert_email_recipients),
+      limit_alert_thresholds_pct: list(form.limit_alert_thresholds_pct)
+        .map((t) => Number(t))
+        .filter((t) => !Number.isNaN(t)),
+      anomaly_enabled: form.anomaly_enabled,
       anomaly_burn_multiplier: Number(form.anomaly_burn_multiplier),
       anomaly_min_day_cents: toCents(form.anomaly_min_day) ?? -1,
       connector_silent_alert_hours: Number(form.connector_silent_alert_hours),
@@ -502,15 +675,16 @@ function AlertsCard({
 
   const numeric = (
     label: string,
-    key: keyof typeof form,
+    key: "limit_alert_thresholds_pct" | "anomaly_burn_multiplier" | "anomaly_min_day" | "connector_silent_alert_hours",
     suffix: string,
     width = "w-20",
+    disabled = false,
   ) => (
     <SettingsRow label={label} htmlFor={`alerts-${key}`}>
       <Input
         id={`alerts-${key}`}
         className={`h-8 ${width}`}
-        disabled={busy || !isAdmin}
+        disabled={busy || !isAdmin || disabled}
         value={form[key]}
         onChange={(e) => set({ [key]: e.target.value } as Partial<typeof form>)}
       />
@@ -520,9 +694,41 @@ function AlertsCard({
 
   return (
     <Section title="Alerts">
+      <SettingsRow label="Slack webhook">
+        <SlackWebhookControl
+          configured={slackConfigured}
+          isAdmin={isAdmin}
+          onChanged={onChanged}
+        />
+      </SettingsRow>
+      <SettingsRow label="Email to" htmlFor="alerts-alert_email_recipients">
+        <Input
+          id="alerts-alert_email_recipients"
+          className="h-8 w-96 max-w-full"
+          placeholder="cfo@acme.com, finance@acme.com"
+          disabled={busy || !isAdmin}
+          value={form.alert_email_recipients}
+          onChange={(e) => set({ alert_email_recipients: e.target.value })}
+        />
+      </SettingsRow>
       {numeric("Limit alerts", "limit_alert_thresholds_pct", "% of monthly limit", "w-28")}
-      {numeric("Anomaly trigger", "anomaly_burn_multiplier", "× 30-day average", "w-16")}
-      {numeric("Anomaly floor", "anomaly_min_day", "$ / day")}
+      <SettingsRow label="Anomaly alerts" htmlFor="alerts-anomaly_enabled">
+        <input
+          id="alerts-anomaly_enabled"
+          type="checkbox"
+          disabled={busy || !isAdmin}
+          checked={form.anomaly_enabled}
+          onChange={(e) => set({ anomaly_enabled: e.target.checked })}
+        />
+      </SettingsRow>
+      {numeric(
+        "Anomaly trigger",
+        "anomaly_burn_multiplier",
+        "× 30-day average",
+        "w-16",
+        !form.anomaly_enabled,
+      )}
+      {numeric("Anomaly floor", "anomaly_min_day", "$ / day", "w-20", !form.anomaly_enabled)}
       {numeric("Silent connector", "connector_silent_alert_hours", "hours", "w-16")}
       {isAdmin && (
         <SettingsRow>
@@ -537,7 +743,8 @@ function AlertsCard({
   );
 }
 
-// ---- Money (spec 4: display currency + monthly invoice CSV true-up) -------
+// ---- Data (spec 10.6: display currency, invoice import, retention, revert
+// window; spec 4's monthly invoice CSV true-up) -------------------------------
 
 async function postCsv(
   url: string,
@@ -669,7 +876,7 @@ function InvoiceImportControl({ onChanged }: { onChanged: () => void }) {
   );
 }
 
-function MoneyCard({
+function DataCard({
   settings,
   isAdmin,
   onChanged,
@@ -678,19 +885,32 @@ function MoneyCard({
   isAdmin: boolean;
   onChanged: () => void;
 }) {
-  const [currency, setCurrency] = useState(settings.display_currency);
+  const [form, setForm] = useState({
+    display_currency: settings.display_currency,
+    raw_facts_retention_months: String(settings.raw_facts_retention_months),
+    revert_window_days: String(settings.revert_window_days),
+    update_check_enabled: settings.update_check_enabled,
+  });
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fxBusy, setFxBusy] = useState(false);
   const [fxNotice, setFxNotice] = useState<string | null>(null);
 
+  const set = (patch: Partial<typeof form>) => {
+    setSaved(false);
+    setForm((prev) => ({ ...prev, ...patch }));
+  };
+
   async function save() {
     setBusy(true);
     setError(null);
     setSaved(false);
     const { error: failure } = await send("/api/settings", "PATCH", {
-      display_currency: currency.trim().toUpperCase(),
+      display_currency: form.display_currency.trim().toUpperCase(),
+      raw_facts_retention_months: Number(form.raw_facts_retention_months),
+      revert_window_days: Number(form.revert_window_days),
+      update_check_enabled: form.update_check_enabled,
     });
     setBusy(false);
     if (failure) {
@@ -702,25 +922,16 @@ function MoneyCard({
   }
 
   return (
-    <Section title="Money">
-      <SettingsRow label="Display currency" htmlFor="money-currency">
+    <Section title="Data">
+      <SettingsRow label="Display currency" htmlFor="data-currency">
         <Input
-          id="money-currency"
+          id="data-currency"
           className="h-8 w-20 uppercase"
           maxLength={3}
           disabled={busy || !isAdmin}
-          value={currency}
-          onChange={(e) => {
-            setSaved(false);
-            setCurrency(e.target.value.toUpperCase());
-          }}
+          value={form.display_currency}
+          onChange={(e) => set({ display_currency: e.target.value.toUpperCase() })}
         />
-        {isAdmin && (
-          <Button size="sm" disabled={busy} onClick={save}>
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
-          </Button>
-        )}
-        {saved && <span className="text-sm text-green-700">saved</span>}
         {error?.includes("FX") && (
           <Button
             variant="outline"
@@ -753,355 +964,9 @@ function MoneyCard({
           <InvoiceImportControl onChanged={onChanged} />
         </SettingsRow>
       )}
-      <ErrorLine message={error} />
-    </Section>
-  );
-}
-
-// ---- Ingest keys (spec 6: minted in Settings, shown once, per ROI) --------
-
-function IngestKeysCard({
-  keys,
-  products,
-  isAdmin,
-  onChanged,
-}: {
-  keys: IngestKey[];
-  products: ProductListItem[];
-  isAdmin: boolean;
-  onChanged: () => void;
-}) {
-  const [productId, setProductId] = useState("");
-  const [name, setName] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [minted, setMinted] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
-
-  return (
-    <Section title="Ingest keys">
-      {isAdmin && (
-        <SettingsRow label="Mint" htmlFor="ingest-product">
-          <select
-            id="ingest-product"
-            className="h-8 rounded-md border bg-transparent px-2 text-sm"
-            disabled={busy}
-            value={productId}
-            onChange={(e) => setProductId(e.target.value)}
-          >
-            <option value="">Mint for ROI…</option>
-            {products.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
-          <Input
-            aria-label="Key name"
-            className="h-8 w-40"
-            placeholder="name (optional)"
-            disabled={busy}
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-          <Button
-            size="sm"
-            disabled={busy || productId === ""}
-            onClick={async () => {
-              setBusy(true);
-              setError(null);
-              setMinted(null);
-              const { error: failure, data } = await send("/api/ingest-keys", "POST", {
-                productId,
-                ...(name.trim() !== "" ? { name: name.trim() } : {}),
-              });
-              setBusy(false);
-              if (failure) {
-                setError(failure);
-              } else {
-                setMinted((data?.token as string) ?? null);
-                setCopied(false);
-                setName("");
-                onChanged();
-              }
-            }}
-          >
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Mint key"}
-          </Button>
-        </SettingsRow>
-      )}
-      {minted && (
-        <SettingsRow>
-          <span className="flex flex-wrap items-center gap-2 rounded-md border border-amber-500/40 p-2">
-            <code className="font-mono text-sm">{minted}</code>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                void navigator.clipboard.writeText(minted).then(() => setCopied(true));
-              }}
-            >
-              {copied ? <Check className="h-4 w-4 text-green-700" /> : <Copy className="h-4 w-4" />}
-            </Button>
-            <span className="text-sm text-amber-700">shown once - store it now</span>
-          </span>
-        </SettingsRow>
-      )}
-      {keys.length > 0 && (
-        <div className="space-y-2">
-          {keys.map((key) => (
-            <div key={key.id} className="flex flex-wrap items-center gap-3">
-              <code className="font-mono text-sm">{key.tokenPrefix}…</code>
-              {key.name && <span className="text-sm">{key.name}</span>}
-              <span className="text-sm text-muted-foreground">→ {key.productName}</span>
-              <span className="flex-1" />
-              <span className="text-sm text-muted-foreground">
-                {key.lastUsedAt ? `used ${timeAgo(key.lastUsedAt)}` : "never used"}
-              </span>
-              {key.revokedAt ? (
-                <span className="text-sm text-red-600">revoked</span>
-              ) : (
-                isAdmin && (
-                  <ConfirmButton
-                    label="Revoke"
-                    confirmLabel="Confirm revoke"
-                    onConfirm={() => {
-                      void send(`/api/ingest-keys/${key.id}`, "PATCH", { revoked: true }).then(
-                        ({ error: failure }) => {
-                          if (failure) setError(failure);
-                          else onChanged();
-                        },
-                      );
-                    }}
-                  />
-                )
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-      <ErrorLine message={error} />
-    </Section>
-  );
-}
-
-// ---- Users (spec 11: the admin role is always visible; picking it without
-// a license hits the paywall line - shown, locked, never hidden) -------------
-
-function RoleSelect({
-  id,
-  value,
-  disabled,
-  onPick,
-}: {
-  id: string;
-  value: "admin" | "viewer";
-  disabled?: boolean;
-  onPick: (role: "admin" | "viewer") => void;
-}) {
-  return (
-    <select
-      aria-label="Role"
-      id={id}
-      className="h-8 rounded-md border bg-transparent px-2 text-sm"
-      disabled={disabled}
-      value={value}
-      onChange={(e) => onPick(e.target.value as "admin" | "viewer")}
-    >
-      <option value="viewer">viewer</option>
-      <option value="admin">admin</option>
-    </select>
-  );
-}
-
-function UsersCard({
-  users,
-  selfId,
-  moreAdminsLicensed,
-  onChanged,
-}: {
-  users: UserRow[];
-  selfId: string | null;
-  moreAdminsLicensed: boolean;
-  onChanged: () => void;
-}) {
-  const [name, setName] = useState("");
-  const [password, setPassword] = useState("");
-  const [role, setRole] = useState<"viewer" | "admin">("viewer");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  /** User row whose Admin pick hit the wall - the line shows right there. */
-  const [lockedRow, setLockedRow] = useState<string | null>(null);
-
-  const adminLocked = role === "admin" && !moreAdminsLicensed;
-  const admins = users.filter((u) => u.role === "admin").length;
-
-  async function changeRole(user: UserRow, next: "admin" | "viewer") {
-    if (next === user.role) return;
-    setError(null);
-    if (next === "admin" && !moreAdminsLicensed) {
-      // The select is controlled by the server's role, so the pick reverts
-      // on its own - the wall is the line, never a hidden option.
-      setLockedRow(user.id);
-      return;
-    }
-    setLockedRow(null);
-    setBusy(true);
-    const { error: failure } = await send(`/api/users/${user.id}`, "PATCH", { role: next });
-    setBusy(false);
-    if (failure) setError(failure);
-    else onChanged();
-  }
-
-  return (
-    <Section title="Users">
-      <div className="space-y-2">
-        {users.map((user) => (
-          <div key={user.id} className="flex flex-wrap items-center gap-3">
-            <span className="font-medium">{user.name}</span>
-            <span className="text-sm text-muted-foreground">
-              {[
-                user.passkeys > 0 && `${user.passkeys} passkey${user.passkeys > 1 ? "s" : ""}`,
-                user.has_password && "password",
-              ]
-                .filter(Boolean)
-                .join(" + ") || "no credentials"}
-            </span>
-            <span className="flex-1" />
-            <RoleSelect
-              id={`role-${user.id}`}
-              value={user.role}
-              disabled={busy || user.id === selfId}
-              onPick={(next) => void changeRole(user, next)}
-            />
-            {lockedRow === user.id && (
-              <span className="text-sm text-muted-foreground">{EE_LOCKED_COPY}</span>
-            )}
-            {(user.role === "viewer" || admins > 1) && (
-              <ConfirmButton
-                label="Remove"
-                confirmLabel="Confirm remove"
-                disabled={busy}
-                onConfirm={() => {
-                  void send(`/api/users/${user.id}`, "DELETE").then(({ error: failure }) => {
-                    if (failure) setError(failure);
-                    else onChanged();
-                  });
-                }}
-              />
-            )}
-          </div>
-        ))}
-      </div>
-      <SettingsRow label="Add" htmlFor="user-name">
+      <SettingsRow label="Retention" htmlFor="data-retention">
         <Input
-          id="user-name"
-          className="h-8 w-40"
-          placeholder="name"
-          disabled={busy}
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
-        <Input
-          aria-label="User password"
-          type="password"
-          autoComplete="new-password"
-          className="h-8 w-40"
-          placeholder="password (8+)"
-          disabled={busy}
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-        <RoleSelect id="user-role" value={role} disabled={busy} onPick={setRole} />
-        <Button
-          size="sm"
-          disabled={busy || adminLocked || name.trim() === "" || password.length < 8}
-          onClick={async () => {
-            setBusy(true);
-            setError(null);
-            const { error: failure } = await send("/api/users", "POST", {
-              name: name.trim(),
-              password,
-              role,
-            });
-            setBusy(false);
-            if (failure) {
-              setError(failure);
-            } else {
-              setName("");
-              setPassword("");
-              setRole("viewer");
-              onChanged();
-            }
-          }}
-        >
-          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add"}
-        </Button>
-        {adminLocked && <span className="text-sm text-muted-foreground">{EE_LOCKED_COPY}</span>}
-      </SettingsRow>
-      <ErrorLine message={error} />
-    </Section>
-  );
-}
-
-// ---- Defaults (spec 10.6: revert window, retention) ------------------------
-
-function DefaultsCard({
-  settings,
-  isAdmin,
-  onChanged,
-}: {
-  settings: SettingValues;
-  isAdmin: boolean;
-  onChanged: () => void;
-}) {
-  const [form, setForm] = useState({
-    revert_window_days: String(settings.revert_window_days),
-    raw_facts_retention_months: String(settings.raw_facts_retention_months),
-    update_check_enabled: settings.update_check_enabled,
-  });
-  const [busy, setBusy] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const set = (patch: Partial<typeof form>) => {
-    setSaved(false);
-    setForm((prev) => ({ ...prev, ...patch }));
-  };
-
-  async function save() {
-    setBusy(true);
-    setError(null);
-    setSaved(false);
-    const { error: failure } = await send("/api/settings", "PATCH", {
-      revert_window_days: Number(form.revert_window_days),
-      raw_facts_retention_months: Number(form.raw_facts_retention_months),
-      update_check_enabled: form.update_check_enabled,
-    });
-    setBusy(false);
-    if (failure) {
-      setError(failure);
-    } else {
-      setSaved(true);
-      onChanged();
-    }
-  }
-
-  return (
-    <Section title="Defaults">
-      <SettingsRow label="Revert window" htmlFor="defaults-revert">
-        <Input
-          id="defaults-revert"
-          className="h-8 w-16"
-          disabled={busy || !isAdmin}
-          value={form.revert_window_days}
-          onChange={(e) => set({ revert_window_days: e.target.value })}
-        />
-        <span className="text-sm text-muted-foreground">days</span>
-      </SettingsRow>
-      <SettingsRow label="Retention" htmlFor="defaults-retention">
-        <Input
-          id="defaults-retention"
+          id="data-retention"
           className="h-8 w-16"
           disabled={busy || !isAdmin}
           value={form.raw_facts_retention_months}
@@ -1109,9 +974,19 @@ function DefaultsCard({
         />
         <span className="text-sm text-muted-foreground">months of raw facts</span>
       </SettingsRow>
-      <SettingsRow label="Update check" htmlFor="defaults-update">
+      <SettingsRow label="Revert window" htmlFor="data-revert">
+        <Input
+          id="data-revert"
+          className="h-8 w-16"
+          disabled={busy || !isAdmin}
+          value={form.revert_window_days}
+          onChange={(e) => set({ revert_window_days: e.target.value })}
+        />
+        <span className="text-sm text-muted-foreground">days</span>
+      </SettingsRow>
+      <SettingsRow label="Update check" htmlFor="data-update">
         <input
-          id="defaults-update"
+          id="data-update"
           type="checkbox"
           disabled={busy || !isAdmin}
           checked={form.update_check_enabled}
@@ -1132,14 +1007,12 @@ function DefaultsCard({
   );
 }
 
-// ---- Page ------------------------------------------------------------------
+// ---- Page (spec 10.6: exactly four icon tabs) -------------------------------
 
 const TABS = [
   { id: "connections", label: "Connections", icon: Cable },
   { id: "alerts", label: "Alerts", icon: Bell },
-  { id: "money", label: "Money", icon: Banknote },
-  { id: "users", label: "Users", icon: Users },
-  { id: "defaults", label: "Defaults", icon: SlidersHorizontal },
+  { id: "data", label: "Data", icon: Database },
   { id: "license", label: "License", icon: BadgeCheck },
 ] as const satisfies readonly { id: string; label: string; icon: LucideIcon }[];
 
@@ -1179,9 +1052,6 @@ export default function SettingsClient() {
   );
   const keyData = useLatest(
     useFetch<{ keys: IngestKey[] }>(`/api/ingest-keys?v=${version}`).data,
-  );
-  const userData = useLatest(
-    useFetch<{ users: UserRow[] }>(`/api/users?v=${version}`).data,
   );
   const { error: connectorError } = connectorFetch;
   const { error: settingsError } = settingsFetch;
@@ -1232,57 +1102,48 @@ export default function SettingsClient() {
           <ConnectionsTab
             connectors={connectorData.connectors}
             payload={settingsData}
+            keys={keyData.keys}
+            products={productData.products}
             isAdmin={isAdmin}
             onChanged={reload}
           />
         )}
 
         {tab === "alerts" && (
-          <AlertsCard settings={settingsData.settings} isAdmin={isAdmin} onChanged={reload} />
-        )}
-
-        {tab === "money" && (
-          <MoneyCard settings={settingsData.settings} isAdmin={isAdmin} onChanged={reload} />
-        )}
-
-        {tab === "users" && (
           <>
-            {userData && (
-              <UsersCard
-                users={userData.users}
-                selfId={auth?.user?.id ?? null}
-                moreAdminsLicensed={eeFeatures.includes("more_admins")}
-                onChanged={reload}
-              />
-            )}
-            <IngestKeysCard
-              keys={keyData.keys}
-              products={productData.products}
+            <AlertsCard
+              settings={settingsData.settings}
+              slackConfigured={settingsData.secrets.slack_webhook_url}
+              isAdmin={isAdmin}
+              onChanged={reload}
+            />
+            <ScheduledReportsSection
+              licensed={eeFeatures.includes("scheduled_reports")}
+              config={settingsData.scheduledReports}
+              emailConfigured={settingsData.email !== null}
               isAdmin={isAdmin}
               onChanged={reload}
             />
           </>
         )}
 
-        {tab === "defaults" && (
-          <DefaultsCard settings={settingsData.settings} isAdmin={isAdmin} onChanged={reload} />
+        {tab === "data" && (
+          <>
+            <DataCard
+              settings={settingsData.settings}
+              isAdmin={isAdmin}
+              onChanged={reload}
+            />
+            <AuditSection licensed={eeFeatures.includes("audit_log")} isAdmin={isAdmin} />
+          </>
         )}
 
         {tab === "license" && (
-          <>
-            <LicenseSection
-              license={settingsData.license}
-              isAdmin={isAdmin}
-              onChanged={reload}
-            />
-            <EnterpriseSections
-              features={eeFeatures}
-              isAdmin={isAdmin}
-              scheduledReports={settingsData.scheduledReports}
-              emailConfigured={settingsData.email !== null}
-              onChanged={reload}
-            />
-          </>
+          <LicenseSection
+            license={settingsData.license}
+            isAdmin={isAdmin}
+            onChanged={reload}
+          />
         )}
       </div>
     </div>

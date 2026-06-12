@@ -416,7 +416,7 @@ export default function RoiClient() {
         <EmptyState
           icon={TrendingUp}
           title="No ROI yet"
-          body="An ROI is a slice of spend and a definition of success. Connect a vendor, or add one above."
+          body='An ROI is a slice of spend and a definition of success. Connect a vendor, add one above, or pick "Add a tag" in the tag filter to route a key&apos;s spend.'
           actionHref="/settings"
           actionLabel="Open Settings"
         />

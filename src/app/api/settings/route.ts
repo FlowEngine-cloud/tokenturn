@@ -61,12 +61,17 @@ export async function GET(req: Request) {
 const posInt = (min: number) => (v: unknown) =>
   typeof v === "number" && Number.isInteger(v) && v >= min;
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 /** Per-key validation; false = reject with the key's expectation. */
 const VALIDATORS: { [K in SettingKey]: (v: unknown) => boolean } = {
   display_currency: (v) => typeof v === "string" && /^[A-Z]{3}$/.test(v),
   revert_window_days: posInt(1),
+  anomaly_enabled: (v) => typeof v === "boolean",
   anomaly_burn_multiplier: (v) => typeof v === "number" && Number.isFinite(v) && v > 0,
   anomaly_min_day_cents: posInt(0),
+  alert_email_recipients: (v) =>
+    Array.isArray(v) && v.every((r) => typeof r === "string" && EMAIL_RE.test(r)),
   limit_alert_thresholds_pct: (v) =>
     Array.isArray(v) && v.length > 0 && v.every((t) => posInt(1)(t) && t <= 100),
   raw_facts_retention_months: posInt(1),
@@ -77,8 +82,10 @@ const VALIDATORS: { [K in SettingKey]: (v: unknown) => boolean } = {
 const EXPECTATIONS: { [K in SettingKey]: string } = {
   display_currency: "a 3-letter currency code like USD",
   revert_window_days: "a whole number of days >= 1",
+  anomaly_enabled: "true or false",
   anomaly_burn_multiplier: "a number > 0",
   anomaly_min_day_cents: "a whole number of cents >= 0",
+  alert_email_recipients: "an array of email addresses",
   limit_alert_thresholds_pct: "a non-empty array of percentages (1-100)",
   raw_facts_retention_months: "a whole number of months >= 1",
   connector_silent_alert_hours: "a whole number of hours >= 1",

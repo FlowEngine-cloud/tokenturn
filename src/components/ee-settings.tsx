@@ -1,7 +1,16 @@
 "use client";
 
-import { useState } from "react";
-import { Building2, Check, Copy, Download, KeyRound, Loader2, type LucideIcon } from "lucide-react";
+import { useRef, useState } from "react";
+import {
+  Building2,
+  Check,
+  Copy,
+  Download,
+  KeyRound,
+  Loader2,
+  Upload,
+  type LucideIcon,
+} from "lucide-react";
 import { PlugCard } from "@/components/connector-card";
 import {
   ConfirmButton,
@@ -14,7 +23,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { EE_FEATURE_LABELS, EE_LOCKED_COPY, type EeFeature, type LicenseStatus } from "@/lib/ee";
+import { EE_LOCKED_COPY, type LicenseStatus } from "@/lib/ee";
 import { timeAgo } from "@/lib/format";
 import { useFetch } from "@/lib/use-fetch";
 import { cn } from "@/lib/utils";
@@ -22,8 +31,9 @@ import { cn } from "@/lib/utils";
 /**
  * The enterprise surfaces (spec 11). Okta and Google Workspace plug in, so
  * they live as Connections cards - visible without a license, locked to
- * exactly one line (EE_LOCKED_COPY), never hidden. License, scheduled
- * reports, and the audit log stay on the License tab; expiry locks the
+ * exactly one line (EE_LOCKED_COPY), never hidden. The License tab is one
+ * card (spec 10.6): plan, expiry, file upload, the contact line. Scheduled
+ * reports live on the Alerts tab, the audit log on Data; expiry locks the
  * features again while everything recorded stays readable.
  */
 
@@ -73,7 +83,7 @@ function CopyButton({ value }: { value: string }) {
   );
 }
 
-// ---- License (spec 11: issued per deal, verified offline) ------------------
+// ---- License (spec 10.6: one card - plan, expiry, file upload, contact) ----
 
 export function LicenseSection({
   license,
@@ -84,7 +94,7 @@ export function LicenseSection({
   isAdmin: boolean;
   onChanged: () => void;
 }) {
-  const [text, setText] = useState("");
+  const fileInput = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -95,70 +105,71 @@ export function LicenseSection({
       license_file: value,
     });
     setBusy(false);
-    if (failure) {
-      setError(failure);
-    } else {
-      setText("");
-      onChanged();
-    }
+    if (failure) setError(failure);
+    else onChanged();
+    if (fileInput.current) fileInput.current.value = "";
   }
 
   return (
     <Section title="License">
-      <SettingsRow label="Status">
+      <SettingsRow label="Plan">
         <StatusDot on={license.state === "valid"} />
-        {license.state === "none" ? (
-          <span className="text-sm">Free</span>
-        ) : (
-          <span className="text-sm">
-            Enterprise · {license.org} ·{" "}
-            {license.state === "expired" ? (
-              <span className="text-red-600">expired {license.expiresAt}</span>
-            ) : (
-              `through ${license.expiresAt}`
-            )}
-          </span>
+        <span className="text-sm">
+          {license.state === "none" ? "Free" : `Enterprise · ${license.org}`}
+        </span>
+        {isAdmin && license.state !== "none" && (
+          <ConfirmButton
+            label="Remove"
+            confirmLabel="Confirm remove"
+            disabled={busy}
+            onConfirm={() => void patch(null)}
+          />
         )}
       </SettingsRow>
       {license.state !== "none" && (
-        <SettingsRow label="Features">
-          <span className="text-sm text-muted-foreground">
-            {license.features.map((f) => EE_FEATURE_LABELS[f]).join(" · ")}
-            {license.state === "expired" && " · locked"}
+        <SettingsRow label="Expires">
+          <span
+            className={cn(
+              "text-sm tabular-nums",
+              license.state === "expired" && "text-red-600",
+            )}
+          >
+            {license.expiresAt}
+            {license.state === "expired" && " · expired"}
           </span>
         </SettingsRow>
       )}
       {isAdmin && (
-        <SettingsRow label="License file" htmlFor="license-file">
-          <textarea
-            id="license-file"
-            className="h-20 w-full max-w-2xl rounded-md border bg-transparent p-2 font-mono text-sm"
-            placeholder='{"v":1,"payload":"…","signature":"…"}'
-            disabled={busy}
-            value={text}
-            onChange={(e) => setText(e.target.value)}
+        <SettingsRow label="License file">
+          <input
+            ref={fileInput}
+            type="file"
+            aria-label="License file"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) void file.text().then((text) => patch(text.trim()));
+            }}
           />
-        </SettingsRow>
-      )}
-      {isAdmin && (
-        <SettingsRow>
           <Button
+            variant="outline"
             size="sm"
-            disabled={busy || text.trim() === ""}
-            onClick={() => void patch(text.trim())}
+            disabled={busy}
+            onClick={() => fileInput.current?.click()}
           >
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Install license"}
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+            Upload
           </Button>
-          {license.state !== "none" && (
-            <ConfirmButton
-              label="Remove license"
-              confirmLabel="Confirm remove"
-              disabled={busy}
-              onConfirm={() => void patch(null)}
-            />
-          )}
         </SettingsRow>
       )}
+      <SettingsRow label="Contact">
+        <a
+          href="mailto:hi@flowengine.cloud"
+          className="text-sm underline underline-offset-2"
+        >
+          hi@flowengine.cloud
+        </a>
+      </SettingsRow>
       <ErrorLine message={error} />
     </Section>
   );
@@ -269,10 +280,10 @@ function OktaBody({ status, reload }: { status: OktaStatus; reload: () => void }
             Register in Okta with:
           </p>
           <div className="flex flex-wrap items-center gap-2">
-            <code className="font-mono">{hookUrl}</code>
+            <code className="break-all font-mono">{hookUrl}</code>
             <CopyButton value={hookUrl} />
             <span className="text-muted-foreground">Authorization header:</span>
-            <code className="font-mono">{status.hookSecret}</code>
+            <code className="break-all font-mono">{status.hookSecret}</code>
             <CopyButton value={status.hookSecret} />
           </div>
         </div>
@@ -282,7 +293,7 @@ function OktaBody({ status, reload }: { status: OktaStatus; reload: () => void }
           <Label htmlFor="okta-domain">Org URL</Label>
           <Input
             id="okta-domain"
-            className="h-8 w-64"
+            className="h-8 w-64 max-w-full"
             placeholder="https://acme.okta.com"
             disabled={busy}
             value={domain}
@@ -295,7 +306,7 @@ function OktaBody({ status, reload }: { status: OktaStatus; reload: () => void }
             id="okta-token"
             type="password"
             autoComplete="off"
-            className="h-8 w-64"
+            className="h-8 w-64 max-w-full"
             disabled={busy}
             value={token}
             onChange={(e) => setToken(e.target.value)}
@@ -412,7 +423,7 @@ function GoogleBody({ status, reload }: { status: GoogleStatus; reload: () => vo
             <Input
               id="google-admin"
               type="email"
-              className="h-8 w-64"
+              className="h-8 w-64 max-w-full"
               placeholder="admin@acme.com"
               disabled={busy}
               value={adminEmail}
@@ -564,7 +575,8 @@ export function GoogleConnectionCard({
   );
 }
 
-// ---- Scheduled reports (spec 11: monthly PDF email) ------------------------
+// ---- Monthly report (spec 11: scheduled monthly PDF email; lives on the
+// Alerts tab - it is outbound email, like the alert recipients) --------------
 
 export function ScheduledReportsSection({
   licensed,
@@ -587,7 +599,7 @@ export function ScheduledReportsSection({
 
   if (!licensed) {
     return (
-      <Section title="Scheduled reports">
+      <Section title="Monthly report">
         <LockedLine />
       </Section>
     );
@@ -598,48 +610,37 @@ export function ScheduledReportsSection({
     .filter((r) => r !== "");
 
   return (
-    <Section title="Scheduled reports">
-      <div className="flex flex-wrap items-center gap-2">
-        <StatusDot on={config.enabled} />
-        <span className="text-sm">
-          {config.enabled
-            ? `monthly CFO report (PDF) to ${config.recipients.length} recipient${config.recipients.length > 1 ? "s" : ""}, first tick after each month closes`
-            : "off"}
-        </span>
-        {!emailConfigured && (
-          <span className="text-sm text-amber-700">
-            needs the email connection in Connections
-          </span>
+    <Section title="Monthly report">
+      <SettingsRow label="Send monthly" htmlFor="reports-enabled">
+        <input
+          id="reports-enabled"
+          type="checkbox"
+          disabled={busy || !isAdmin}
+          checked={enabled}
+          onChange={(e) => {
+            setSaved(false);
+            setEnabled(e.target.checked);
+          }}
+        />
+        {enabled && !emailConfigured && (
+          <span className="text-sm text-amber-700">needs the Email connection</span>
         )}
-      </div>
+      </SettingsRow>
+      <SettingsRow label="Recipients" htmlFor="reports-recipients">
+        <Input
+          id="reports-recipients"
+          className="h-8 w-96 max-w-full"
+          placeholder="cfo@acme.com, finance@acme.com"
+          disabled={busy || !isAdmin}
+          value={recipients}
+          onChange={(e) => {
+            setSaved(false);
+            setRecipients(e.target.value);
+          }}
+        />
+      </SettingsRow>
       {isAdmin && (
-        <div className="flex flex-wrap items-end gap-2">
-          <label className="flex h-8 items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              disabled={busy}
-              checked={enabled}
-              onChange={(e) => {
-                setSaved(false);
-                setEnabled(e.target.checked);
-              }}
-            />
-            Send monthly
-          </label>
-          <div className="space-y-1">
-            <Label htmlFor="reports-recipients">Recipients</Label>
-            <Input
-              id="reports-recipients"
-              className="h-8 w-96"
-              placeholder="cfo@acme.com, finance@acme.com"
-              disabled={busy}
-              value={recipients}
-              onChange={(e) => {
-                setSaved(false);
-                setRecipients(e.target.value);
-              }}
-            />
-          </div>
+        <SettingsRow>
           <Button
             size="sm"
             disabled={busy || (enabled && (list.length === 0 || list.some((r) => !EMAIL_RE.test(r))))}
@@ -661,7 +662,7 @@ export function ScheduledReportsSection({
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
           </Button>
           {saved && <span className="text-sm text-green-700">saved</span>}
-        </div>
+        </SettingsRow>
       )}
       <ErrorLine message={error} />
     </Section>
@@ -752,42 +753,25 @@ function AuditBody() {
   );
 }
 
-// ---- The License-tab enterprise block ---------------------------------------
-//
-// Okta + Google live in Connections (they plug in); these two do not.
+// ---- The Data-tab audit block (spec 11: exportable) -------------------------
 
-export function EnterpriseSections({
-  features,
+export function AuditSection({
+  licensed,
   isAdmin,
-  scheduledReports,
-  emailConfigured,
-  onChanged,
 }: {
-  features: EeFeature[];
+  licensed: boolean;
   isAdmin: boolean;
-  scheduledReports: { enabled: boolean; recipients: string[] };
-  emailConfigured: boolean;
-  onChanged: () => void;
 }) {
   return (
-    <>
-      <ScheduledReportsSection
-        licensed={features.includes("scheduled_reports")}
-        config={scheduledReports}
-        emailConfigured={emailConfigured}
-        isAdmin={isAdmin}
-        onChanged={onChanged}
-      />
-      <Section title="Audit log">
-        {!features.includes("audit_log") ? (
-          <LockedLine />
-        ) : isAdmin ? (
-          <AuditBody />
-        ) : (
-          <p className="text-sm text-muted-foreground">Licensed - admins view and export it here.</p>
-        )}
-      </Section>
-    </>
+    <Section title="Audit log">
+      {!licensed ? (
+        <LockedLine />
+      ) : isAdmin ? (
+        <AuditBody />
+      ) : (
+        <p className="text-sm text-muted-foreground">Licensed - admins view and export it here.</p>
+      )}
+    </Section>
   );
 }
 

@@ -130,7 +130,8 @@ export async function checkLimitAlerts(
 /**
  * Fire burn.anomaly for every active person whose spend today (UTC) is
  * >= anomaly_burn_multiplier x their trailing 30-day average AND
- * >= anomaly_min_day_cents - both settings-editable (spec 9). The average
+ * >= anomaly_min_day_cents - both settings-editable (spec 9), and the whole
+ * check switches off with anomaly_enabled. The average
  * is the sum of the 30 days before today divided by 30, zero-spend days
  * included; a person with no history averages 0, so any day at or over
  * the floor is an anomaly. Max one per person per day.
@@ -139,6 +140,7 @@ export async function checkAnomalies(
   opts: BurnCheckOpts = {},
 ): Promise<AppEvents["burn.anomaly"][]> {
   const pool = opts.pool ?? getPool();
+  if (!(await getSetting("anomaly_enabled", pool))) return [];
   const now = opts.now ?? new Date();
   const today = utcDay(now);
   const multiplier = await getSetting("anomaly_burn_multiplier", pool);

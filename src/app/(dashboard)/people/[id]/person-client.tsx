@@ -3,12 +3,15 @@
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { Loader2, Pencil, X } from "lucide-react";
 import { DataTable, type Column } from "@/components/data-table";
-import { useLatest } from "@/components/form-utils";
+import { ErrorLine, send, toCents, useLatest } from "@/components/form-utils";
 import { MintOpenAiKey } from "@/components/mint-openai-key";
-import { OffboardPanel } from "@/components/offboard-panel";
+import { OffboardDialog } from "@/components/offboard-panel";
 import { RowLink, Tile } from "@/components/tile";
 import { TrendBars } from "@/components/trend-bars";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCents, formatCount, shortDay } from "@/lib/format";
 import type { PersonDailyRow, PersonDetail, PersonKeyRow } from "@/lib/people";
@@ -19,9 +22,205 @@ import { useFetch } from "@/lib/use-fetch";
  * One person (spec 10 page 2 click-through): spend by vendor, outcomes,
  * $/outcome, trend, daily breakdown, keys and seats, products. Every number
  * links to the raw rows that sum to it; keys click through to /keys/[id].
- * Admins also act from here (spec 8): mint an OpenAI key (shown once) and
- * offboard - every key and seat removed, history kept.
+ * Admins also act from here: the person's properties live on their page
+ * (spec 10.6) - "Can sign in" (login access, admin choice license-gated),
+ * the monthly limit next to their spend, offboard as a small confirmed
+ * header action (spec 8) - plus mint an OpenAI key (shown once).
  */
+
+/** The person API's admin-only extra: their "Can sign in" state. */
+type PersonPayload = PersonDetail & {
+  access?: { role: "admin" | "viewer" | null; isSelf: boolean };
+};
+
+type AccessRole = "none" | "viewer" | "admin";
+
+/**
+ * "Can sign in" (spec 10.6): none / viewer / admin. Granting needs a
+ * password (the email is the username); picking admin without a license
+ * answers with the locked-feature line, shown verbatim.
+ */
+function CanSignIn({
+  personId,
+  access,
+  onChanged,
+}: {
+  personId: string;
+  access: { role: "admin" | "viewer" | null; isSelf: boolean };
+  onChanged: () => void;
+}) {
+  const current: AccessRole = access.role ?? "none";
+  const [role, setRole] = useState<AccessRole>(current);
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const dirty = role !== current;
+  const needsPassword = dirty && role !== "none" && access.role === null;
+
+  async function save() {
+    setBusy(true);
+    setError(null);
+    const { error: failure } = await send(`/api/people/${personId}/access`, "PUT", {
+      role,
+      ...(password !== "" ? { password } : {}),
+    });
+    setBusy(false);
+    if (failure) {
+      setError(failure);
+    } else {
+      setPassword("");
+      onChanged();
+    }
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+      <label htmlFor="person-access" className="text-sm font-medium">
+        Can sign in
+      </label>
+      <select
+        id="person-access"
+        className="h-8 rounded-md border bg-transparent px-2 text-sm"
+        disabled={busy || access.isSelf}
+        value={role}
+        onChange={(e) => {
+          setError(null);
+          setRole(e.target.value as AccessRole);
+        }}
+      >
+        <option value="none">none</option>
+        <option value="viewer">viewer</option>
+        <option value="admin">admin</option>
+      </select>
+      {access.isSelf && <span className="text-sm text-muted-foreground">you</span>}
+      {needsPassword && (
+        <Input
+          aria-label="Password"
+          type="password"
+          autoComplete="new-password"
+          className="h-8 w-40"
+          placeholder="password (8+)"
+          disabled={busy}
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+      )}
+      {dirty && (
+        <Button
+          size="sm"
+          disabled={busy || (needsPassword && password.length < 8)}
+          onClick={() => void save()}
+        >
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
+        </Button>
+      )}
+      <ErrorLine message={error} />
+    </div>
+  );
+}
+
+/**
+ * The monthly limit, next to the spend it caps (spec 10.6 / 9). Alert
+ * threshold in USD, calendar-month UTC - the alert wording never claims a
+ * hard stop.
+ */
+function LimitRow({
+  personId,
+  limitUsdCents,
+  isAdmin,
+  onChanged,
+}: {
+  personId: string;
+  limitUsdCents: number | null;
+  isAdmin: boolean;
+  onChanged: () => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function put(cents: number | null) {
+    setBusy(true);
+    setError(null);
+    const { error: failure } = await send(`/api/people/${personId}/limit`, "PUT", {
+      limitUsdCents: cents,
+    });
+    setBusy(false);
+    if (failure) {
+      setError(failure);
+    } else {
+      setEditing(false);
+      onChanged();
+    }
+  }
+
+  if (!editing) {
+    if (limitUsdCents === null && !isAdmin) return null;
+    return (
+      <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
+        {limitUsdCents === null
+          ? "no limit"
+          : `limit ${formatCents(limitUsdCents, "USD")}/mo`}
+        {isAdmin && (
+          <button
+            type="button"
+            aria-label="Edit limit"
+            className="rounded p-0.5 hover:text-foreground"
+            onClick={() => {
+              setValue(limitUsdCents === null ? "" : String(limitUsdCents / 100));
+              setEditing(true);
+            }}
+          >
+            <Pencil className="h-3.5 w-3.5" />
+          </button>
+        )}
+      </p>
+    );
+  }
+  return (
+    <div className="mt-1 space-y-1">
+      <div className="flex flex-wrap items-center gap-1.5">
+        <label htmlFor="person-limit" className="text-sm text-muted-foreground">
+          limit $
+        </label>
+        <Input
+          id="person-limit"
+          className="h-8 w-24"
+          inputMode="decimal"
+          autoFocus
+          disabled={busy}
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+        />
+        <span className="text-sm text-muted-foreground">/mo</span>
+        <Button
+          size="sm"
+          disabled={busy || toCents(value) === null || toCents(value) === 0}
+          onClick={() => void put(toCents(value))}
+        >
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
+        </Button>
+        {limitUsdCents !== null && (
+          <Button variant="ghost" size="sm" disabled={busy} onClick={() => void put(null)}>
+            Clear
+          </Button>
+        )}
+        <Button
+          variant="ghost"
+          size="sm"
+          aria-label="Cancel"
+          disabled={busy}
+          onClick={() => setEditing(false)}
+        >
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
+      <ErrorLine message={error} />
+    </div>
+  );
+}
 
 export function PersonSkeleton() {
   return (
@@ -49,7 +248,7 @@ export default function PersonClient() {
   // only reused while its window matches).
   const [version, setVersion] = useState(0);
   const reload = () => setVersion((v) => v + 1);
-  const fetched = useFetch<PersonDetail>(
+  const fetched = useFetch<PersonPayload>(
     `/api/people/${id}?from=${range.from}&to=${range.to}&v=${version}`,
   );
   const last = useLatest(fetched.data);
@@ -165,7 +364,7 @@ export default function PersonClient() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
         <h1 className="text-lg font-semibold">
           {data.person.name ?? data.person.email}
         </h1>
@@ -176,19 +375,24 @@ export default function PersonClient() {
           </span>
         )}
         <span className="flex-1" />
-        {data.person.monthlyLimitUsdCents !== null && (
-          <span className="text-sm text-muted-foreground">
-            limit {formatCents(data.person.monthlyLimitUsdCents, "USD")}/mo
-          </span>
-        )}
         {isAdmin && (
-          <OffboardPanel
+          <OffboardDialog
             personId={data.person.id}
             status={data.person.status}
             onChanged={reload}
           />
         )}
       </div>
+
+      {isAdmin && data.access && (
+        <CanSignIn
+          // Remount on a role change so the select tracks the server's state.
+          key={data.access.role ?? "none"}
+          personId={data.person.id}
+          access={data.access}
+          onChanged={reload}
+        />
+      )}
 
       <div className="grid gap-4 md:grid-cols-3">
         <Tile title="Spend" href={drill("")}>
@@ -198,6 +402,12 @@ export default function PersonClient() {
           <p className="mt-1 text-sm text-muted-foreground">
             {formatCount(data.totals.factCount)} facts
           </p>
+          <LimitRow
+            personId={data.person.id}
+            limitUsdCents={data.person.monthlyLimitUsdCents}
+            isAdmin={isAdmin}
+            onChanged={reload}
+          />
         </Tile>
         <Tile title="Outcomes" href={outcomesDrill}>
           <Link href={outcomesDrill} className="text-3xl font-semibold tabular-nums">

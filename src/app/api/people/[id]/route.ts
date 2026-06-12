@@ -13,6 +13,8 @@ export const dynamic = "force-dynamic";
  * seats, products, outcomes over the range. Follows merges to the survivor
  * (the response's person.id is authoritative) and still answers for
  * archived people - history stays intact, only current views hide them.
+ * Admins also get `access` - the person's "Can sign in" state (spec 10.6),
+ * written through PUT /api/people/{id}/access.
  */
 export async function GET(
   req: Request,
@@ -38,7 +40,20 @@ export async function GET(
   }
 
   try {
-    return Response.json(await personDetail(id, range, db));
+    const detail = await personDetail(id, range, db);
+    if (user.role !== "admin") return Response.json(detail);
+    const { rows } = await db.query(
+      "SELECT id, role FROM users WHERE person_id = $1",
+      [detail.person.id],
+    );
+    const login = rows[0] as { id: string; role: "admin" | "viewer" } | undefined;
+    return Response.json({
+      ...detail,
+      access: {
+        role: login?.role ?? null,
+        isSelf: login !== undefined && login.id.toLowerCase() === user.id.toLowerCase(),
+      },
+    });
   } catch (error) {
     if (error instanceof ResolveError) {
       return Response.json({ error: error.message }, { status: error.status });

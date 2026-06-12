@@ -313,7 +313,18 @@ export default function ApiReferencePage() {
           <Endpoint methods={["PUT"]} path="/api/people/{id}/limit" auth="admin">
             <p>
               <Code>{`{"limitUsdCents": 50000}`}</Code> - monthly alert limit;{" "}
-              <Code>null</Code> clears. An alert, never a hard stop.
+              <Code>null</Code> clears. An alert, never a hard stop. Set on the
+              person&apos;s page, next to their spend.
+            </p>
+          </Endpoint>
+          <Endpoint methods={["PUT"]} path="/api/people/{id}/access" auth="admin">
+            <p>
+              <Code>{`{"role": "none" | "viewer" | "admin", "password"?}`}</Code> - the
+              person&apos;s &quot;Can sign in&quot; state. Granting creates a login with
+              their email as the username (password required); <Code>none</Code>{" "}
+              removes it, sessions included. Granting admin is the licensed{" "}
+              <Code>more_admins</Code> feature - unlicensed answers 403 with the
+              locked-feature line.
             </p>
           </Endpoint>
           <Endpoint methods={["GET", "POST"]} path="/api/people/{id}/offboard" auth="admin">
@@ -505,14 +516,15 @@ export default function ApiReferencePage() {
               Change settings; <Code>null</Code> clears a secret.
             </p>
           </Endpoint>
-          <Endpoint methods={["GET", "POST"]} path="/api/users" auth="admin">
+          <Endpoint methods={["GET"]} path="/api/users" auth="admin">
             <p>
-              View-only users (username + password). The one admin is whoever claimed
-              the instance.
+              Every sign-in with its linked person (if any). Login access is granted
+              per person via <Code>/api/people/{"{id}"}/access</Code>; the person-less
+              logins (the first-boot admin, legacy viewers) are listed on People.
             </p>
           </Endpoint>
           <Endpoint methods={["DELETE"]} path="/api/users/{id}" auth="admin">
-            <p>Remove a view-only user.</p>
+            <p>Remove a sign-in - never yourself, never the last admin.</p>
           </Endpoint>
           <Endpoint methods={["POST"]} path="/api/email/test" auth="admin">
             <p>

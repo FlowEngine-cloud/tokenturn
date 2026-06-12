@@ -1,19 +1,21 @@
 import { APP_NAME } from "./brand";
 import { getPool, type Db } from "./db";
+import { getEmailConfig, sendEmail } from "./email";
 import { onEvent, type AppEvents } from "./events";
 import { logger } from "./logger";
-import { getSecretSetting } from "./settings";
+import { getSecretSetting, getSetting } from "./settings";
 
 /**
- * Slack alert channel (spec 9 / 12b: alerts default to the Slack webhook).
- * The webhook URL is a secret setting (slack_webhook_url), encrypted at
- * rest like vendor tokens and edited in Settings.
+ * Alert delivery (spec 9 / 12b / 10.6 Alerts): where alerts go is Settings -
+ * the Slack webhook (a secret setting, encrypted at rest) and the
+ * alert_email_recipients list (sent through the configured email provider).
  *
  * registerAlertSink subscribes to the alert events (limit thresholds, burn
- * anomalies, silent connectors) and posts one plain-text message per event.
- * Delivery is best-effort and never throws: dedupe already happened in
- * alert_state before the event fired, and a sink failure must never break
- * a sync. No webhook configured = the alert is logged and skipped.
+ * anomalies, silent connectors) and posts one plain-text message per event
+ * to every configured destination. Delivery is best-effort and never
+ * throws: dedupe already happened in alert_state before the event fired,
+ * and a sink failure must never break a sync. Nothing configured = the
+ * alert is logged and skipped.
  */
 
 export const SLACK_WEBHOOK_SETTING = "slack_webhook_url";
@@ -100,10 +102,47 @@ export async function postSlack(
   }
 }
 
+/**
+ * Email the alert to every configured recipient (spec 10.6 Alerts). Same
+ * contract as postSlack: best-effort, never throws; no recipients or no
+ * provider = skipped.
+ */
+export async function emailAlert(
+  text: string,
+  opts: AlertSinkOpts = {},
+): Promise<SlackDelivery> {
+  const db = opts.db ?? getPool();
+  try {
+    const recipients = await getSetting("alert_email_recipients", db);
+    if (recipients.length === 0) return "skipped";
+    if ((await getEmailConfig({ db, dataDir: opts.dataDir })) === null) {
+      logger.info("no email provider configured, alert not emailed", { text });
+      return "skipped";
+    }
+    for (const to of recipients) {
+      await sendEmail(
+        { to, subject: `${APP_NAME} alert`, text },
+        { db, dataDir: opts.dataDir, fetch: opts.fetch },
+      );
+    }
+    logger.info("email alert sent", { recipients: recipients.length, text });
+    return "sent";
+  } catch (err) {
+    logger.error("email alert delivery failed", { error: err, text });
+    return "failed";
+  }
+}
+
+/** One alert, every configured destination. */
+async function deliver(text: string, opts: AlertSinkOpts): Promise<void> {
+  await postSlack(text, opts);
+  await emailAlert(text, opts);
+}
+
 let active: (() => void) | null = null;
 
 /**
- * Subscribe the Slack sink to every alert event (idempotent - a second
+ * Subscribe the delivery sink to every alert event (idempotent - a second
  * registration is a no-op until the first is unsubscribed). Returns an
  * unsubscribe function; the boot path registers once and never does.
  */
@@ -111,13 +150,13 @@ export function registerAlertSink(opts: AlertSinkOpts = {}): () => void {
   if (active) return active;
   const offs = [
     onEvent("limit.threshold", async (p) => {
-      await postSlack(formatLimitAlert(p), opts);
+      await deliver(formatLimitAlert(p), opts);
     }),
     onEvent("burn.anomaly", async (p) => {
-      await postSlack(formatAnomalyAlert(p), opts);
+      await deliver(formatAnomalyAlert(p), opts);
     }),
     onEvent("connector.silent", async (p) => {
-      await postSlack(formatConnectorSilentAlert(p), opts);
+      await deliver(formatConnectorSilentAlert(p), opts);
     }),
   ];
   const off = () => {

@@ -15,10 +15,14 @@ export interface SettingValues {
   display_currency: string;
   /** Days a revert can flip a merged PR before it's final (spec 5). */
   revert_window_days: number;
+  /** Anomaly alerts on/off (spec 10.6 Alerts); the two numbers below. */
+  anomaly_enabled: boolean;
   /** Anomaly: daily burn >= multiplier x trailing 30-day average (spec 9). */
   anomaly_burn_multiplier: number;
   /** Anomaly: and daily burn >= this many USD cents (spec 9: $20). */
   anomaly_min_day_cents: number;
+  /** Where alerts go besides Slack: email recipients (spec 10.6 Alerts). */
+  alert_email_recipients: string[];
   /** Spend-limit alert thresholds, % of the monthly limit (spec 9). */
   limit_alert_thresholds_pct: number[];
   /** Raw per-request facts retention; rollups keep forever (spec 4). */
@@ -34,8 +38,10 @@ export type SettingKey = keyof SettingValues;
 export const SETTING_DEFAULTS: SettingValues = {
   display_currency: "USD",
   revert_window_days: 30,
+  anomaly_enabled: true,
   anomaly_burn_multiplier: 3,
   anomaly_min_day_cents: 2000,
+  alert_email_recipients: [],
   limit_alert_thresholds_pct: [80, 100],
   raw_facts_retention_months: 13,
   connector_silent_alert_hours: 24,

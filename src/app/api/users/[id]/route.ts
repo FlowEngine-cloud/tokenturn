@@ -1,58 +1,15 @@
-import { badRequest, forbidden, readJson, requireAdmin } from "@/lib/api";
+import { badRequest, forbidden, requireAdmin } from "@/lib/api";
 import { audit } from "@/lib/audit";
 import { getPool } from "@/lib/db";
-import { requireEeFeature } from "@/lib/license";
 import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
 /**
- * Change a user's role (spec 11). Promoting anyone to admin is the
- * `more_admins` enterprise feature: without a valid license it answers 403
- * with the locked-feature line - the dropdown always shows Admin, picking it
- * is what hits the wall. Your own role never changes here, so the last
- * admin can never demote themselves out of Settings.
- */
-export async function PATCH(
-  req: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const db = getPool();
-  const admin = await requireAdmin(req, db);
-  if (admin instanceof Response) return admin;
-
-  const { id } = await params;
-  if (!/^[0-9a-f-]{36}$/i.test(id)) return badRequest("invalid user id");
-  if (id.toLowerCase() === admin.id.toLowerCase()) {
-    return forbidden("you cannot change your own role");
-  }
-
-  const body = await readJson(req);
-  const role = body?.role;
-  if (role !== "viewer" && role !== "admin") {
-    return badRequest("role must be viewer or admin");
-  }
-  if (role === "admin") {
-    const locked = await requireEeFeature("more_admins", db);
-    if (locked) return locked;
-  }
-
-  const { rows } = await db.query(
-    "UPDATE users SET role = $2 WHERE id = $1 RETURNING id, name, role",
-    [id, role],
-  );
-  if (rows.length === 0) {
-    return Response.json({ error: "no such user" }, { status: 404 });
-  }
-  logger.info("user role changed", { userId: id, role, by: admin.id });
-  await audit(admin, "user.role", { userId: id, name: rows[0].name, role }, db);
-  return Response.json({ user: rows[0] });
-}
-
-/**
- * Remove a user. Admins added under a `more_admins` license are removable
- * like anyone else, but never the last admin (lost-credential recovery is
- * the reset-admin CLI, not deletion) and never yourself. Sessions and
+ * Remove a sign-in. People-linked logins are managed from the person page
+ * (PUT /api/people/{id}/access); this endpoint is how the person-less ones
+ * listed on People go away. Never the last admin (lost-credential recovery
+ * is the reset-admin CLI, not deletion) and never yourself. Sessions and
  * passkeys cascade with the row.
  */
 export async function DELETE(

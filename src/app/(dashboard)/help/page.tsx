@@ -31,6 +31,12 @@ export default function HelpPage() {
           in Resolve - one click to fix, remembered forever. Spend nobody owns stays
           visible under Unassigned, never hidden.
         </p>
+        <p>
+          Everything about a person lives on their page: dashboard sign-in
+          (&quot;Can sign in&quot; - none, viewer, or admin), their monthly limit next to
+          their spend, and offboard - one confirmed action that lists and removes
+          every key and seat across every vendor, history kept.
+        </p>
       </Section>
 
       <Section title="Keys and tags">
@@ -38,7 +44,9 @@ export default function HelpPage() {
           A key&apos;s name becomes its tag - the name says what the key is for.{" "}
           <Code>support-bot</Code> routes its spend to the Support Bot ROI;{" "}
           <Code>batch-*</Code> stays out of personal numbers; an agent&apos;s key tagged{" "}
-          <Code>agent</Code> bills its ROI, not a person.
+          <Code>agent</Code> bills its ROI, not a person. &quot;Add a tag&quot; lives in the
+          ROI page&apos;s tag filter; name a key with that tag in the vendor console and
+          its spend shows up under it on next sync.
         </p>
       </Section>
 
@@ -72,9 +80,11 @@ export default function HelpPage() {
 
       <Section title="Limits and alerts">
         <p>
-          Per-person monthly limits. Enforcement is only claimed where the vendor
-          actually supports it; everywhere else you get Slack alerts at 80% and 100%,
-          plus a burn alarm when someone&apos;s daily spend jumps far above their own
+          Per-person monthly limits, set on each person&apos;s page next to their
+          spend. Enforcement is only claimed where the vendor actually supports it;
+          everywhere else you get alerts - to the Slack webhook and the email
+          recipients in Settings &rarr; Alerts - at 80% and 100%, plus a burn alarm
+          (on/off there too) when someone&apos;s daily spend jumps far above their own
           average.
         </p>
       </Section>

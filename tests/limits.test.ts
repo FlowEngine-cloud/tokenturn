@@ -279,6 +279,21 @@ describe.runIf(TEST_DATABASE_URL)("limits + burn alarms", () => {
       await addSpend(max, "2026-03-20", 50_000);
       expect(await checkAnomalies({ pool, now: MARCH })).toEqual([]);
     });
+
+    it("the anomaly toggle turns the whole check off (spec 10.6 Alerts)", async () => {
+      const noa = await makePerson("noa@acme.com");
+      await addSpend(noa, "2026-03-28", 50_000);
+      const now28 = new Date("2026-03-28T12:00:00Z");
+
+      await setSetting("anomaly_enabled", false, pool);
+      expect(await checkAnomalies({ pool, now: now28 })).toEqual([]);
+
+      // Re-enabled, the same day still fires - off never burned the dedupe.
+      await setSetting("anomaly_enabled", true, pool);
+      expect(await checkAnomalies({ pool, now: now28 })).toMatchObject([
+        { personId: noa, day: "2026-03-28", dayUsdCents: 50_000 },
+      ]);
+    });
   });
 
   it("the scheduler tick runs both checks", async () => {

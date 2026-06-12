@@ -1,10 +1,14 @@
 import { execFile } from "node:child_process";
+import { copyFile, mkdtemp, readdir } from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
 import { Pool } from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { DELETE as deleteUser, PATCH as patchUser } from "../src/app/api/users/[id]/route";
-import { GET as listUsers, POST as createUser } from "../src/app/api/users/route";
+import { PUT as putAccess } from "../src/app/api/people/[id]/access/route";
+import { GET as personRoute } from "../src/app/api/people/[id]/route";
+import { DELETE as deleteUser } from "../src/app/api/users/[id]/route";
+import { GET as listUsers } from "../src/app/api/users/route";
 import { POST as loginPassword } from "../src/app/api/auth/login/password/route";
 import { POST as logout } from "../src/app/api/auth/logout/route";
 import { POST as setOwnPassword } from "../src/app/api/auth/password/route";
@@ -18,7 +22,7 @@ import { hashPassword, verifyPassword } from "../src/lib/password";
 import { resetRateLimits } from "../src/lib/rate-limit";
 import { runMigrations } from "../scripts/migrate.mjs";
 import { mintResetToken } from "../scripts/reset-admin.mjs";
-import { getJson, patchJson, postJson, sessionCookieOf } from "./helpers/http";
+import { getJson, postJson, putJson, sessionCookieOf } from "./helpers/http";
 import { licenseInstance, unpinTestLicenseKey } from "./helpers/license";
 import { TEST_DATABASE_URL, createScratchDb, dropScratchDb } from "./helpers/pg";
 
@@ -46,6 +50,19 @@ describe.runIf(TEST_DATABASE_URL)("auth flows", () => {
   let adminCookie: string;
   let viewerCookie: string;
   let viewerId: string;
+  let danaPersonId: string;
+
+  const addPerson = async (email: string, name?: string): Promise<string> => {
+    const { rows } = await pool.query(
+      "INSERT INTO people (email, name, source) VALUES ($1, $2, 'manual') RETURNING id",
+      [email, name ?? null],
+    );
+    return rows[0].id as string;
+  };
+  const putRole = (personId: string, body: unknown, cookie?: string) =>
+    putAccess(putJson(`/api/people/${personId}/access`, body, cookie), {
+      params: Promise.resolve({ id: personId }),
+    });
 
   beforeAll(async () => {
     dbUrl = await createScratchDb("auth_test");
@@ -98,9 +115,12 @@ describe.runIf(TEST_DATABASE_URL)("auth flows", () => {
 
   it("a second admin is an enterprise feature - the API refuses unlicensed", async () => {
     // The DB-level one-admin index is gone (more admins is licensed, spec
-    // 11); the enforcing layer is the license wall on the users API.
-    const res = await createUser(
-      postJson("/api/users", { name: "Other", password: "longpassword", role: "admin" }, adminCookie),
+    // 11); the enforcing layer is the license wall on the access API.
+    const personId = await addPerson("other@acme.com", "Other");
+    const res = await putRole(
+      personId,
+      { role: "admin", password: "longpassword" },
+      adminCookie,
     );
     expect(res.status).toBe(403);
     expect((await res.json()).error).toBe(
@@ -142,23 +162,33 @@ describe.runIf(TEST_DATABASE_URL)("auth flows", () => {
     resetRateLimits();
   });
 
-  it("admin adds a view-only user; the viewer can log in but not write", async () => {
-    const created = await createUser(
-      postJson("/api/users", { name: "Dana", password: "viewer-pass-1" }, adminCookie),
+  it("granting a person view-only sign-in: the viewer logs in but cannot write", async () => {
+    danaPersonId = await addPerson("dana@acme.com", "Dana");
+    const created = await putRole(
+      danaPersonId,
+      { role: "viewer", password: "viewer-pass-1" },
+      adminCookie,
     );
-    expect(created.status).toBe(201);
-    viewerId = (await created.json()).user.id;
+    expect(created.status).toBe(200);
+    expect((await created.json()).access.role).toBe("viewer");
+    const { rows } = await pool.query("SELECT id FROM users WHERE person_id = $1", [
+      danaPersonId,
+    ]);
+    viewerId = rows[0].id as string;
 
+    // The email is the username.
     const login = await loginPassword(
-      postJson("/api/auth/login/password", { name: "Dana", password: "viewer-pass-1" }),
+      postJson("/api/auth/login/password", { name: "dana@acme.com", password: "viewer-pass-1" }),
     );
     expect(login.status).toBe(200);
     expect((await login.json()).user.role).toBe("viewer");
     viewerCookie = sessionCookieOf(login);
 
-    // route-level role check: a viewer cannot manage users
-    const denied = await createUser(
-      postJson("/api/users", { name: "Eve", password: "evil-pass-99" }, viewerCookie),
+    // route-level role check: a viewer cannot grant sign-in or list logins
+    const denied = await putRole(
+      danaPersonId,
+      { role: "admin", password: "evil-pass-99" },
+      viewerCookie,
     );
     expect(denied.status).toBe(403);
     const deniedList = await listUsers(getJson("/api/users", viewerCookie));
@@ -166,39 +196,57 @@ describe.runIf(TEST_DATABASE_URL)("auth flows", () => {
 
     const list = await listUsers(getJson("/api/users", adminCookie));
     const { users } = await list.json();
-    expect(users.map((u: { name: string }) => u.name).sort()).toEqual(["Amit", "Dana"]);
+    expect(users.map((u: { name: string }) => u.name).sort()).toEqual([
+      "Amit",
+      "dana@acme.com",
+    ]);
+    // The first-boot admin stays person-less (listed on People); the
+    // granted login links to its person.
+    type Row = { name: string; person_id: string | null };
+    expect(users.find((u: Row) => u.name === "Amit").person_id).toBeNull();
+    expect(users.find((u: Row) => u.name === "dana@acme.com").person_id).toBe(danaPersonId);
+
+    // The person API reports the access state to admins only (spec 10.6).
+    const adminView = await personRoute(
+      getJson(`/api/people/${danaPersonId}`, adminCookie),
+      { params: Promise.resolve({ id: danaPersonId }) },
+    );
+    expect((await adminView.json()).access).toEqual({ role: "viewer", isSelf: false });
+    const viewerView = await personRoute(
+      getJson(`/api/people/${danaPersonId}`, viewerCookie),
+      { params: Promise.resolve({ id: danaPersonId }) },
+    );
+    expect((await viewerView.json()).access).toBeUndefined();
   });
 
-  it("user names are unique, case-insensitively", async () => {
-    const res = await createUser(
-      postJson("/api/users", { name: "dana", password: "another-pass-1" }, adminCookie),
+  it("sign-in names stay unique, case-insensitively", async () => {
+    // A person whose email collides with the existing "Amit" username.
+    const personId = await addPerson("AMIT");
+    const res = await putRole(
+      personId,
+      { role: "viewer", password: "another-pass-1" },
+      adminCookie,
     );
     expect(res.status).toBe(409);
   });
 
-  it("unauthenticated user management is rejected", async () => {
+  it("unauthenticated access management is rejected", async () => {
     expect((await listUsers(getJson("/api/users"))).status).toBe(401);
-    expect(
-      (await createUser(postJson("/api/users", { name: "X", password: "xxxxxxxx" }))).status,
-    ).toBe(401);
+    expect((await putRole(danaPersonId, { role: "viewer" })).status).toBe(401);
   });
 
-  it("role changes: Admin is always offered, picking it is licensed (spec 11)", async () => {
-    const patch = (id: string, role: string, cookie?: string) =>
-      patchUser(patchJson(`/api/users/${id}`, { role }, cookie), {
-        params: Promise.resolve({ id }),
-      });
-    const { rows } = await pool.query("SELECT id FROM users WHERE role = 'admin'");
-    const adminId = rows[0].id as string;
-
-    // Your own role never changes here (the last admin can't demote out).
-    expect((await patch(adminId, "viewer", adminCookie)).status).toBe(403);
-    // Viewers cannot change roles at all.
-    expect((await patch(viewerId, "admin", viewerCookie)).status).toBe(403);
+  it("Can sign in: admin is always offered, picking it is licensed (spec 10.6)", async () => {
+    // Your own sign-in never changes here (the last admin can't demote out).
+    const amitPersonId = await addPerson("amit@acme.com", "Amit");
+    await pool.query("UPDATE users SET person_id = $1 WHERE role = 'admin'", [
+      amitPersonId,
+    ]);
+    expect((await putRole(amitPersonId, { role: "viewer" }, adminCookie)).status).toBe(403);
+    expect((await putRole(amitPersonId, { role: "none" }, adminCookie)).status).toBe(403);
 
     // Unlicensed promote: the locked-feature line, verbatim - the wall the
     // always-visible Admin option hits.
-    const locked = await patch(viewerId, "admin", adminCookie);
+    const locked = await putRole(danaPersonId, { role: "admin" }, adminCookie);
     expect(locked.status).toBe(403);
     expect((await locked.json()).error).toBe(
       "Enterprise feature - contact hi@flowengine.cloud",
@@ -207,16 +255,41 @@ describe.runIf(TEST_DATABASE_URL)("auth flows", () => {
     // Licensed: it works, both directions.
     await licenseInstance(pool, ["more_admins"]);
     try {
-      const promoted = await patch(viewerId, "admin", adminCookie);
+      const promoted = await putRole(danaPersonId, { role: "admin" }, adminCookie);
       expect(promoted.status).toBe(200);
-      expect((await promoted.json()).user.role).toBe("admin");
-      const demoted = await patch(viewerId, "viewer", adminCookie);
+      expect((await promoted.json()).access.role).toBe("admin");
+      const demoted = await putRole(danaPersonId, { role: "viewer" }, adminCookie);
       expect(demoted.status).toBe(200);
-      expect((await demoted.json()).user.role).toBe("viewer");
+      expect((await demoted.json()).access.role).toBe("viewer");
     } finally {
       await clearLicenseFile(pool);
       unpinTestLicenseKey();
     }
+  });
+
+  it("Can sign in: none removes the login and its sessions", async () => {
+    const personId = await addPerson("nia@acme.com", "Nia");
+    expect(
+      (await putRole(personId, { role: "viewer", password: "nia-pass-123" }, adminCookie))
+        .status,
+    ).toBe(200);
+    const login = await loginPassword(
+      postJson("/api/auth/login/password", { name: "nia@acme.com", password: "nia-pass-123" }),
+    );
+    expect(login.status).toBe(200);
+    const cookie = sessionCookieOf(login);
+
+    const removed = await putRole(personId, { role: "none" }, adminCookie);
+    expect(removed.status).toBe(200);
+    expect((await removed.json()).access.role).toBeNull();
+
+    const state = await authState(getJson("/api/auth/state", cookie));
+    expect((await state.json()).user).toBeNull();
+    resetRateLimits();
+    const relogin = await loginPassword(
+      postJson("/api/auth/login/password", { name: "nia@acme.com", password: "nia-pass-123" }),
+    );
+    expect(relogin.status).toBe(401);
   });
 
   it("the admin cannot be deleted", async () => {
@@ -314,6 +387,58 @@ describe.runIf(TEST_DATABASE_URL)("auth flows", () => {
       postJson("/api/auth/login/password", { name: "Amit", password: "recovered-pass-9" }),
     );
     expect(login.status).toBe(200);
+  });
+});
+
+describe.runIf(TEST_DATABASE_URL)("login-access migration backfill (017)", () => {
+  it("email-matches existing logins to people; the unmatched keep working", async () => {
+    const dbUrl = await createScratchDb("auth_backfill_test");
+    const migPool = () => new Pool({ connectionString: dbUrl, max: 2 });
+    try {
+      // Apply everything before 017, then seed a pre-migration state.
+      const all = (await readdir(MIGRATIONS_DIR)).filter((f) => f.endsWith(".sql")).sort();
+      const cut = all.indexOf("017_login_access.sql");
+      expect(cut).toBeGreaterThan(0);
+      const tmp = await mkdtemp(path.join(os.tmpdir(), "ai-pnl-mig-"));
+      for (const file of all.slice(0, cut)) {
+        await copyFile(path.join(MIGRATIONS_DIR, file), path.join(tmp, file));
+      }
+      await runMigrations({ databaseUrl: dbUrl, dir: tmp });
+
+      const pool = migPool();
+      try {
+        await pool.query(
+          `INSERT INTO people (email, name) VALUES
+             ('dana@acme.com', 'Dana'), ('lee@acme.com', 'Lee')`,
+        );
+        const { rows: sessions } = await pool.query(
+          `INSERT INTO users (name, role) VALUES
+             ('Amit', 'admin'), ('DANA@ACME.COM', 'viewer')
+           RETURNING id`,
+        );
+        const danaToken = (await createSession(sessions[1].id, pool)).token;
+
+        await runMigrations({ databaseUrl: dbUrl, dir: MIGRATIONS_DIR });
+
+        const { rows } = await pool.query(
+          `SELECT u.name, p.email
+           FROM users u LEFT JOIN people p ON p.id = u.person_id
+           ORDER BY u.name`,
+        );
+        expect(rows).toEqual([
+          { name: "Amit", email: null }, // no email match - person-less, untouched
+          { name: "DANA@ACME.COM", email: "dana@acme.com" }, // case-insensitive
+        ]);
+        // Existing sessions survive the migration.
+        expect(await getSessionUser(danaToken, pool)).toMatchObject({
+          role: "viewer",
+        });
+      } finally {
+        await pool.end();
+      }
+    } finally {
+      await dropScratchDb(dbUrl);
+    }
   });
 });
 

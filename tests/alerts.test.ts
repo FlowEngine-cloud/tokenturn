@@ -6,6 +6,7 @@ import path from "node:path";
 import { Pool } from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
+  emailAlert,
   formatAnomalyAlert,
   formatConnectorSilentAlert,
   formatLimitAlert,
@@ -14,11 +15,12 @@ import {
   SLACK_WEBHOOK_SETTING,
 } from "../src/lib/alerts";
 import { APP_NAME } from "../src/lib/brand";
+import { setEmailConfig } from "../src/lib/email";
 import { clearEventListeners, emitEvent, type AppEvents } from "../src/lib/events";
 import { checkBurnAlerts } from "../src/lib/limits";
 import { recomputeRollups } from "../src/lib/rollup";
 import { clearSecretKeyCache } from "../src/lib/secrets";
-import { setSecretSetting } from "../src/lib/settings";
+import { setSecretSetting, setSetting } from "../src/lib/settings";
 import { runMigrations } from "../scripts/migrate.mjs";
 import { TEST_DATABASE_URL, createScratchDb, dropScratchDb } from "./helpers/pg";
 
@@ -231,5 +233,38 @@ describe.runIf(TEST_DATABASE_URL)("Slack alert channel", () => {
     } finally {
       off();
     }
+  });
+
+  it("email recipients get the alert too; unset = skipped, never thrown", async () => {
+    // No recipients configured.
+    expect(await emailAlert("hello", { db: pool, dataDir })).toBe("skipped");
+
+    // Recipients but no provider: still skipped, never thrown.
+    await setSetting("alert_email_recipients", ["cfo@acme.com", "fin@acme.com"], pool);
+    expect(await emailAlert("hello", { db: pool, dataDir })).toBe("skipped");
+
+    // Provider configured: one email per recipient through it.
+    await setEmailConfig(
+      { provider: "resend", from: "alerts@acme.com", apiKey: "re_test" },
+      { db: pool, dataDir },
+    );
+    const sent: { url: string; body: Record<string, unknown> }[] = [];
+    const fakeFetch = (async (url: RequestInfo | URL, init?: RequestInit) => {
+      sent.push({ url: String(url), body: JSON.parse(String(init?.body)) });
+      return new Response(JSON.stringify({ id: "ok" }), { status: 200 });
+    }) as typeof fetch;
+    expect(
+      await emailAlert("limit hit", { db: pool, dataDir, fetch: fakeFetch }),
+    ).toBe("sent");
+    expect(sent.map((s) => s.body.to)).toEqual([["cfo@acme.com"], ["fin@acme.com"]]);
+    expect(sent[0].url).toBe("https://api.resend.com/emails");
+    expect(sent[0].body.subject).toBe(`${APP_NAME} alert`);
+    expect(sent[0].body.text).toBe("limit hit");
+
+    // A provider failure is swallowed (best-effort, like Slack).
+    const failFetch = (async () => new Response("nope", { status: 500 })) as typeof fetch;
+    expect(
+      await emailAlert("will fail", { db: pool, dataDir, fetch: failFetch }),
+    ).toBe("failed");
   });
 });

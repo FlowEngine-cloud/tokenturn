@@ -27,7 +27,9 @@ import { cn } from "@/lib/utils";
 
 /**
  * The one card shape for everything that plugs in (spec 10.6): icon, name,
- * status dot, last sync, one action - nothing else at rest. The header
+ * status dot, last sync, one action - nothing else at rest. Two fixed
+ * lines (name + dot, then the state) so every card in the grid has the
+ * same shape; both truncate, so nothing overflows at any width. The header
  * toggles the card's panel; an open card spans the Connections grid.
  * PlugCard is the shell; ConnectorCard is the vendor/success connector on
  * top of it, with the full connect panel (the vendor's limits verbatim,
@@ -80,17 +82,22 @@ export function PlugCard({
         className="flex w-full items-center gap-3 p-4 text-left"
       >
         <Icon className="h-5 w-5 shrink-0 text-muted-foreground" />
-        <span className="truncate font-medium">{name}</span>
-        {marker && <span className="text-sm text-muted-foreground">{marker}</span>}
-        <span className={cn("h-2 w-2 shrink-0 rounded-full", dot)} />
-        <span className="flex-1" />
-        {status && (
-          <span className="truncate text-sm tabular-nums text-muted-foreground">{status}</span>
-        )}
+        <span className="min-w-0 flex-1">
+          <span className="flex min-w-0 items-center gap-2">
+            <span className="truncate font-medium">{name}</span>
+            <span className={cn("h-2 w-2 shrink-0 rounded-full", dot)} />
+            {marker && (
+              <span className="truncate text-sm text-muted-foreground">{marker}</span>
+            )}
+          </span>
+          <span className="block truncate text-sm tabular-nums text-muted-foreground">
+            {status ?? (locked ? "locked" : "not connected")}
+          </span>
+        </span>
         {locked ? (
           <Lock className="h-4 w-4 shrink-0 text-muted-foreground" />
         ) : action ? (
-          <span className={buttonVariants({ size: "sm" })}>{action}</span>
+          <span className={cn(buttonVariants({ size: "sm" }), "shrink-0")}>{action}</span>
         ) : (
           <ChevronDown
             className={cn(
@@ -254,7 +261,7 @@ export function ConnectorCard({
                     type={field.secret ? "password" : "text"}
                     autoComplete="off"
                     placeholder={field.placeholder}
-                    className="h-8 w-64"
+                    className="h-8 w-64 max-w-full"
                     disabled={busy}
                     value={config[field.key] ?? ""}
                     onChange={(e) =>
