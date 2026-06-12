@@ -1,10 +1,14 @@
 """The whole spec-6 offer for Python, end to end: the SDK delivers over real
-HTTP to the REAL ingest API (`next dev` against a scratch Postgres, the same
-migrations the container runs on boot), so wrap() + track() drive the
-production path into a real database - estimated facts priced from the
-pinned table, outcomes drilling to the ref, rollups recomputed - and a full
-re-send of already-delivered bytes (the retry after a lost response)
-changes nothing.
+HTTP to the REAL ingest API (the production server - `next start` - against
+a scratch Postgres, the same migrations the container runs on boot), so
+wrap() + track() drive the production path into a real database - estimated
+facts priced from the pinned table, outcomes drilling to the ref, rollups
+recomputed - and a full re-send of already-delivered bytes (the retry after
+a lost response) changes nothing.
+
+Reuses the repo's production build (`.next/`), building it on the spot only
+when absent - CI builds before testing, and `next start` (unlike `next dev`)
+never refuses to boot because a dev server is already running elsewhere.
 
 Needs TEST_DATABASE_URL (same contract as the vitest suite); skipped
 otherwise."""
@@ -128,13 +132,25 @@ class IngestE2ETest(unittest.TestCase):
                 f"VALUES ('{cls.product_id}', 'py-e2e', '{token_hash}', '{cls.token[:12]}')",
             )
 
+            next_bin = os.path.join(REPO_ROOT, "node_modules", ".bin", "next")
+            if not os.path.exists(os.path.join(REPO_ROOT, ".next", "BUILD_ID")):
+                build = subprocess.run(
+                    [next_bin, "build"],
+                    cwd=REPO_ROOT,
+                    capture_output=True,
+                    text=True,
+                    timeout=600,
+                )
+                if build.returncode != 0:
+                    raise RuntimeError(f"next build failed:\n{build.stdout}\n{build.stderr}")
+
             port = free_port()
             cls.base_url = f"http://127.0.0.1:{port}"
             cls.server_log = tempfile.NamedTemporaryFile(  # noqa: SIM115 - kept for teardown
                 mode="w+", prefix="ai-pnl-e2e-", suffix=".log", delete=False
             )
             cls.server = subprocess.Popen(
-                [os.path.join(REPO_ROOT, "node_modules", ".bin", "next"), "dev", "-p", str(port)],
+                [next_bin, "start", "-p", str(port)],
                 cwd=REPO_ROOT,
                 env={**os.environ, "DATABASE_URL": cls.db_url, "PORT": str(port)},
                 stdout=cls.server_log,
@@ -152,7 +168,7 @@ class IngestE2ETest(unittest.TestCase):
                 if cls.server.poll() is not None or time.monotonic() > deadline:
                     cls.server_log.flush()
                     with open(cls.server_log.name) as log:
-                        raise RuntimeError(f"next dev never became healthy:\n{log.read()[-4000:]}")
+                        raise RuntimeError(f"next start never became healthy:\n{log.read()[-4000:]}")
                 time.sleep(0.5)
         except BaseException:
             cls._teardown_infra()

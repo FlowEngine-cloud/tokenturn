@@ -121,7 +121,7 @@ npm run dev          # http://localhost:3000
 | `npm run build` | Production build |
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm test` | Vitest. Database tests need `TEST_DATABASE_URL` pointing at a Postgres server (they create and drop scratch databases); they skip when it's unset. CI always runs them. |
-| `npm run test:py` | Python SDK tests (stdlib `unittest`, no installs). The end-to-end test boots the real app against a scratch database and needs `TEST_DATABASE_URL`; it skips when unset. |
+| `npm run test:py` | Python SDK tests (stdlib `unittest`, no installs). The end-to-end test boots the production server (reusing `.next/`, building it if missing) against a scratch database and needs `TEST_DATABASE_URL`; it skips when unset. |
 | `npm run lint` | ESLint |
 
 ```bash
