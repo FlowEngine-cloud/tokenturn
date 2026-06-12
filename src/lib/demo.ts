@@ -5,6 +5,21 @@ import { ResolveError } from "./resolve";
 import { recomputeRollups } from "./rollup";
 
 /**
+ * Demo mode (env `DEMO_MODE=1`): the whole instance turns read-only so it
+ * can be shown around - or handed to someone - without anything changing.
+ * Sign-in/out keeps working (a shared demo account is the point), and the
+ * two one-shot bootstrap writes stay open (claiming a fresh instance and
+ * seeding the demo dataset below - both refuse to run twice), so a demo box
+ * can set itself up while already in demo mode. Everything else that isn't
+ * GET is rejected by the proxy with a 403 - including credential changes,
+ * so a visitor can't lock the owner out of the shared account.
+ */
+export function isDemoMode(): boolean {
+  const v = process.env.DEMO_MODE?.trim().toLowerCase();
+  return v === "1" || v === "true";
+}
+
+/**
  * Demo dataset (spec 10, Onboarding): "start with demo data (wiped when the
  * first real connector connects)". The generator writes ~6 months of
  * realistic-looking people, keys, tags, products, daily spend, usage

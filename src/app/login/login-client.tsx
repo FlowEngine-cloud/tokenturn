@@ -26,7 +26,7 @@ async function errorOf(res: Response): Promise<string> {
   return `request failed (${res.status})`;
 }
 
-export function LoginClient({ claimed }: { claimed: boolean }) {
+export function LoginClient({ claimed, demo }: { claimed: boolean; demo: boolean }) {
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [usePassword, setUsePassword] = useState(false);
@@ -88,6 +88,11 @@ export function LoginClient({ claimed }: { claimed: boolean }) {
           <p className="mt-1 text-base text-muted-foreground">
             {claimed ? "Sign in" : "Claim this instance as its admin"}
           </p>
+          {demo && (
+            <p className="mt-2 text-sm text-muted-foreground">
+              Demo instance - everything inside is read-only.
+            </p>
+          )}
         </div>
 
         {!claimed && (

@@ -4,9 +4,12 @@ services:
     ports:
       - "3000:3000"
     environment:
-      # The only env var the app reads. Everything else is configured in
+      # The only required env var. Everything else is configured in
       # Settings and stored in the database.
       DATABASE_URL: postgres://aipnl:aipnl@db:5432/aipnl
+      # Uncomment to run the instance read-only for live demos: everyone
+      # signs in and browses, nothing can be changed (see README).
+      # DEMO_MODE: "1"
     volumes:
       - app-data:/data
     depends_on:

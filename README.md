@@ -17,7 +17,7 @@ For ROI we calculate three different ways:
 
 - **No proxy.** Proxying your LLM keys adds a bottleneck, latency, maintenance, a point of failure, and a real security risk. Tokenturn reads the vendors' admin APIs instead - nothing sits between your apps and the models.
 - **No stored keys.** Your employees' API keys never pass through Tokenturn. Vendor admin tokens are stored encrypted; keys minted for people are shown exactly once and never saved or logged.
-- **Flexible.** You define ROI your way: any spend slice (a tagged key, the SDK, a whole vendor, manual) against any success definition (`track()` events, merged PRs, manual), with your own value per outcome. And the whole ledger exports as [FOCUS](https://focus.finops.org) so any FinOps tool can ingest it.
+- **Flexible.** You define ROI your way: any spend slice (a tagged key, the SDK, a whole vendor, manual) against any success definition (`track()` events, merged PRs, manual), with your own value per outcome. The whole reports exports as [FOCUS] so any FinOps tool can ingest it.
 
 ## Integrations
 
@@ -29,7 +29,9 @@ OpenAI, Anthropic (including Claude Code analytics), Cursor, GitHub Copilot. Jir
 docker compose up
 ```
 
-Open [http://localhost:3000](http://localhost:3000). `DATABASE_URL` is the only environment variable; everything else lives in Settings. Migrations run on boot. Backup = the Postgres volume. `GET /healthz` reports app and database health.
+Open [http://localhost:3000](http://localhost:3000). `DATABASE_URL` is the only required environment variable; everything else lives in Settings. Migrations run on boot. Backup = the Postgres volume. `GET /healthz` reports app and database health.
+
+Set `DEMO_MODE=1` to run the instance read-only for live demos: everyone can sign in, browse, and drill into everything, but every change is rejected - including password changes, so a shared demo login stays safe. Claiming a fresh instance and seeding the demo data still work (each runs only once), so a demo box can bootstrap itself with the flag already on.
 
 The first visitor claims the instance as its admin - with a passkey, or a password as fallback. No email needed. Sign-in access lives on each person's page ("Can sign in": none, viewer, or admin). Lost your login?
 

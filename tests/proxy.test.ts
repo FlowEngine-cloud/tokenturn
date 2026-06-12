@@ -4,6 +4,7 @@ import { Pool } from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { POST as loginPassword } from "../src/app/api/auth/login/password/route";
 import { POST as setupPassword } from "../src/app/api/auth/setup/password/route";
+import { GET as authState } from "../src/app/api/auth/state/route";
 import { closePool } from "../src/lib/db";
 import { hashPassword } from "../src/lib/password";
 import { resetRateLimits } from "../src/lib/rate-limit";
@@ -137,5 +138,86 @@ describe.runIf(TEST_DATABASE_URL)("auth gate", () => {
         ),
       ),
     ).toBe(true);
+  });
+
+  describe("demo mode (DEMO_MODE=1)", () => {
+    beforeAll(() => {
+      process.env.DEMO_MODE = "1";
+    });
+    afterAll(() => {
+      delete process.env.DEMO_MODE;
+    });
+
+    it("/api/auth/state tells the shell to show the demo banner", async () => {
+      const res = await authState(request("/api/auth/state"));
+      expect((await res.json()).demoMode).toBe(true);
+    });
+
+    it("everyone reads, nobody writes - even the admin", async () => {
+      expect(passedThrough(await proxy(request("/", { cookie: adminCookie })))).toBe(true);
+      expect(
+        passedThrough(await proxy(request("/api/users", { cookie: adminCookie }))),
+      ).toBe(true);
+
+      const write = await proxy(
+        request("/api/users", { method: "POST", cookie: adminCookie }),
+      );
+      expect(write.status).toBe(403);
+      expect((await write.json()).error).toMatch(/demo mode/);
+    });
+
+    it("blocks public-path writes too (ingest, reset consume)", async () => {
+      expect(
+        (await proxy(request("/api/ingest/events", { method: "POST" }))).status,
+      ).toBe(403);
+      expect(
+        (await proxy(request("/api/auth/reset/consume", { method: "POST" }))).status,
+      ).toBe(403);
+    });
+
+    it("blocks credential changes - the demo account is shared", async () => {
+      expect(
+        (
+          await proxy(
+            request("/api/auth/password", { method: "POST", cookie: adminCookie }),
+          )
+        ).status,
+      ).toBe(403);
+      expect(
+        (
+          await proxy(
+            request("/api/auth/passkey/options", { method: "POST", cookie: adminCookie }),
+          )
+        ).status,
+      ).toBe(403);
+    });
+
+    it("sign-in/out and the one-shot bootstrap writes stay open", async () => {
+      expect(
+        passedThrough(
+          await proxy(request("/api/auth/login/password", { method: "POST" })),
+        ),
+      ).toBe(true);
+      expect(
+        passedThrough(
+          await proxy(request("/api/auth/setup/password", { method: "POST" })),
+        ),
+      ).toBe(true);
+      expect(
+        passedThrough(
+          await proxy(request("/api/auth/logout", { method: "POST", cookie: adminCookie })),
+        ),
+      ).toBe(true);
+      expect(
+        passedThrough(
+          await proxy(request("/api/demo", { method: "POST", cookie: adminCookie })),
+        ),
+      ).toBe(true);
+      expect(
+        passedThrough(
+          await proxy(request("/api/onboarding", { method: "PATCH", cookie: adminCookie })),
+        ),
+      ).toBe(true);
+    });
   });
 });

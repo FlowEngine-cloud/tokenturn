@@ -133,7 +133,8 @@ export default function ApiReferencePage() {
               for your systems is <Code>POST /api/ingest</Code>, authenticated by a
               Bearer <span className="text-foreground">ingest key</span> minted in
               Settings. Dates are <Code>YYYY-MM-DD</Code>; money travels as integer
-              cents.
+              cents. An instance running with <Code>DEMO_MODE=1</Code> is read-only:
+              every write here (ingest included) answers 403.
             </p>
           }
         />

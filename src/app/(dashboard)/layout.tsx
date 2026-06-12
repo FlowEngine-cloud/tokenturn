@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { DemoBanner } from "@/components/shell/demo-banner";
 import { Sidebar } from "@/components/shell/sidebar";
 import { TopBar } from "@/components/shell/top-bar";
 import { VersionBanner } from "@/components/shell/version-banner";
@@ -15,6 +16,7 @@ export default function DashboardLayout({
         <Sidebar />
       </Suspense>
       <div className="flex min-h-screen flex-col md:pl-56 print:pl-0">
+        <DemoBanner />
         <VersionBanner />
         <Suspense>
           <TopBar />
