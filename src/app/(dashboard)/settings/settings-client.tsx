@@ -10,6 +10,7 @@ import {
   Code2,
   Copy,
   Database,
+  KeyRound,
   Loader2,
   Mail,
   Upload,
@@ -38,6 +39,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ConnectorHealth } from "@/lib/connectors/health";
 import { type LicenseStatus } from "@/lib/ee";
+import type { ApiKey } from "@/lib/auth";
 import { formatCount, timeAgo } from "@/lib/format";
 import type { IngestKey } from "@/lib/ingest";
 import type { ImportResult, ParsedInvoiceCsv } from "@/lib/invoices";
@@ -47,8 +49,8 @@ import { useFetch } from "@/lib/use-fetch";
 import { cn } from "@/lib/utils";
 
 /**
- * Settings (spec 10.6): exactly four icon tabs, one on screen at a time -
- * Connections (the landing tab), Alerts, Data, License.
+ * Settings: personal access plus organization connections, alerts, data,
+ * and licensing, with one section on screen at a time.
  * - Connections holds EVERYTHING that plugs in as one card grid on the one
  *   PlugCard shape: the vendors, Jira + Linear (success-only), the SDK's
  *   ingest keys, the email provider, the Slack webhook, and the Google
@@ -460,56 +462,54 @@ function SdkCard({
       open={open}
       onToggle={() => setOpen((v) => !v)}
     >
-      {isAdmin && (
-        <SettingsRow label="Mint" htmlFor="ingest-product">
-          <select
-            id="ingest-product"
-            className="h-8 rounded-md border bg-transparent px-2 text-sm"
-            disabled={busy}
-            value={productId}
-            onChange={(e) => setProductId(e.target.value)}
-          >
-            <option value="">Choose ROI…</option>
-            {products.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
-          <Input
-            aria-label="Key name"
-            className="h-8 w-40 max-w-full"
-            placeholder="name (optional)"
-            disabled={busy}
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-          <Button
-            size="sm"
-            disabled={busy || productId === ""}
-            onClick={async () => {
-              setBusy(true);
-              setError(null);
-              setMinted(null);
-              const { error: failure, data } = await send("/api/ingest-keys", "POST", {
-                productId,
-                ...(name.trim() !== "" ? { name: name.trim() } : {}),
-              });
-              setBusy(false);
-              if (failure) {
-                setError(failure);
-              } else {
-                setMinted((data?.token as string) ?? null);
-                setCopied(false);
-                setName("");
-                onChanged();
-              }
-            }}
-          >
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Mint key"}
-          </Button>
-        </SettingsRow>
-      )}
+      <SettingsRow label="Mint" htmlFor="ingest-product">
+        <select
+          id="ingest-product"
+          className="h-8 rounded-md border bg-transparent px-2 text-sm"
+          disabled={busy}
+          value={productId}
+          onChange={(e) => setProductId(e.target.value)}
+        >
+          <option value="">Choose ROI…</option>
+          {products.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}
+            </option>
+          ))}
+        </select>
+        <Input
+          aria-label="Key name"
+          className="h-8 w-40 max-w-full"
+          placeholder="name (optional)"
+          disabled={busy}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
+        <Button
+          size="sm"
+          disabled={busy || productId === ""}
+          onClick={async () => {
+            setBusy(true);
+            setError(null);
+            setMinted(null);
+            const { error: failure, data } = await send("/api/ingest-keys", "POST", {
+              productId,
+              ...(name.trim() !== "" ? { name: name.trim() } : {}),
+            });
+            setBusy(false);
+            if (failure) {
+              setError(failure);
+            } else {
+              setMinted((data?.token as string) ?? null);
+              setCopied(false);
+              setName("");
+              onChanged();
+            }
+          }}
+        >
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Mint key"}
+        </Button>
+      </SettingsRow>
       {minted && (
         <SettingsRow>
           <span className="flex min-w-0 flex-wrap items-center gap-2 rounded-md border border-amber-500/40 p-2">
@@ -562,6 +562,118 @@ function SdkCard({
       )}
       <ErrorLine message={error} />
     </PlugCard>
+  );
+}
+
+// ---- Personal API keys -----------------------------------------------------
+
+function PersonalApiKeysCard({
+  keys,
+  onChanged,
+}: {
+  keys: ApiKey[];
+  onChanged: () => void;
+}) {
+  const [name, setName] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [minted, setMinted] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  return (
+    <Section title="Personal API keys">
+      <SettingsRow label="New key" htmlFor="api-key-name">
+        <Input
+          id="api-key-name"
+          className="h-8 w-64 max-w-full"
+          placeholder="CI, local scripts, reporting"
+          maxLength={80}
+          disabled={busy}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
+        <Button
+          size="sm"
+          disabled={busy || name.trim() === ""}
+          onClick={async () => {
+            setBusy(true);
+            setError(null);
+            setMinted(null);
+            const { error: failure, data } = await send("/api/api-keys", "POST", {
+              name: name.trim(),
+            });
+            setBusy(false);
+            if (failure) {
+              setError(failure);
+            } else {
+              setMinted((data?.token as string) ?? null);
+              setCopied(false);
+              setName("");
+              onChanged();
+            }
+          }}
+        >
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create key"}
+        </Button>
+      </SettingsRow>
+      {minted && (
+        <SettingsRow label="Token">
+          <span className="flex min-w-0 flex-wrap items-center gap-2 rounded-md border border-amber-500/40 p-2">
+            <code className="break-all font-mono text-sm">{minted}</code>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                void navigator.clipboard.writeText(minted).then(() => setCopied(true));
+              }}
+            >
+              {copied ? <Check className="h-4 w-4 text-green-700" /> : <Copy className="h-4 w-4" />}
+            </Button>
+            <span className="text-sm text-amber-700">shown once - store it now</span>
+          </span>
+        </SettingsRow>
+      )}
+      {keys.length === 0 ? (
+        <SettingsRow label="Keys">
+          <span className="text-sm text-muted-foreground">No personal API keys</span>
+        </SettingsRow>
+      ) : (
+        <div className="divide-y">
+          {keys.map((key) => (
+            <div
+              key={key.id}
+              className="flex flex-wrap items-center gap-x-3 gap-y-1 py-3 first:pt-0 last:pb-0"
+            >
+              <span className="font-medium">{key.name}</span>
+              <code className="font-mono text-sm text-muted-foreground">
+                {key.tokenPrefix}…
+              </code>
+              <span className="flex-1" />
+              <span className="text-sm text-muted-foreground">
+                {key.lastUsedAt ? `used ${timeAgo(key.lastUsedAt)}` : "never used"}
+              </span>
+              {key.revokedAt ? (
+                <span className="text-sm text-red-600">revoked</span>
+              ) : (
+                <ConfirmButton
+                  label="Revoke"
+                  confirmLabel="Confirm revoke"
+                  onConfirm={() => {
+                    void send(`/api/api-keys/${key.id}`, "PATCH", { revoked: true }).then(
+                      ({ error: failure }) => {
+                        if (failure) setError(failure);
+                        else onChanged();
+                      },
+                    );
+                  }}
+                />
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+      <ErrorLine message={error} />
+    </Section>
   );
 }
 
@@ -1020,9 +1132,10 @@ function DataCard({
   );
 }
 
-// ---- Page (spec 10.6: exactly four icon tabs) -------------------------------
+// ---- Page ------------------------------------------------------------------
 
 const TABS = [
+  { id: "personal", label: "Personal", icon: KeyRound },
   { id: "connections", label: "Connections", icon: Cable },
   { id: "alerts", label: "Alerts", icon: Bell },
   { id: "data", label: "Data", icon: Database },
@@ -1039,11 +1152,11 @@ export default function SettingsClient() {
   const reload = () => setVersion((v) => v + 1);
 
   const param = searchParams.get("tab");
-  const tab: TabId = TABS.some((t) => t.id === param) ? (param as TabId) : "connections";
+  const tab: TabId = TABS.some((t) => t.id === param) ? (param as TabId) : "personal";
 
   function show(id: TabId) {
     const params = new URLSearchParams(searchParams);
-    if (id === "connections") params.delete("tab");
+    if (id === "personal") params.delete("tab");
     else params.set("tab", id);
     const qs = params.toString();
     router.replace(qs === "" ? pathname : `${pathname}?${qs}`, { scroll: false });
@@ -1066,6 +1179,9 @@ export default function SettingsClient() {
   const keyData = useLatest(
     useFetch<{ keys: IngestKey[] }>(`/api/ingest-keys?v=${version}`).data,
   );
+  const apiKeyData = useLatest(
+    useFetch<{ keys: ApiKey[] }>(`/api/api-keys?v=${version}`).data,
+  );
   const { error: connectorError } = connectorFetch;
   const { error: settingsError } = settingsFetch;
 
@@ -1077,7 +1193,7 @@ export default function SettingsClient() {
       </div>
     );
   }
-  if (!connectorData || !settingsData || !productData || !keyData) {
+  if (!connectorData || !settingsData || !productData || !keyData || !apiKeyData) {
     return <SettingsSkeleton />;
   }
   const isAdmin = auth?.user?.role === "admin";
@@ -1088,29 +1204,39 @@ export default function SettingsClient() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-lg font-semibold">Settings</h1>
-
-      <nav className="-mb-2 flex gap-1 overflow-x-auto border-b">
-        {TABS.map(({ id, label, icon: Icon }) => (
-          <button
-            key={id}
-            type="button"
-            aria-current={id === tab || undefined}
-            onClick={() => show(id)}
-            className={cn(
-              "-mb-px flex items-center gap-2 whitespace-nowrap border-b-2 px-3 py-2 text-sm",
-              id === tab
-                ? "border-foreground font-medium text-foreground"
-                : "border-transparent text-muted-foreground hover:text-foreground",
-            )}
-          >
-            <Icon className="h-4 w-4 shrink-0" />
-            {label}
-          </button>
-        ))}
-      </nav>
+      <header className="space-y-4 border-b pb-4">
+        <div>
+          <h1 className="text-xl font-semibold">Settings</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Manage your access and the organization&apos;s integrations.
+          </p>
+        </div>
+        <nav className="flex flex-wrap gap-2" aria-label="Settings sections">
+          {TABS.map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              type="button"
+              aria-current={id === tab ? "page" : undefined}
+              onClick={() => show(id)}
+              className={cn(
+                "flex items-center gap-2 rounded-md border px-3 py-2 text-sm",
+                id === tab
+                  ? "border-foreground bg-foreground font-medium text-background"
+                  : "bg-card text-muted-foreground hover:text-foreground",
+              )}
+            >
+              <Icon className="h-4 w-4 shrink-0" />
+              {label}
+            </button>
+          ))}
+        </nav>
+      </header>
 
       <div className="space-y-6">
+        {tab === "personal" && (
+          <PersonalApiKeysCard keys={apiKeyData.keys} onChanged={reload} />
+        )}
+
         {tab === "connections" && (
           <ConnectionsTab
             connectors={connectorData.connectors}

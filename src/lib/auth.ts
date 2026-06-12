@@ -19,6 +19,15 @@ export interface SessionUser {
   role: Role;
 }
 
+export interface ApiKey {
+  id: string;
+  name: string;
+  tokenPrefix: string;
+  createdAt: string;
+  lastUsedAt: string | null;
+  revokedAt: string | null;
+}
+
 export function hashToken(token: string): string {
   return createHash("sha256").update(token).digest("hex");
 }
@@ -88,6 +97,81 @@ export async function destroyUserSessions(
   await db.query("DELETE FROM sessions WHERE user_id = $1", [userId]);
 }
 
+function apiKeyFromRow(row: Record<string, unknown>): ApiKey {
+  return {
+    id: row.id as string,
+    name: row.name as string,
+    tokenPrefix: row.tokenPrefix as string,
+    createdAt: new Date(row.createdAt as Date).toISOString(),
+    lastUsedAt:
+      row.lastUsedAt === null ? null : new Date(row.lastUsedAt as Date).toISOString(),
+    revokedAt:
+      row.revokedAt === null ? null : new Date(row.revokedAt as Date).toISOString(),
+  };
+}
+
+export async function mintApiKey(
+  userId: string,
+  name: string,
+  db: Db = getPool(),
+): Promise<{ key: ApiKey; token: string }> {
+  const token = `pnl_api_${randomBytes(24).toString("hex")}`;
+  const { rows } = await db.query(
+    `INSERT INTO api_keys (user_id, name, token_hash, token_prefix)
+     VALUES ($1, $2, $3, $4)
+     RETURNING id, name, token_prefix AS "tokenPrefix", created_at AS "createdAt",
+               last_used_at AS "lastUsedAt", revoked_at AS "revokedAt"`,
+    [userId, name, hashToken(token), token.slice(0, 16)],
+  );
+  return { key: apiKeyFromRow(rows[0]), token };
+}
+
+export async function listApiKeys(
+  userId: string,
+  db: Db = getPool(),
+): Promise<ApiKey[]> {
+  const { rows } = await db.query(
+    `SELECT id, name, token_prefix AS "tokenPrefix", created_at AS "createdAt",
+            last_used_at AS "lastUsedAt", revoked_at AS "revokedAt"
+     FROM api_keys WHERE user_id = $1 ORDER BY created_at DESC`,
+    [userId],
+  );
+  return rows.map(apiKeyFromRow);
+}
+
+export async function revokeApiKey(
+  userId: string,
+  id: string,
+  db: Db = getPool(),
+): Promise<ApiKey | null> {
+  const { rows } = await db.query(
+    `UPDATE api_keys SET revoked_at = COALESCE(revoked_at, now())
+     WHERE id = $1 AND user_id = $2
+     RETURNING id, name, token_prefix AS "tokenPrefix", created_at AS "createdAt",
+               last_used_at AS "lastUsedAt", revoked_at AS "revokedAt"`,
+    [id, userId],
+  );
+  return rows.length === 0 ? null : apiKeyFromRow(rows[0]);
+}
+
+export function bearerTokenFromRequest(req: Request): string | null {
+  return req.headers.get("authorization")?.match(/^Bearer\s+(\S+)\s*$/i)?.[1] ?? null;
+}
+
+export async function getApiKeyUser(
+  token: string,
+  db: Db = getPool(),
+): Promise<SessionUser | null> {
+  const { rows } = await db.query(
+    `UPDATE api_keys k SET last_used_at = now()
+     FROM users u
+     WHERE k.token_hash = $1 AND k.revoked_at IS NULL AND u.id = k.user_id
+     RETURNING u.id, u.name, u.role`,
+    [hashToken(token)],
+  );
+  return rows.length > 0 ? (rows[0] as SessionUser) : null;
+}
+
 // ---- request plumbing (plain Request/Response - no next/headers, so the
 // same code runs in route handlers, the proxy, and node tests) ----
 
@@ -116,6 +200,8 @@ export async function userFromRequest(
   req: Request,
   db: Db = getPool(),
 ): Promise<SessionUser | null> {
+  const bearer = bearerTokenFromRequest(req);
+  if (bearer) return getApiKeyUser(bearer, db);
   const token = sessionTokenFromRequest(req);
   return token ? getSessionUser(token, db) : null;
 }

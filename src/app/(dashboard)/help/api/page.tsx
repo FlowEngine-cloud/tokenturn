@@ -127,17 +127,35 @@ export default function ApiReferencePage() {
           id="auth"
           intro={
             <p>
-              The dashboard&apos;s own endpoints use the login session cookie: every
-              logged-in user can read, only the admin can write (marked{" "}
-              <span className="text-foreground">admin</span>). The one endpoint meant
-              for your systems is <Code>POST /api/ingest</Code>, authenticated by a
-              Bearer <span className="text-foreground">ingest key</span> minted in
-              Settings. Dates are <Code>YYYY-MM-DD</Code>; money travels as integer
-              cents. An instance running with <Code>DEMO_MODE=1</Code> is read-only:
-              every write here (ingest included) answers 403.
+              Dashboard endpoints accept either the login session cookie or{" "}
+              <Code>Authorization: Bearer pnl_api_...</Code>. Personal API keys inherit
+              their owner&apos;s current role: every user can read, while admin-only
+              writes are marked <span className="text-foreground">admin</span>.{" "}
+              <Code>POST /api/ingest</Code> uses a separate ROI-scoped ingest key.
+              Dates are <Code>YYYY-MM-DD</Code>; money travels as integer cents. An
+              instance running with <Code>DEMO_MODE=1</Code> is read-only: every write
+              here, including key creation and ingest, answers 403.
             </p>
           }
-        />
+        >
+          <Endpoint methods={["GET", "POST"]} path="/api/api-keys">
+            <p>
+              Lists your personal keys or mints one with{" "}
+              <Code>{`{"name": "reporting"}`}</Code>. The token appears only in the
+              create response.
+            </p>
+          </Endpoint>
+          <Endpoint methods={["PATCH"]} path="/api/api-keys/{id}">
+            <p>
+              Revokes one of your keys with <Code>{`{"revoked": true}`}</Code>. A user
+              can never list or revoke another user&apos;s keys.
+            </p>
+          </Endpoint>
+          <Block>
+            {`curl https://your-instance/api/overview?from=2026-06-01&to=2026-06-30 \\
+  -H "Authorization: Bearer pnl_api_..."`}
+          </Block>
+        </ApiSection>
 
         <ApiSection id="ingest">
           <Endpoint methods={["POST"]} path="/api/ingest" auth="ingest">
@@ -180,10 +198,10 @@ export default function ApiReferencePage() {
           <Endpoint methods={["GET"]} path="/api/ingest-keys">
             <p>Lists keys - prefixes only, never tokens.</p>
           </Endpoint>
-          <Endpoint methods={["POST"]} path="/api/ingest-keys" auth="admin">
+          <Endpoint methods={["POST"]} path="/api/ingest-keys">
             <p>
-              Mints a key scoped to one ROI. The token is in this response and nowhere
-              else - shown exactly once.
+              Any signed-in user can mint a key scoped to one ROI. The token is in this
+              response and nowhere else - shown exactly once.
             </p>
           </Endpoint>
           <Endpoint methods={["PATCH"]} path="/api/ingest-keys/{id}" auth="admin">

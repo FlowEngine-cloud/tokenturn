@@ -54,6 +54,21 @@ export function getJson(path: string, cookie?: string): Request {
   });
 }
 
+export function bearerJson(
+  path: string,
+  token: string,
+  init: { method?: string; body?: unknown } = {},
+): Request {
+  return new Request(`${BASE}${path}`, {
+    method: init.method ?? "GET",
+    headers: {
+      authorization: `Bearer ${token}`,
+      ...(init.body === undefined ? {} : { "content-type": "application/json" }),
+    },
+    body: init.body === undefined ? undefined : JSON.stringify(init.body),
+  });
+}
+
 /** The "name=value" pair of the session cookie a response sets. */
 export function sessionCookieOf(res: Response): string {
   const header = res.headers.get("set-cookie");

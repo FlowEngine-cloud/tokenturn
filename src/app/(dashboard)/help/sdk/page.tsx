@@ -29,10 +29,10 @@ pnl.track("ticket_resolved", { value: 4.5, ref: ticket.id }); // records a succe
           else.
         </p>
         <p>
-          Mint an ingest key in Settings - shown once, scoped to one ROI. The SDK
-          fails open: buffering, retries and dedupe are built in, and an error never
-          breaks your app. Python has the same API. Quickstarts live in the repo under{" "}
-          <Code>sdk/</Code> and <Code>sdk-py/</Code>.
+          Any signed-in user can mint an ingest key in Settings - shown once, scoped
+          to one ROI. The SDK fails open: buffering, retries and dedupe are built in,
+          and an error never breaks your app. Python has the same API. Quickstarts
+          live in the repo under <Code>sdk/</Code> and <Code>sdk-py/</Code>.
         </p>
       </Section>
 
@@ -57,8 +57,10 @@ pnl.track("ticket_resolved", { value: 4.5, ref: ticket.id }); // records a succe
 
       <Section title="API">
         <p>
-          Every page is built on the same JSON API, so anything you see you can fetch -
-          the full endpoint list is under the{" "}
+          Every page is built on the same JSON API. Create a personal API key in
+          Settings and send it as <Code>Authorization: Bearer pnl_api_...</Code>. The
+          key inherits your role, so it can do exactly what your dashboard login can
+          do. The full endpoint list is under the{" "}
           <Link href="/help/api" className="text-foreground underline underline-offset-4">
             API reference
           </Link>{" "}

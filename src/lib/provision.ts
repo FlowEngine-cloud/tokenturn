@@ -491,6 +491,23 @@ export async function runOffboard(
   const db = opts.db ?? getPool();
   await loadPerson(personId, db); // 404 unknown / 409 merged-away
 
+  const { rows: logins } = await db.query(
+    "SELECT id, role FROM users WHERE person_id = $1",
+    [personId],
+  );
+  const login = logins[0] as { id: string; role: string } | undefined;
+  if (login && opts.actor !== "system" && opts.actor?.id === login.id) {
+    throw new ResolveError("you cannot offboard yourself", 403);
+  }
+  if (login?.role === "admin") {
+    const { rows } = await db.query(
+      "SELECT count(*)::int AS admins FROM users WHERE role = 'admin'",
+    );
+    if (rows[0].admins <= 1) {
+      throw new ResolveError("the last admin cannot be offboarded", 403);
+    }
+  }
+
   await db.query(
     `INSERT INTO offboard_items
        (person_id, identity_id, vendor, external_id, kind, display_name)
@@ -505,6 +522,10 @@ export async function runOffboard(
      WHERE id = $1 AND status <> 'offboarded'`,
     [personId],
   );
+  if (login) {
+    // Sessions, passkeys and personal API keys cascade with the login.
+    await db.query("DELETE FROM users WHERE id = $1", [login.id]);
+  }
 
   const { rows: pending } = await db.query(
     `SELECT ${ITEM_COLUMNS} FROM offboard_items oi

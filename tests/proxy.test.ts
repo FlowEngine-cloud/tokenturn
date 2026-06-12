@@ -5,6 +5,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { POST as loginPassword } from "../src/app/api/auth/login/password/route";
 import { POST as setupPassword } from "../src/app/api/auth/setup/password/route";
 import { GET as authState } from "../src/app/api/auth/state/route";
+import { mintApiKey } from "../src/lib/auth";
 import { closePool } from "../src/lib/db";
 import { hashPassword } from "../src/lib/password";
 import { resetRateLimits } from "../src/lib/rate-limit";
@@ -15,10 +16,16 @@ import { TEST_DATABASE_URL, createScratchDb, dropScratchDb } from "./helpers/pg"
 
 const MIGRATIONS_DIR = path.resolve(__dirname, "..", "migrations");
 
-function request(pathname: string, init: { method?: string; cookie?: string } = {}) {
+function request(
+  pathname: string,
+  init: { method?: string; cookie?: string; bearer?: string } = {},
+) {
   return new NextRequest(`${BASE}${pathname}`, {
     method: init.method ?? "GET",
-    headers: init.cookie ? { cookie: init.cookie } : {},
+    headers: {
+      ...(init.cookie ? { cookie: init.cookie } : {}),
+      ...(init.bearer ? { authorization: `Bearer ${init.bearer}` } : {}),
+    },
   });
 }
 
@@ -53,6 +60,7 @@ describe.runIf(TEST_DATABASE_URL)("auth gate", () => {
   let pool: Pool;
   let adminCookie: string;
   let viewerCookie: string;
+  let viewerApiKey: string;
 
   beforeAll(async () => {
     dbUrl = await createScratchDb("proxy_test");
@@ -73,6 +81,8 @@ describe.runIf(TEST_DATABASE_URL)("auth gate", () => {
       postJson("/api/auth/login/password", { name: "Dana", password: "viewer-pass-1" }),
     );
     viewerCookie = sessionCookieOf(login);
+    const { rows } = await pool.query("SELECT id FROM users WHERE name = 'Dana'");
+    viewerApiKey = (await mintApiKey(rows[0].id, "proxy test", pool)).token;
   });
 
   afterAll(async () => {
@@ -110,6 +120,26 @@ describe.runIf(TEST_DATABASE_URL)("auth gate", () => {
     expect(
       passedThrough(
         await proxy(request("/api/users", { method: "POST", cookie: adminCookie })),
+      ),
+    ).toBe(true);
+  });
+
+  it("accepts Bearer API keys and applies the owner's role", async () => {
+    expect(
+      passedThrough(await proxy(request("/api/overview", { bearer: viewerApiKey }))),
+    ).toBe(true);
+    expect(
+      (
+        await proxy(
+          request("/api/users", { method: "POST", bearer: viewerApiKey }),
+        )
+      ).status,
+    ).toBe(403);
+    expect(
+      passedThrough(
+        await proxy(
+          request("/api/api-keys", { method: "POST", bearer: viewerApiKey }),
+        ),
       ),
     ).toBe(true);
   });
@@ -180,6 +210,13 @@ describe.runIf(TEST_DATABASE_URL)("auth gate", () => {
         (
           await proxy(
             request("/api/auth/password", { method: "POST", cookie: adminCookie }),
+          )
+        ).status,
+      ).toBe(403);
+      expect(
+        (
+          await proxy(
+            request("/api/api-keys", { method: "POST", cookie: adminCookie }),
           )
         ).status,
       ).toBe(403);

@@ -147,10 +147,10 @@ describe.runIf(TEST_DATABASE_URL)("ingest API (spec 6)", () => {
       "Support Bot",
     ]);
 
-    // Minting is the admin's; ghost and archived products are refused.
+    // Regular signed-in users can mint; ghost and archived products are refused.
     expect(
-      (await keysPostRoute(postJson("/api/ingest-keys", { productId: supportBotId }, viewerCookie))).status,
-    ).toBe(403);
+      (await keysPostRoute(postJson("/api/ingest-keys", { productId: supportBotId, name: "viewer" }, viewerCookie))).status,
+    ).toBe(201);
     expect(
       (
         await keysPostRoute(

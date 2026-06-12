@@ -8,7 +8,7 @@ import {
   POST as offboardPost,
 } from "../src/app/api/people/[id]/offboard/route";
 import { POST as retryRoute } from "../src/app/api/people/[id]/offboard/retry/route";
-import { createSession, SESSION_COOKIE } from "../src/lib/auth";
+import { createSession, mintApiKey, SESSION_COOKIE } from "../src/lib/auth";
 import { closePool } from "../src/lib/db";
 import { checkLimitAlerts } from "../src/lib/limits";
 import { personDetail } from "../src/lib/people";
@@ -201,6 +201,36 @@ describe.runIf(TEST_DATABASE_URL)("people in/out (spec 8)", () => {
       (await offboardGet(getJson(`/api/people/${dana}/offboard`, viewerCookie), params(dana)))
         .status,
     ).toBe(200);
+  });
+
+  it("offboarding removes the linked login, sessions, and personal API keys", async () => {
+    const { rows: people } = await pool.query(
+      "INSERT INTO people (email, name) VALUES ('leah@acme.com', 'Leah') RETURNING id",
+    );
+    const personId = people[0].id as string;
+    const { rows: users } = await pool.query(
+      `INSERT INTO users (name, role, person_id)
+       VALUES ('leah@acme.com', 'viewer', $1) RETURNING id`,
+      [personId],
+    );
+    const userId = users[0].id as string;
+    await createSession(userId, pool);
+    await mintApiKey(userId, "automation", pool);
+
+    const res = await offboardPost(
+      postJson(`/api/people/${personId}/offboard`, {}, adminCookie),
+      params(personId),
+    );
+    expect(res.status).toBe(200);
+
+    for (const table of ["users", "sessions", "api_keys"]) {
+      const column = table === "users" ? "id" : "user_id";
+      const { rows } = await pool.query(
+        `SELECT count(*)::int AS n FROM ${table} WHERE ${column} = $1`,
+        [userId],
+      );
+      expect(rows[0].n).toBe(0);
+    }
   });
 
   it("rejects bad invite bodies", async () => {

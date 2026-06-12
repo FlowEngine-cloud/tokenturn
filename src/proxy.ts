@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { getSessionUser, SESSION_COOKIE } from "@/lib/auth";
+import { userFromRequest } from "@/lib/auth";
 import { getPool } from "@/lib/db";
 import { isDemoMode } from "@/lib/demo";
 
@@ -41,7 +41,16 @@ const VIEWER_WRITE_ALLOWED = new Set([
   "/api/auth/password",
   "/api/auth/passkey/options",
   "/api/auth/passkey/verify",
+  "/api/api-keys",
+  "/api/ingest-keys",
 ]);
+
+function viewerWriteAllowed(pathname: string): boolean {
+  return (
+    VIEWER_WRITE_ALLOWED.has(pathname) ||
+    /^\/api\/api-keys\/[0-9a-f-]{36}$/i.test(pathname)
+  );
+}
 
 export function isPublicPath(pathname: string): boolean {
   return (
@@ -72,8 +81,7 @@ export async function proxy(req: NextRequest): Promise<Response> {
 
   if (isPublicPath(pathname)) return NextResponse.next();
 
-  const token = req.cookies.get(SESSION_COOKIE)?.value;
-  const user = token ? await getSessionUser(token, getPool()) : null;
+  const user = await userFromRequest(req, getPool());
 
   if (!user) {
     if (pathname.startsWith("/api/")) {
@@ -88,7 +96,7 @@ export async function proxy(req: NextRequest): Promise<Response> {
   if (
     user.role === "viewer" &&
     !READ_METHODS.has(req.method) &&
-    !VIEWER_WRITE_ALLOWED.has(pathname)
+    !viewerWriteAllowed(pathname)
   ) {
     return Response.json({ error: "view-only user" }, { status: 403 });
   }

@@ -36,6 +36,22 @@ CREATE TABLE sessions (
 );
 CREATE INDEX sessions_user_idx ON sessions (user_id);
 
+-- Personal API keys authenticate the same dashboard API as a session and
+-- inherit their owner's current role. The plaintext token is shown once;
+-- only its sha256 and a display prefix are stored. Deleting a login (access
+-- removal or offboarding) revokes every key through the cascading FK.
+CREATE TABLE api_keys (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+  name text NOT NULL,
+  token_hash text NOT NULL UNIQUE,
+  token_prefix text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  last_used_at timestamptz,
+  revoked_at timestamptz
+);
+CREATE INDEX api_keys_user_idx ON api_keys (user_id, created_at DESC);
+
 -- One-time WebAuthn challenges, deleted on use so an assertion can never be
 -- replayed. user_id NULL = pre-login flows (first-boot claim, passkey login).
 CREATE TABLE auth_challenges (
