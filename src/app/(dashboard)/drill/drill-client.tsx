@@ -142,7 +142,7 @@ function FactsView({ query, chips }: { query: string; chips: string[] }) {
         columns={columns}
         rows={data.rows}
         rowKey={(r) => r.id}
-        csvName="ai-pnl-facts.csv"
+        csvName="tokenturn-facts.csv"
         note={
           data.rows.length < data.totalCount
             ? `first ${formatCount(data.rows.length)} of ${formatCount(data.totalCount)} - narrow the filter for the rest`
@@ -236,7 +236,7 @@ function OutcomesView({ query, chips }: { query: string; chips: string[] }) {
         columns={columns}
         rows={data.rows}
         rowKey={(r) => r.id}
-        csvName="ai-pnl-outcomes.csv"
+        csvName="tokenturn-outcomes.csv"
         note={
           data.rows.length === data.limit
             ? `first ${formatCount(data.rows.length)} rows - narrow the filter for the rest`
@@ -312,7 +312,7 @@ function MetricsView({ query, chips }: { query: string; chips: string[] }) {
         columns={columns}
         rows={data.rows}
         rowKey={(r) => r.id}
-        csvName="ai-pnl-metrics.csv"
+        csvName="tokenturn-metrics.csv"
         note={
           data.rows.length < data.totalCount
             ? `first ${formatCount(data.rows.length)} of ${formatCount(data.totalCount)} - narrow the filter for the rest`
@@ -380,7 +380,7 @@ function RunsView({ vendor, chips }: { vendor: string | null; chips: string[] })
         columns={columns}
         rows={data.runs}
         rowKey={(r) => String(r.id)}
-        csvName="ai-pnl-sync-runs.csv"
+        csvName="tokenturn-sync-runs.csv"
       />
     </div>
   );
@@ -452,7 +452,7 @@ function InvoicesView({ months, chips }: { months: { from: string; to: string };
         columns={columns}
         rows={data.invoices}
         rowKey={(r) => r.id}
-        csvName="ai-pnl-invoices.csv"
+        csvName="tokenturn-invoices.csv"
       />
     </div>
   );

@@ -460,7 +460,7 @@ export default function ProductClient() {
             columns={keyColumns}
             rows={data.keys}
             rowKey={(r) => r.id}
-            csvName="ai-pnl-roi-keys.csv"
+            csvName="tokenturn-roi-keys.csv"
             rowHref={(r) => withRange(`/keys/${r.id}`, range)}
             maxHeightClass="max-h-96"
           />
@@ -474,7 +474,7 @@ export default function ProductClient() {
             columns={issueColumns}
             rows={data.issues}
             rowKey={(r) => `${r.vendor}:${r.sourceRef}`}
-            csvName="ai-pnl-roi-issues.csv"
+            csvName="tokenturn-roi-issues.csv"
             maxHeightClass="max-h-96"
           />
         </section>
@@ -489,7 +489,7 @@ export default function ProductClient() {
             columns={entryColumns}
             rows={data.manualEntries}
             rowKey={(r) => r.id}
-            csvName="ai-pnl-roi-manual-entries.csv"
+            csvName="tokenturn-roi-manual-entries.csv"
             rowHref={(r) =>
               r.kind === "cost"
                 ? `/drill?product=${data.product.id}&vendor=manual&day=${r.month}-01&from=${r.month}-01&to=${r.month}-01`
@@ -506,7 +506,7 @@ export default function ProductClient() {
           columns={dailyColumns}
           rows={data.daily}
           rowKey={(r) => `${r.day}:${r.vendor}`}
-          csvName="ai-pnl-roi-daily.csv"
+          csvName="tokenturn-roi-daily.csv"
           rowHref={(r) => drill(`&day=${r.day}&vendor=${r.vendor}`)}
           maxHeightClass="max-h-96"
         />

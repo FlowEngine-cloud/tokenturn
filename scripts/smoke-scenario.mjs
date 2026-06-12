@@ -119,7 +119,7 @@ async function main() {
       const res = await call("GET", page);
       expect(res.status === 200, `${page} answered ${res.status}`);
       const html = await res.text();
-      expect(html.includes("AI P&L"), `${page} looks wrong (no app shell)`);
+      expect(html.includes("Tokenturn"), `${page} looks wrong (no app shell)`);
     }
   });
 

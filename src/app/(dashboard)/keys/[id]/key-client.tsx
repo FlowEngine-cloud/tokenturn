@@ -199,7 +199,7 @@ export default function KeyClient() {
           columns={modelColumns}
           rows={data.models}
           rowKey={(r) => r.model ?? "none"}
-          csvName="ai-pnl-key-models.csv"
+          csvName="tokenturn-key-models.csv"
           rowHref={(r) => drill(`&model=${encodeURIComponent(r.model ?? "none")}`)}
           maxHeightClass="max-h-96"
         />

@@ -1,4 +1,4 @@
-/** Wire types shared with the AI P&L ingest API (POST /api/ingest). */
+/** Wire types shared with the Tokenturn ingest API (POST /api/ingest). */
 
 export type Vendor = "openai" | "anthropic";
 

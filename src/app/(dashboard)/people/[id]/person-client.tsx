@@ -310,7 +310,7 @@ export default function PersonClient() {
             columns={keyColumns}
             rows={data.keys}
             rowKey={(r) => r.id}
-            csvName="ai-pnl-person-keys.csv"
+            csvName="tokenturn-person-keys.csv"
             rowHref={(r) => withRange(`/keys/${r.id}`, range)}
             maxHeightClass="max-h-96"
           />
@@ -323,7 +323,7 @@ export default function PersonClient() {
           columns={dailyColumns}
           rows={data.daily}
           rowKey={(r) => `${r.day}:${r.vendor}`}
-          csvName="ai-pnl-person-daily.csv"
+          csvName="tokenturn-person-daily.csv"
           rowHref={(r) => drill(`&day=${r.day}&vendor=${r.vendor}`)}
           maxHeightClass="max-h-96"
         />

@@ -3,7 +3,7 @@ import { FLUSH_BATCH, MAX_BUFFER, Pnl } from "../sdk/src/client";
 import type { CallEvent, IngestEvent, OutcomeEvent } from "../sdk/src/types";
 
 /**
- * @ai-pnl/sdk (spec 6), against faithful fakes of the vendor clients (the
+ * @tokenturn/sdk (spec 6), against faithful fakes of the vendor clients (the
  * exact response/stream shapes the OpenAI and Anthropic SDKs produce -
  * the SDK speaks structural typing, so the shapes ARE the contract):
  * wrap() counting calls from usage fields incl. streaming, track() with
@@ -129,7 +129,7 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-describe("@ai-pnl/sdk wrap()", () => {
+describe("@tokenturn/sdk wrap()", () => {
   it("counts OpenAI chat + embeddings calls from the response usage fields", async () => {
     const { pnl, server } = makePnl();
     const { client } = fakeOpenAI();
@@ -232,7 +232,7 @@ describe("@ai-pnl/sdk wrap()", () => {
   });
 });
 
-describe("@ai-pnl/sdk track() + context", () => {
+describe("@tokenturn/sdk track() + context", () => {
   it("records value, ref and employee; request-context tokens attach automatically", async () => {
     const { pnl, server } = makePnl();
     const ai = pnl.wrap(fakeOpenAI().client);
@@ -302,7 +302,7 @@ describe("@ai-pnl/sdk track() + context", () => {
   });
 });
 
-describe("@ai-pnl/sdk buffering + flush", () => {
+describe("@tokenturn/sdk buffering + flush", () => {
   it("flushes every 5 seconds", async () => {
     vi.useFakeTimers();
     const { pnl, server } = makePnl();

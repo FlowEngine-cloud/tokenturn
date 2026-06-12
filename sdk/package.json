@@ -1,7 +1,7 @@
 {
-  "name": "@ai-pnl/sdk",
+  "name": "@tokenturn/sdk",
   "version": "0.1.0",
-  "description": "AI P&L TypeScript SDK: wrap() your OpenAI/Anthropic client to count every call, track() outcomes with real value. Fail-open, zero runtime dependencies.",
+  "description": "Tokenturn TypeScript SDK: wrap() your OpenAI/Anthropic client to count every call, track() outcomes with real value. Fail-open, zero runtime dependencies.",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",

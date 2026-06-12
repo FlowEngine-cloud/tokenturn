@@ -4,7 +4,7 @@ import type { CallEvent, IngestEvent, IngestResult, OutcomeEvent } from "./types
 import { detectVendor, wrapClient, type RecordedCall } from "./wrap.js";
 
 /**
- * The AI P&L client (spec 6). Fail-open always: nothing in here ever
+ * The Tokenturn client (spec 6). Fail-open always: nothing in here ever
  * throws into the host app - bad input is logged and dropped, an
  * unreachable server buffers and retries, a full buffer drops the oldest
  * events. Events carry client-side UUIDs and the server upserts on them,
@@ -17,7 +17,7 @@ export const FLUSH_BATCH = 100;
 const LOG_THROTTLE_MS = 60_000;
 
 export interface PnlConfig {
-  /** Your AI P&L server, e.g. "https://pnl.internal.example.com".
+  /** Your Tokenturn server, e.g. "https://pnl.internal.example.com".
    * Falls back to the AI_PNL_URL environment variable. */
   url?: string;
   /** Ingest key minted in Settings (shown once, scoped to one ROI).
@@ -258,7 +258,7 @@ export class Pnl {
     const url = this.config.url ?? env("AI_PNL_URL");
     const key = this.config.key ?? env("AI_PNL_KEY");
     if (!url || !key) {
-      this.log("config", "AI P&L url/key not configured (AI_PNL_URL / AI_PNL_KEY) - buffering");
+      this.log("config", "Tokenturn url/key not configured (AI_PNL_URL / AI_PNL_KEY) - buffering");
       return;
     }
     const doFetch = this.config.fetch ?? fetch;
@@ -328,6 +328,6 @@ export class Pnl {
     const now = Date.now();
     if (now - (this.lastLog.get(scope) ?? 0) < LOG_THROTTLE_MS) return;
     this.lastLog.set(scope, now);
-    console.error(`[ai-pnl] ${message}`);
+    console.error(`[tokenturn] ${message}`);
   }
 }

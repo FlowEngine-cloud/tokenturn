@@ -371,7 +371,7 @@ describe.runIf(TEST_DATABASE_URL)("CFO report (spec 10.6)", () => {
     expect(csvRes.status).toBe(200);
     expect(csvRes.headers.get("content-type")).toContain("text/csv");
     expect(csvRes.headers.get("content-disposition")).toContain(
-      `ai-pnl-report-${JUNE}.csv`,
+      `tokenturn-report-${JUNE}.csv`,
     );
     expect(await csvRes.text()).toBe(reportCsv(await reportData(JUNE, pool)));
 
@@ -381,7 +381,7 @@ describe.runIf(TEST_DATABASE_URL)("CFO report (spec 10.6)", () => {
     expect(focusRes.status).toBe(200);
     expect(focusRes.headers.get("content-type")).toContain("text/csv");
     expect(focusRes.headers.get("content-disposition")).toContain(
-      `ai-pnl-focus-1.4-${JUNE}.csv`,
+      `tokenturn-focus-1.4-${JUNE}.csv`,
     );
     // The stream emits the same file, one line at a time.
     expect(await focusRes.text()).toBe(`${await focusCsv(JUNE, pool)}\n`);

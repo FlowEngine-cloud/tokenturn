@@ -213,7 +213,7 @@ export default function PeopleClient() {
         columns={columns}
         rows={data.people}
         rowKey={(r) => r.personId ?? "unassigned"}
-        csvName="ai-pnl-people.csv"
+        csvName="tokenturn-people.csv"
         rowHref={(r) =>
           r.personId === null
             ? withRange("/drill?person=unassigned&product=none", range)

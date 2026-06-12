@@ -199,7 +199,7 @@ export async function scheduledReportsTick(
   const data = await reportData(month, db);
   const pdf = buildPdf(reportPdfLines(data));
   const attachment = {
-    filename: `ai-pnl-report-${month}.pdf`,
+    filename: `tokenturn-report-${month}.pdf`,
     contentType: "application/pdf",
     content: pdf.toString("base64"),
   };

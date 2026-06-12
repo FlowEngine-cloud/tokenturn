@@ -3,7 +3,7 @@ import { createPrivateKey, sign } from "node:crypto";
 import { readFileSync } from "node:fs";
 
 /**
- * Issue an AI P&L enterprise license file (FlowEngine-internal; licenses
+ * Issue a Tokenturn enterprise license file (FlowEngine-internal; licenses
  * are sold direct, spec 11/14). Prints the license JSON the customer
  * pastes into Settings -> License.
  *

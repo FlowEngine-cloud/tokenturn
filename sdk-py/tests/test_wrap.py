@@ -1,4 +1,4 @@
-"""ai-pnl wrap() against faithful fakes of the vendor Python clients (the
+"""tokenturn wrap() against faithful fakes of the vendor Python clients (the
 exact response/stream shapes the openai and anthropic packages produce -
 typed objects with attributes, not dicts; the SDK speaks structural typing,
 so the shapes ARE the contract): counting calls from usage fields incl.
@@ -14,7 +14,7 @@ from types import SimpleNamespace as NS
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from ai_pnl import Pnl  # noqa: E402
+from tokenturn import Pnl  # noqa: E402
 
 
 def make_pnl(**over):

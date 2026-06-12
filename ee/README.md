@@ -1,4 +1,4 @@
-# AI P&L Enterprise (`ee/`)
+# Tokenturn Enterprise (`ee/`)
 
 Everything in this directory is commercial - see [LICENSE](LICENSE). It ships
 in the same repo and the same Docker image as the open-source app, locked

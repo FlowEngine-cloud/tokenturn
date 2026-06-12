@@ -425,7 +425,7 @@ export default function RoiClient() {
           columns={columns}
           rows={rows}
           rowKey={(r) => r.key}
-          csvName="ai-pnl-roi.csv"
+          csvName="tokenturn-roi.csv"
           rowHref={(r) =>
             r.kind === "custom"
               ? withRange(`/products/${r.productId}`, range)

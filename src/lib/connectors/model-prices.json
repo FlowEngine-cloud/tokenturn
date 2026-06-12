@@ -1,6 +1,6 @@
 {
   "sample_spec": {
-    "comment": "AI P&L pinned model-price file, LiteLLM model_prices_and_context_window.json format, pruned to the models the connectors estimate. Pinned 2026-06-11; re-pin per release (spec 4). All costs are USD per token. Only add a model here when its tokens are actually estimated per user/key by a connector - the OpenAI cost-report skip rule treats pinned models' token line items as already-counted money.",
+    "comment": "Tokenturn pinned model-price file, LiteLLM model_prices_and_context_window.json format, pruned to the models the connectors estimate. Pinned 2026-06-11; re-pin per release (spec 4). All costs are USD per token. Only add a model here when its tokens are actually estimated per user/key by a connector - the OpenAI cost-report skip rule treats pinned models' token line items as already-counted money.",
     "input_cost_per_token": 0,
     "output_cost_per_token": 0,
     "cache_read_input_token_cost": 0,

@@ -1,4 +1,4 @@
-"""ai-pnl buffering and delivery: batching/flush triggers, the 10k
+"""tokenturn buffering and delivery: batching/flush triggers, the 10k
 oldest-dropped buffer, retry-with-same-UUIDs on 429/5xx/network, drop on
 other 4xx, track() validation, and the real urllib transport against a real
 local HTTP server."""
@@ -15,8 +15,8 @@ import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-import ai_pnl.client as client_module  # noqa: E402
-from ai_pnl import FLUSH_BATCH, MAX_BUFFER, Pnl  # noqa: E402
+import tokenturn.client as client_module  # noqa: E402
+from tokenturn import FLUSH_BATCH, MAX_BUFFER, Pnl  # noqa: E402
 
 
 def capture_server(status_plan=None):

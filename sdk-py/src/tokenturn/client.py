@@ -1,11 +1,11 @@
-"""The AI P&L client (spec 6). Fail-open always: nothing in here ever
+"""The Tokenturn client (spec 6). Fail-open always: nothing in here ever
 raises into the host app - bad input is logged and dropped, an unreachable
 server buffers and retries, a full buffer drops the oldest events. Events
 carry client-side UUIDs and the server upserts on them, so retrying after a
 lost response can never double-count.
 
 HTTP is stdlib urllib, on purpose: the SDK ships zero runtime dependencies
-(full parity with @ai-pnl/sdk), every request happens on the background
+(full parity with @tokenturn/sdk), every request happens on the background
 flush thread where blocking I/O costs the host nothing, and the ingest API
 needs exactly what urllib has - POST, a Bearer header, status codes, a
 body. httpx would buy nothing but a dependency tree in the host app.
@@ -97,7 +97,7 @@ class Pnl:
         self._wake = threading.Event()
         self._last_log: Dict[str, float] = {}
         self._store: contextvars.ContextVar[Optional[Dict[str, Any]]] = contextvars.ContextVar(
-            "ai_pnl_context", default=None
+            "tokenturn_context", default=None
         )
 
     def configure(
@@ -322,7 +322,7 @@ class Pnl:
                 return
             # Daemon: never holds the process open - short scripts call
             # flush() themselves (parity with the TS SDK's unref'd interval).
-            self._worker = threading.Thread(target=self._worker_loop, name="ai-pnl-flush", daemon=True)
+            self._worker = threading.Thread(target=self._worker_loop, name="tokenturn-flush", daemon=True)
             self._worker.start()
 
     def _worker_loop(self) -> None:
@@ -338,7 +338,7 @@ class Pnl:
         url = self._url or os.environ.get("AI_PNL_URL")
         key = self._key or os.environ.get("AI_PNL_KEY")
         if not url or not key:
-            self._log("config", "AI P&L url/key not configured (AI_PNL_URL / AI_PNL_KEY) - buffering")
+            self._log("config", "Tokenturn url/key not configured (AI_PNL_URL / AI_PNL_KEY) - buffering")
             return
         endpoint = url.rstrip("/") + "/api/ingest"
         headers = {"content-type": "application/json", "authorization": f"Bearer {key}"}
@@ -400,4 +400,4 @@ class Pnl:
         if last is not None and now - last < _LOG_THROTTLE_SECONDS:
             return
         self._last_log[scope] = now
-        print(f"[ai-pnl] {message}", file=sys.stderr)
+        print(f"[tokenturn] {message}", file=sys.stderr)

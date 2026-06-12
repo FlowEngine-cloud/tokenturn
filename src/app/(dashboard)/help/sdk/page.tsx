@@ -15,7 +15,7 @@ export default function SdkPage() {
 
       <Section title="Count an ROI from your code">
         <Block>
-          {`import { pnl } from "@ai-pnl/sdk";
+          {`import { pnl } from "@tokenturn/sdk";
 
 const ai = pnl.wrap(openai, { roi: "support-bot" }); // counts every call
 

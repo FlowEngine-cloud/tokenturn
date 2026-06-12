@@ -220,7 +220,7 @@ describe.runIf(TEST_DATABASE_URL)("scheduled reports tick (spec 11)", () => {
     const sent = JSON.parse(calls[0].body);
     expect(sent.subject).toBe(`${APP_NAME} monthly report - May 2026`);
     expect(sent.attachments).toHaveLength(1);
-    expect(sent.attachments[0].filename).toBe("ai-pnl-report-2026-05.pdf");
+    expect(sent.attachments[0].filename).toBe("tokenturn-report-2026-05.pdf");
     expect(
       Buffer.from(sent.attachments[0].content, "base64").toString("latin1").startsWith("%PDF-1.4"),
     ).toBe(true);

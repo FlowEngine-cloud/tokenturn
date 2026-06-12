@@ -1,6 +1,6 @@
-# @ai-pnl/sdk
+# @tokenturn/sdk
 
-The AI P&L TypeScript SDK. Wrap your OpenAI or Anthropic client so every call is counted - token counts from the response usage fields, streaming included - and track outcomes with real value, so the dashboard shows ROI instead of just burn.
+The Tokenturn TypeScript SDK. Wrap your OpenAI or Anthropic client so every call is counted - token counts from the response usage fields, streaming included - and track outcomes with real value, so the dashboard shows ROI instead of just burn.
 
 - **Fail-open always.** SDK errors never break your app: bad input is logged and dropped, an unreachable server buffers and retries (cap 10,000 events, oldest dropped), a wrapped call always behaves exactly like the unwrapped one.
 - **Zero runtime dependencies.** Node 18.18+, full TypeScript types, <1ms overhead per call.
@@ -8,12 +8,12 @@ The AI P&L TypeScript SDK. Wrap your OpenAI or Anthropic client so every call is
 
 ## Setup
 
-1. In AI P&L, create an ROI (spend source `sdk` for call counting, success kind `sdk_event` for `track()`).
+1. In Tokenturn, create an ROI (spend source `sdk` for call counting, success kind `sdk_event` for `track()`).
 2. Mint an ingest key for it in Settings - it is shown once.
 3. Give the SDK the server URL and key: `pnl.configure({ url, key })`, or set `AI_PNL_URL` and `AI_PNL_KEY`.
 
 ```ts
-import { pnl } from "@ai-pnl/sdk";
+import { pnl } from "@tokenturn/sdk";
 import OpenAI from "openai";
 
 const ai = pnl.wrap(new OpenAI(), { roi: "support-bot" }); // counts every call
@@ -33,7 +33,7 @@ Upgrading: the `roi` option was previously named `product`. The old name still w
 
 ```ts
 // lib/pnl.ts - one shared instance, configured from your own config source
-import { pnl } from "@ai-pnl/sdk";
+import { pnl } from "@tokenturn/sdk";
 import OpenAI from "openai";
 
 pnl.configure({ roi: "support-bot" }); // url/key from AI_PNL_URL / AI_PNL_KEY
@@ -63,7 +63,7 @@ export async function POST(req: Request) {
 ```ts
 import express from "express";
 import OpenAI from "openai";
-import { pnl } from "@ai-pnl/sdk";
+import { pnl } from "@tokenturn/sdk";
 
 pnl.configure({ url: process.env.AI_PNL_URL, key: process.env.AI_PNL_KEY, roi: "support-bot" });
 const ai = pnl.wrap(new OpenAI());
@@ -88,7 +88,7 @@ app.listen(3001);
 
 ```ts
 import Anthropic from "@anthropic-ai/sdk";
-import { pnl } from "@ai-pnl/sdk";
+import { pnl } from "@tokenturn/sdk";
 
 pnl.configure({ url: "http://localhost:3000", key: "pnl_...", roi: "batch-tagger" });
 const claude = pnl.wrap(new Anthropic(), { employee: "dana@acme.com" });
@@ -108,7 +108,7 @@ await pnl.flush(); // short-lived process: send before exiting
 An ingest key is scoped to one ROI. Create one client per ROI:
 
 ```ts
-import { Pnl } from "@ai-pnl/sdk";
+import { Pnl } from "@tokenturn/sdk";
 
 const supportBot = new Pnl({ url, key: SUPPORT_BOT_KEY, roi: "support-bot" });
 const brain = new Pnl({ url, key: BRAIN_KEY, roi: "company-brain" });

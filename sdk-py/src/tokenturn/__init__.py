@@ -1,5 +1,5 @@
-"""AI P&L Python SDK - count every OpenAI/Anthropic call, track outcomes
-with real value. Full parity with @ai-pnl/sdk; zero runtime dependencies."""
+"""Tokenturn Python SDK - count every OpenAI/Anthropic call, track outcomes
+with real value. Full parity with @tokenturn/sdk; zero runtime dependencies."""
 
 from .client import FLUSH_BATCH, FLUSH_INTERVAL_SECONDS, MAX_BUFFER, Pnl, default_transport
 

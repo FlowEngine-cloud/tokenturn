@@ -3,9 +3,9 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "ai-pnl"
+name = "tokenturn"
 version = "0.1.0"
-description = "AI P&L Python SDK - count every OpenAI/Anthropic call and track outcomes with real value."
+description = "Tokenturn Python SDK - count every OpenAI/Anthropic call and track outcomes with real value."
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.9"

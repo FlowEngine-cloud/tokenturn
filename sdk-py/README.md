@@ -1,6 +1,6 @@
-# ai-pnl (Python SDK)
+# tokenturn (Python SDK)
 
-The AI P&L Python SDK - full parity with [@ai-pnl/sdk](../sdk/README.md). Wrap your OpenAI or Anthropic client (sync or async) so every call is counted - token counts from the response usage fields, streaming included - and track outcomes with real value, so the dashboard shows ROI instead of just burn.
+The Tokenturn Python SDK - full parity with [@tokenturn/sdk](../sdk/README.md). Wrap your OpenAI or Anthropic client (sync or async) so every call is counted - token counts from the response usage fields, streaming included - and track outcomes with real value, so the dashboard shows ROI instead of just burn.
 
 - **Fail-open always.** SDK errors never break your app: bad input is logged and dropped, an unreachable server buffers and retries (cap 10,000 events, oldest dropped), a wrapped call always behaves exactly like the unwrapped one.
 - **Zero runtime dependencies.** Python 3.9+, stdlib only - HTTP is `urllib` on the background flush thread, where blocking I/O costs your app nothing; `httpx` would buy nothing but a dependency tree.
@@ -8,12 +8,12 @@ The AI P&L Python SDK - full parity with [@ai-pnl/sdk](../sdk/README.md). Wrap y
 
 ## Setup
 
-1. In AI P&L, create an ROI (spend source `sdk` for call counting, success kind `sdk_event` for `track()`).
+1. In Tokenturn, create an ROI (spend source `sdk` for call counting, success kind `sdk_event` for `track()`).
 2. Mint an ingest key for it in Settings - it is shown once.
 3. Give the SDK the server URL and key: `pnl.configure(url=..., key=...)`, or set `AI_PNL_URL` and `AI_PNL_KEY`.
 
 ```python
-from ai_pnl import pnl
+from tokenturn import pnl
 from openai import OpenAI
 
 ai = pnl.wrap(OpenAI(), roi="support-bot")  # counts every call
@@ -33,7 +33,7 @@ Upgrading: the `roi` argument was previously named `product`. The old name still
 
 ```python
 # pnl_setup.py - one shared instance, wrapped client exported
-from ai_pnl import pnl
+from tokenturn import pnl
 from openai import OpenAI
 
 pnl.configure(roi="support-bot")  # url/key from AI_PNL_URL / AI_PNL_KEY
@@ -43,7 +43,7 @@ ai = pnl.wrap(OpenAI())
 ```python
 # main.py
 from fastapi import FastAPI, Request
-from ai_pnl import pnl
+from tokenturn import pnl
 from pnl_setup import ai
 
 app = FastAPI()
@@ -85,7 +85,7 @@ async def answer(request: Request):
 
 ```python
 from anthropic import Anthropic
-from ai_pnl import pnl
+from tokenturn import pnl
 
 pnl.configure(url="http://localhost:3000", key="pnl_...", roi="batch-tagger")
 claude = pnl.wrap(Anthropic(), employee="dana@acme.com")
@@ -114,7 +114,7 @@ with claude.messages.stream(model="claude-sonnet-4-5", max_tokens=200, messages=
 An ingest key is scoped to one ROI. Create one client per ROI:
 
 ```python
-from ai_pnl import Pnl
+from tokenturn import Pnl
 
 support_bot = Pnl(url=url, key=SUPPORT_BOT_KEY, roi="support-bot")
 brain = Pnl(url=url, key=BRAIN_KEY, roi="company-brain")

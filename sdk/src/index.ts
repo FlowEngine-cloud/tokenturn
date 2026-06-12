@@ -19,7 +19,7 @@ import { Pnl } from "./client.js";
 /**
  * The default client. Configure once (or set AI_PNL_URL / AI_PNL_KEY):
  *
- *   import { pnl } from "@ai-pnl/sdk";
+ *   import { pnl } from "@tokenturn/sdk";
  *
  *   pnl.configure({ url: "https://pnl.internal", key: "pnl_...", roi: "support-bot" });
  *   const ai = pnl.wrap(openai, { roi: "support-bot" });
