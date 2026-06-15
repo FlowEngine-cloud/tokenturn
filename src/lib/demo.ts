@@ -24,9 +24,10 @@ export function isDemoMode(): boolean {
  * first real connector connects)". The generator writes ~6 months of
  * realistic-looking people, keys, tags, products, daily spend, usage
  * counters, outcomes, a Jira-fed ROI with the full pending/success/fail
- * ticket lifecycle, and line-survival checks - all through the normal
- * tables and the normal rollup recompute, so every page renders exactly
- * the way it will with real data - and every demo number still drills
+ * ticket lifecycle, and line-survival checks. The onboarding flow opens
+ * seeded demos on a 90-day cohort so those honest 30-day checks are visible.
+ * Everything uses the normal tables and rollup recompute, so every page
+ * renders exactly as it will with real data and every number still drills
  * down to its (demo) source rows.
  *
  * Demo rows are real ledger rows, marked two ways:
