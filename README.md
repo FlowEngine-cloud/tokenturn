@@ -130,7 +130,7 @@ Monthly invoice CSVs true the estimates up: the difference between the invoice a
 
 ## Free vs enterprise
 
-Everything above is free and open source (sustainable-use license): all connectors, the SDKs, the full dashboard, limits and alerts, invites and offboarding. Single org per vendor, one admin plus viewers. No pricing page, no telemetry without explicit opt-in.
+Everything above is free and source-available (sustainable-use license): all connectors, the SDKs, the full dashboard, limits and alerts, invites and offboarding. Single org per vendor, one admin plus viewers. No pricing page, no telemetry without explicit opt-in.
 
 [ee/](ee/) ships in this repo under a [commercial license](ee/LICENSE): Okta sync (auto-invite on hire, auto-offboard on leave), Google Workspace roster sync, additional admins, the exportable audit log, multi-org rollup, and scheduled monthly PDF reports. License files verify offline against a pinned public key - no license server, nothing phones home. When a license expires the features lock again and every byte of data stays readable. Sold direct: [hi@flowengine.cloud](mailto:hi@flowengine.cloud).
 
