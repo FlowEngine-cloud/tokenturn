@@ -7,7 +7,9 @@ import { connectConnector } from "../src/lib/connectors/connect";
 import { clearConnectors, registerConnector } from "../src/lib/connectors/registry";
 import { closePool } from "../src/lib/db";
 import { DEMO_MARKER_KEY, demoMarker, seedDemoData, wipeDemoData } from "../src/lib/demo";
+import { trailingRange } from "../src/lib/range";
 import { ResolveError } from "../src/lib/resolve";
+import { roiView } from "../src/lib/roi";
 import { runMigrations } from "../scripts/migrate.mjs";
 import { makeStubConnector } from "./helpers/fixture-connector";
 import { TEST_DATABASE_URL, createScratchDb, dropScratchDb } from "./helpers/pg";
@@ -115,7 +117,7 @@ describe.runIf(TEST_DATABASE_URL)("demo dataset (spec 10 onboarding)", () => {
     expect(tags[1].product_id).not.toBeNull();
     expect(tags[2].product_id).not.toBeNull();
 
-    // Reverted PRs exist so $/merge math has something to exclude.
+    // Reverted PRs remain available as a coding diagnostic.
     expect(
       await count(pool, "SELECT count(*) AS n FROM outcomes WHERE reverted_at IS NOT NULL"),
     ).toBeGreaterThan(0);
@@ -157,6 +159,15 @@ describe.runIf(TEST_DATABASE_URL)("demo dataset (spec 10 onboarding)", () => {
          WHERE o.ts + make_interval(days => sc.horizon_days) > '2026-06-10T12:00:00Z'`,
       ),
     ).toBe(0);
+
+    // Seeded demos open on this 90-day cohort: coding ROI is surviving
+    // lines at 30 days, and the internal GitHub outcome product never
+    // leaks back into the list as a spend-per-merge row.
+    const roi = await roiView(trailingRange(90, NOW), pool);
+    const codingRows = roi.rows.filter((row) => row.kind === "coding");
+    expect(codingRows.some((row) => row.survivalPct !== null)).toBe(true);
+    expect(codingRows.some((row) => row.successes > 0)).toBe(true);
+    expect(roi.rows.some((row) => row.kind === "custom" && row.name === "Coding")).toBe(false);
   });
 
   it("refuses to seed twice", async () => {
