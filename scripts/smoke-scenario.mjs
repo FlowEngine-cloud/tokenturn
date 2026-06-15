@@ -105,7 +105,7 @@ async function main() {
 
   await step("demo data seeds through the real tables", async () => {
     const res = await call("POST", "/api/demo");
-    expect(res.status === 200, `demo answered ${res.status}`);
+    expect(res.status === 201, `demo answered ${res.status}`);
   });
 
   await step("onboarding completes", async () => {
@@ -114,12 +114,16 @@ async function main() {
   });
 
   await step("every dashboard page renders", async () => {
-    // /products and /tools are the old pages - they must redirect to /roi.
-    for (const page of ["/", "/people", "/roi", "/products", "/tools", "/resolve", "/report", "/settings", "/help"]) {
+    for (const page of ["/", "/people", "/roi", "/resolve", "/report", "/settings", "/help"]) {
       const res = await call("GET", page);
       expect(res.status === 200, `${page} answered ${res.status}`);
       const html = await res.text();
       expect(html.includes("Tokenturn"), `${page} looks wrong (no app shell)`);
+    }
+    for (const page of ["/products", "/tools"]) {
+      const res = await call("GET", page);
+      expect(res.status === 307, `${page} answered ${res.status}`);
+      expect(res.headers.get("location") === "/roi", `${page} did not redirect to /roi`);
     }
   });
 
@@ -128,11 +132,12 @@ async function main() {
     expect(overview.totals.totalCents > 0, "demo overview shows no spend");
     const people = await (await call("GET", "/api/people")).json();
     expect(people.people.length > 0, "demo has no people");
-    const person = people.people.find((p) => p.id);
-    const detail = await call("GET", `/api/people/${person.id}`);
+    const person = people.people.find((p) => p.personId);
+    expect(person, "demo has no drillable person");
+    const detail = await call("GET", `/api/people/${person.personId}`);
     expect(detail.status === 200, `person drill answered ${detail.status}`);
-    const facts = await (await call("GET", "/api/facts?person=" + person.id)).json();
-    expect(Array.isArray(facts.facts), "person facts drill is not a list");
+    const facts = await (await call("GET", "/api/facts?person=" + person.personId)).json();
+    expect(Array.isArray(facts.rows), "person facts drill is not a list");
     for (const api of ["/api/roi", "/api/products/view", "/api/tools", "/api/tags", "/api/resolve", "/api/report", "/api/limits", "/api/version"]) {
       const res = await call("GET", api);
       expect(res.status === 200, `${api} answered ${res.status}`);

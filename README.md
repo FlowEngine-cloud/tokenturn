@@ -38,7 +38,9 @@ Use the repository's Coolify Compose file to provision the application and Postg
 1. Create a new Coolify resource from this Git repository.
 2. Select **Docker Compose** as the build pack.
 3. Set the Compose file to `/docker-compose.coolify.yml`.
-4. Assign your domain to the `app` service on port `3000`, then deploy.
+4. Deploy without exposing the public domain, or restrict it to your IP.
+5. Open the instance and claim the first admin account.
+6. Assign or expose the public domain only after the instance is claimed.
 
 No database resource or `DATABASE_URL` needs to be created manually. Coolify generates `SERVICE_PASSWORD_POSTGRES`; the Compose file uses it for both PostgreSQL and the application's internal `db:5432` connection. Both the database and application secret key use persistent volumes.
 
@@ -48,7 +50,7 @@ On every container start, Tokenturn waits up to 60 seconds for PostgreSQL, creat
 
 Set `DEMO_MODE=1` to run the instance read-only for live demos: everyone can sign in, browse, and drill into everything, but every change is rejected - including password changes, so a shared demo login stays safe. Claiming a fresh instance and seeding the demo data still work (each runs only once), so a demo box can bootstrap itself with the flag already on.
 
-The first visitor claims the instance as its admin - with a passkey, or a password as fallback. No email needed. Sign-in access lives on each person's page ("Can sign in": none, viewer, or admin). Lost your login?
+The first visitor claims the instance as its admin - with a passkey, or a password as fallback. Therefore, never expose a fresh unclaimed instance to the public internet. No email is needed. Sign-in access lives on each person's page ("Can sign in": none, viewer, or admin). Lost your login?
 
 ```bash
 docker compose exec app reset-admin
@@ -67,7 +69,7 @@ Seven pages behind one global date-range picker (the range lives in the URL, so 
 - **ROI** - every ROI calculation in one list with the same columns: spend, tokens, successes, $ per success, value, ROI multiple. The built-in coding rows carry merged PRs, accept rate, revert rate, and line survival. A row with no success metric shows plain cost - never a fake ROI.
 - **Resolve** - the identity queue: confirm matches, route service accounts, merge two emails into one human. The nav badge drains live.
 - **Report** - one printable CFO page per month that always sums to the whole ledger. Exports as CSV or [FOCUS 1.4](https://focus.finops.org).
-- **Settings** - four tabs: Connections (vendors, Jira/Linear, SDK keys, email, Slack), Alerts, Data, License.
+- **Settings** - five tabs: Personal API keys, Connections (vendors, Jira/Linear, SDK keys, email, Slack), Alerts, Data, License.
 
 ## Connectors
 

@@ -462,54 +462,56 @@ function SdkCard({
       open={open}
       onToggle={() => setOpen((v) => !v)}
     >
-      <SettingsRow label="Mint" htmlFor="ingest-product">
-        <select
-          id="ingest-product"
-          className="h-8 rounded-md border bg-transparent px-2 text-sm"
-          disabled={busy}
-          value={productId}
-          onChange={(e) => setProductId(e.target.value)}
-        >
-          <option value="">Choose ROI…</option>
-          {products.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name}
-            </option>
-          ))}
-        </select>
-        <Input
-          aria-label="Key name"
-          className="h-8 w-40 max-w-full"
-          placeholder="name (optional)"
-          disabled={busy}
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
-        <Button
-          size="sm"
-          disabled={busy || productId === ""}
-          onClick={async () => {
-            setBusy(true);
-            setError(null);
-            setMinted(null);
-            const { error: failure, data } = await send("/api/ingest-keys", "POST", {
-              productId,
-              ...(name.trim() !== "" ? { name: name.trim() } : {}),
-            });
-            setBusy(false);
-            if (failure) {
-              setError(failure);
-            } else {
-              setMinted((data?.token as string) ?? null);
-              setCopied(false);
-              setName("");
-              onChanged();
-            }
-          }}
-        >
-          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Mint key"}
-        </Button>
-      </SettingsRow>
+      {isAdmin && (
+        <SettingsRow label="Mint" htmlFor="ingest-product">
+          <select
+            id="ingest-product"
+            className="h-8 rounded-md border bg-transparent px-2 text-sm"
+            disabled={busy}
+            value={productId}
+            onChange={(e) => setProductId(e.target.value)}
+          >
+            <option value="">Choose ROI…</option>
+            {products.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+          <Input
+            aria-label="Key name"
+            className="h-8 w-40 max-w-full"
+            placeholder="name (optional)"
+            disabled={busy}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+          <Button
+            size="sm"
+            disabled={busy || productId === ""}
+            onClick={async () => {
+              setBusy(true);
+              setError(null);
+              setMinted(null);
+              const { error: failure, data } = await send("/api/ingest-keys", "POST", {
+                productId,
+                ...(name.trim() !== "" ? { name: name.trim() } : {}),
+              });
+              setBusy(false);
+              if (failure) {
+                setError(failure);
+              } else {
+                setMinted((data?.token as string) ?? null);
+                setCopied(false);
+                setName("");
+                onChanged();
+              }
+            }}
+          >
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Mint key"}
+          </Button>
+        </SettingsRow>
+      )}
       {minted && (
         <SettingsRow>
           <span className="flex min-w-0 flex-wrap items-center gap-2 rounded-md border border-amber-500/40 p-2">

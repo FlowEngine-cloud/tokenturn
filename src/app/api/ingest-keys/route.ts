@@ -1,4 +1,11 @@
-import { badRequest, cleanName, cleanUuid, readJson, requireUser } from "@/lib/api";
+import {
+  badRequest,
+  cleanName,
+  cleanUuid,
+  readJson,
+  requireAdmin,
+  requireUser,
+} from "@/lib/api";
 import { getPool } from "@/lib/db";
 import { listIngestKeys, mintIngestKey } from "@/lib/ingest";
 import { ResolveError } from "@/lib/resolve";
@@ -13,12 +20,12 @@ export async function GET(req: Request) {
   return Response.json({ keys: await listIngestKeys(db) });
 }
 
-/** Mint an ingest key (any signed-in user, spec 6): scoped to one product, the plaintext
+/** Mint an ingest key (admin, spec 6): scoped to one product, the plaintext
  * token is in this response and nowhere else - it is never stored. */
 export async function POST(req: Request) {
   const db = getPool();
-  const user = await requireUser(req, db);
-  if (user instanceof Response) return user;
+  const admin = await requireAdmin(req, db);
+  if (admin instanceof Response) return admin;
 
   const body = await readJson(req);
   if (!body) return badRequest("invalid JSON body");

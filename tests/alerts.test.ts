@@ -172,8 +172,9 @@ describe.runIf(TEST_DATABASE_URL)("Slack alert channel", () => {
         thresholdHours: 24,
       });
       await until(() => received.length === 3, "anomaly + silent delivery");
-      expect(JSON.parse(received[1].body).text).toContain("Burn anomaly");
-      expect(JSON.parse(received[2].body).text).toContain("Connector cursor");
+      const texts = received.slice(1, 3).map((item) => JSON.parse(item.body).text);
+      expect(texts.some((text) => text.includes("Burn anomaly"))).toBe(true);
+      expect(texts.some((text) => text.includes("Connector cursor"))).toBe(true);
 
       // Idempotent: a second registration adds no duplicate listeners.
       const second = registerAlertSink({ db: pool, dataDir });

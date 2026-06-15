@@ -29,10 +29,10 @@ pnl.track("ticket_resolved", { value: 4.5, ref: ticket.id }); // records a succe
           else.
         </p>
         <p>
-          Any signed-in user can mint an ingest key in Settings - shown once, scoped
-          to one ROI. The SDK fails open: buffering, retries and dedupe are built in,
-          and an error never breaks your app. Python has the same API. Quickstarts
-          live in the repo under <Code>sdk/</Code> and <Code>sdk-py/</Code>.
+          An admin can mint an ingest key in Settings - shown once, scoped to one ROI.
+          The SDK fails open: buffering, retries and dedupe are built in, and an error
+          never breaks your app. Python has the same API. Quickstarts live in the repo
+          under <Code>sdk/</Code> and <Code>sdk-py/</Code>.
         </p>
       </Section>
 

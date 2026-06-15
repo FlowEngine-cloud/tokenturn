@@ -42,7 +42,6 @@ const VIEWER_WRITE_ALLOWED = new Set([
   "/api/auth/passkey/options",
   "/api/auth/passkey/verify",
   "/api/api-keys",
-  "/api/ingest-keys",
 ]);
 
 function viewerWriteAllowed(pathname: string): boolean {

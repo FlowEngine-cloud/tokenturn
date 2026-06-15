@@ -142,6 +142,13 @@ describe.runIf(TEST_DATABASE_URL)("auth gate", () => {
         ),
       ),
     ).toBe(true);
+    expect(
+      (
+        await proxy(
+          request("/api/ingest-keys", { method: "POST", bearer: viewerApiKey }),
+        )
+      ).status,
+    ).toBe(403);
   });
 
   it("viewers read everything but write nothing", async () => {
@@ -168,6 +175,13 @@ describe.runIf(TEST_DATABASE_URL)("auth gate", () => {
         ),
       ),
     ).toBe(true);
+    expect(
+      (
+        await proxy(
+          request("/api/ingest-keys", { method: "POST", cookie: viewerCookie }),
+        )
+      ).status,
+    ).toBe(403);
   });
 
   describe("demo mode (DEMO_MODE=1)", () => {

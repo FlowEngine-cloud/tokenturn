@@ -198,10 +198,10 @@ export default function ApiReferencePage() {
           <Endpoint methods={["GET"]} path="/api/ingest-keys">
             <p>Lists keys - prefixes only, never tokens.</p>
           </Endpoint>
-          <Endpoint methods={["POST"]} path="/api/ingest-keys">
+          <Endpoint methods={["POST"]} path="/api/ingest-keys" auth="admin">
             <p>
-              Any signed-in user can mint a key scoped to one ROI. The token is in this
-              response and nowhere else - shown exactly once.
+              Mints a key scoped to one ROI. The token is in this response and nowhere
+              else - shown exactly once.
             </p>
           </Endpoint>
           <Endpoint methods={["PATCH"]} path="/api/ingest-keys/{id}" auth="admin">
