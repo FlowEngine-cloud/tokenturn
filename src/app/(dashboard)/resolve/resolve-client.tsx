@@ -465,7 +465,7 @@ export default function ResolveClient() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-lg font-semibold">Resolve</h1>
+      <h1 data-tour="resolve-header" className="text-lg font-semibold">Resolve</h1>
 
       {empty && (
         <EmptyState
