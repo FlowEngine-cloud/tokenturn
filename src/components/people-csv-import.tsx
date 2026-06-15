@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { Check, Loader2, Upload } from "lucide-react";
+import { useDemo } from "@/components/shell/demo-context";
 import { ErrorLine } from "@/components/form-utils";
 import { Button } from "@/components/ui/button";
 import { formatCount } from "@/lib/format";
@@ -34,6 +35,7 @@ async function postCsv(
 }
 
 export function PeopleCsvImport({ onImported }: { onImported?: () => void }) {
+  const demo = useDemo();
   const fileInput = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -114,7 +116,7 @@ export function PeopleCsvImport({ onImported }: { onImported?: () => void }) {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {preview.ok ? (
-            <Button size="sm" disabled={busy} onClick={commit}>
+            <Button size="sm" disabled={busy || demo} onClick={commit}>
               {busy ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
@@ -149,7 +151,7 @@ export function PeopleCsvImport({ onImported }: { onImported?: () => void }) {
       />
       <button
         type="button"
-        disabled={busy}
+        disabled={busy || demo}
         className={cn(
           "flex w-full flex-col items-center gap-2 rounded-lg border border-dashed px-6 py-8 text-sm transition-colors",
           dragOver ? "border-primary bg-primary/5" : "hover:border-primary/50",

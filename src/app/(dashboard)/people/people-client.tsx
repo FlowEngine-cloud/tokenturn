@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Upload, UserPlus, Users } from "lucide-react";
 import { DataTable, type Column } from "@/components/data-table";
 import { EmptyState } from "@/components/empty-state";
+import { useCanWrite, useDemo } from "@/components/shell/demo-context";
 import { ConfirmButton, ErrorLine, send, useLatest } from "@/components/form-utils";
 import { PeopleCsvImport } from "@/components/people-csv-import";
 import { PeopleAdd } from "@/components/people-invite";
@@ -41,6 +42,7 @@ interface LoginRow {
 
 /** Sign-ins not tied to any person - listed so they never go invisible. */
 function PersonlessLogins() {
+  const demo = useDemo();
   const [version, setVersion] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const data = useLatest(useFetch<{ users: LoginRow[] }>(`/api/users?v=${version}`).data);
@@ -69,6 +71,7 @@ function PersonlessLogins() {
             <ConfirmButton
               label="Remove"
               confirmLabel="Confirm remove"
+              disabled={demo}
               onConfirm={() => {
                 void send(`/api/users/${u.id}`, "DELETE").then(({ error: failure }) => {
                   if (failure) setError(failure);
@@ -119,6 +122,7 @@ export default function PeopleClient() {
     "/api/auth/state",
   );
   const isAdmin = auth?.user?.role === "admin";
+  const { show } = useCanWrite(isAdmin);
   const [panel, setPanel] = useState<"import" | "add" | null>(null);
 
   if (error) {
@@ -130,8 +134,8 @@ export default function PeopleClient() {
   }
   if (!data) return <PeopleSkeleton />;
 
-  const adminBar = isAdmin && (
-    <div className="flex flex-wrap items-center gap-2">
+  const adminBar = show && (
+    <div data-tour="people-add" className="flex flex-wrap items-center gap-2">
       <span className="flex-1" />
       <Button
         variant={panel === "import" ? "secondary" : "outline"}
@@ -151,7 +155,7 @@ export default function PeopleClient() {
       </Button>
     </div>
   );
-  const panels = isAdmin && panel !== null && (
+  const panels = show && panel !== null && (
     <div className="rounded-lg border bg-card p-4">
       {panel === "import" ? (
         <PeopleCsvImport onImported={reload} />
@@ -178,7 +182,7 @@ export default function PeopleClient() {
             actionLabel="Open Settings"
           />
         )}
-        {isAdmin && <PersonlessLogins />}
+        {show && <PersonlessLogins />}
       </div>
     );
   }
@@ -278,7 +282,7 @@ export default function PeopleClient() {
             : withRange(`/people/${r.personId}`, range)
         }
       />
-      {isAdmin && <PersonlessLogins />}
+      {show && <PersonlessLogins />}
     </div>
   );
 }

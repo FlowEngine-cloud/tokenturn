@@ -12,6 +12,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { PlugCard } from "@/components/connector-card";
+import { useCanWrite, useDemo } from "@/components/shell/demo-context";
 import {
   ConfirmButton,
   ErrorLine,
@@ -94,6 +95,7 @@ export function LicenseSection({
   isAdmin: boolean;
   onChanged: () => void;
 }) {
+  const { show, readOnly } = useCanWrite(isAdmin);
   const fileInput = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -117,11 +119,11 @@ export function LicenseSection({
         <span className="text-sm">
           {license.state === "none" ? "Free" : `Enterprise · ${license.org}`}
         </span>
-        {isAdmin && license.state !== "none" && (
+        {show && license.state !== "none" && (
           <ConfirmButton
             label="Remove"
             confirmLabel="Confirm remove"
-            disabled={busy}
+            disabled={busy || readOnly}
             onConfirm={() => void patch(null)}
           />
         )}
@@ -139,7 +141,7 @@ export function LicenseSection({
           </span>
         </SettingsRow>
       )}
-      {isAdmin && (
+      {show && (
         <SettingsRow label="License file">
           <input
             ref={fileInput}
@@ -154,7 +156,7 @@ export function LicenseSection({
           <Button
             variant="outline"
             size="sm"
-            disabled={busy}
+            disabled={busy || readOnly}
             onClick={() => fileInput.current?.click()}
           >
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
@@ -217,6 +219,7 @@ interface OktaStatus {
 }
 
 function OktaBody({ status, reload }: { status: OktaStatus; reload: () => void }) {
+  const demo = useDemo();
   const [domain, setDomain] = useState("");
   const [token, setToken] = useState("");
   const [busy, setBusy] = useState(false);
@@ -236,7 +239,7 @@ function OktaBody({ status, reload }: { status: OktaStatus; reload: () => void }
           <Button
             variant="outline"
             size="sm"
-            disabled={syncBusy}
+            disabled={syncBusy || demo}
             onClick={async () => {
               setSyncBusy(true);
               setError(null);
@@ -259,7 +262,7 @@ function OktaBody({ status, reload }: { status: OktaStatus; reload: () => void }
           <ConfirmButton
             label="Disconnect"
             confirmLabel="Confirm disconnect"
-            disabled={busy}
+            disabled={busy || demo}
             onConfirm={() => {
               void send("/api/ee/okta", "DELETE").then(({ error: failure }) => {
                 if (failure) setError(failure);
@@ -295,7 +298,7 @@ function OktaBody({ status, reload }: { status: OktaStatus; reload: () => void }
             id="okta-domain"
             className="h-8 w-64 max-w-full"
             placeholder="https://acme.okta.com"
-            disabled={busy}
+            disabled={busy || demo}
             value={domain}
             onChange={(e) => setDomain(e.target.value)}
           />
@@ -307,14 +310,14 @@ function OktaBody({ status, reload }: { status: OktaStatus; reload: () => void }
             type="password"
             autoComplete="off"
             className="h-8 w-64 max-w-full"
-            disabled={busy}
+            disabled={busy || demo}
             value={token}
             onChange={(e) => setToken(e.target.value)}
           />
         </div>
         <Button
           size="sm"
-          disabled={busy || domain.trim() === "" || token.trim() === ""}
+          disabled={busy || demo || domain.trim() === "" || token.trim() === ""}
           onClick={async () => {
             setBusy(true);
             setError(null);
@@ -356,6 +359,7 @@ interface GoogleStatus {
 }
 
 function GoogleBody({ status, reload }: { status: GoogleStatus; reload: () => void }) {
+  const demo = useDemo();
   const [json, setJson] = useState("");
   const [adminEmail, setAdminEmail] = useState("");
   const [busy, setBusy] = useState(false);
@@ -374,7 +378,7 @@ function GoogleBody({ status, reload }: { status: GoogleStatus; reload: () => vo
           <Button
             variant="outline"
             size="sm"
-            disabled={syncBusy}
+            disabled={syncBusy || demo}
             onClick={async () => {
               setSyncBusy(true);
               setError(null);
@@ -395,7 +399,7 @@ function GoogleBody({ status, reload }: { status: GoogleStatus; reload: () => vo
           <ConfirmButton
             label="Disconnect"
             confirmLabel="Confirm disconnect"
-            disabled={busy}
+            disabled={busy || demo}
             onConfirm={() => {
               void send("/api/ee/google", "DELETE").then(({ error: failure }) => {
                 if (failure) setError(failure);
@@ -413,7 +417,7 @@ function GoogleBody({ status, reload }: { status: GoogleStatus; reload: () => vo
           aria-label="Service account JSON"
           className="h-20 w-full max-w-2xl rounded-md border bg-transparent p-2 font-mono text-sm"
           placeholder="service-account key JSON (domain-wide delegation, directory read-only scope)"
-          disabled={busy}
+          disabled={busy || demo}
           value={json}
           onChange={(e) => setJson(e.target.value)}
         />
@@ -425,14 +429,14 @@ function GoogleBody({ status, reload }: { status: GoogleStatus; reload: () => vo
               type="email"
               className="h-8 w-64 max-w-full"
               placeholder="admin@acme.com"
-              disabled={busy}
+              disabled={busy || demo}
               value={adminEmail}
               onChange={(e) => setAdminEmail(e.target.value)}
             />
           </div>
           <Button
             size="sm"
-            disabled={busy || json.trim() === "" || adminEmail.trim() === ""}
+            disabled={busy || demo || json.trim() === "" || adminEmail.trim() === ""}
             onClick={async () => {
               setBusy(true);
               setError(null);
@@ -516,6 +520,7 @@ export function OktaConnectionCard({
   isAdmin: boolean;
   onChanged: () => void;
 }) {
+  const { show } = useCanWrite(isAdmin);
   if (!licensed) {
     return (
       <EeStaticCard icon={KeyRound} name="Okta" locked>
@@ -523,7 +528,7 @@ export function OktaConnectionCard({
       </EeStaticCard>
     );
   }
-  if (!isAdmin) {
+  if (!show) {
     return (
       <EeStaticCard icon={KeyRound} name="Okta">
         <p className="text-sm text-muted-foreground">Licensed - admins configure it here.</p>
@@ -550,6 +555,7 @@ export function GoogleConnectionCard({
   isAdmin: boolean;
   onChanged: () => void;
 }) {
+  const { show } = useCanWrite(isAdmin);
   if (!licensed) {
     return (
       <EeStaticCard icon={Building2} name="Google Workspace" locked>
@@ -557,7 +563,7 @@ export function GoogleConnectionCard({
       </EeStaticCard>
     );
   }
-  if (!isAdmin) {
+  if (!show) {
     return (
       <EeStaticCard icon={Building2} name="Google Workspace">
         <p className="text-sm text-muted-foreground">Licensed - admins configure it here.</p>
@@ -591,6 +597,7 @@ export function ScheduledReportsSection({
   isAdmin: boolean;
   onChanged: () => void;
 }) {
+  const { show, readOnly } = useCanWrite(isAdmin);
   const [enabled, setEnabled] = useState(config.enabled);
   const [recipients, setRecipients] = useState(config.recipients.join(", "));
   const [busy, setBusy] = useState(false);
@@ -615,7 +622,7 @@ export function ScheduledReportsSection({
         <input
           id="reports-enabled"
           type="checkbox"
-          disabled={busy || !isAdmin}
+          disabled={busy || !isAdmin || readOnly}
           checked={enabled}
           onChange={(e) => {
             setSaved(false);
@@ -631,7 +638,7 @@ export function ScheduledReportsSection({
           id="reports-recipients"
           className="h-8 w-96 max-w-full"
           placeholder="cfo@acme.com, finance@acme.com"
-          disabled={busy || !isAdmin}
+          disabled={busy || !isAdmin || readOnly}
           value={recipients}
           onChange={(e) => {
             setSaved(false);
@@ -639,11 +646,11 @@ export function ScheduledReportsSection({
           }}
         />
       </SettingsRow>
-      {isAdmin && (
+      {show && (
         <SettingsRow>
           <Button
             size="sm"
-            disabled={busy || (enabled && (list.length === 0 || list.some((r) => !EMAIL_RE.test(r))))}
+            disabled={busy || readOnly || (enabled && (list.length === 0 || list.some((r) => !EMAIL_RE.test(r))))}
             onClick={async () => {
               setBusy(true);
               setError(null);
@@ -762,11 +769,13 @@ export function AuditSection({
   licensed: boolean;
   isAdmin: boolean;
 }) {
+  const { show } = useCanWrite(isAdmin);
   return (
     <Section title="Audit log">
       {!licensed ? (
         <LockedLine />
-      ) : isAdmin ? (
+      ) : show ? (
+        // Read-only viewing + CSV export (both GET) - safe to show in demo.
         <AuditBody />
       ) : (
         <p className="text-sm text-muted-foreground">Licensed - admins view and export it here.</p>

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Dialog } from "radix-ui";
 import { Check, Loader2, UserMinus, X } from "lucide-react";
+import { useDemo } from "@/components/shell/demo-context";
 import { ConfirmButton, ErrorLine } from "@/components/form-utils";
 import { Button } from "@/components/ui/button";
 import { shortDay } from "@/lib/format";
@@ -56,6 +57,7 @@ export function OffboardDialog({
   status: string;
   onChanged: () => void;
 }) {
+  const demo = useDemo();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [retrying, setRetrying] = useState<string | null>(null);
@@ -162,7 +164,7 @@ export function OffboardDialog({
                           <Button
                             variant="outline"
                             size="sm"
-                            disabled={retrying !== null || busy}
+                            disabled={retrying !== null || busy || demo}
                             onClick={() => void retry(item.itemId!)}
                           >
                             {retrying === item.itemId ? (
@@ -188,7 +190,7 @@ export function OffboardDialog({
                             : "Mark offboarded"
                         }
                         confirmLabel="Confirm - remove access"
-                        disabled={busy || retrying !== null}
+                        disabled={busy || retrying !== null || demo}
                         onConfirm={() => void run()}
                       />
                     ))}
@@ -200,7 +202,7 @@ export function OffboardDialog({
                   <ConfirmButton
                     label="Delete person (GDPR)"
                     confirmLabel="Confirm - delete forever"
-                    disabled={busy || retrying !== null}
+                    disabled={busy || retrying !== null || demo}
                     onConfirm={() => {
                       void fetchJson(`/api/people/${personId}`, { method: "DELETE" }).then(
                         ({ error: failure }) => {

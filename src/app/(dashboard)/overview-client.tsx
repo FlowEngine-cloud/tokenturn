@@ -116,7 +116,11 @@ export default function OverviewClient() {
       <div className="grid gap-4 md:grid-cols-2">
         <Tile title="Total spend" href={drill("")}>
           <div className="flex items-baseline gap-3">
-            <Link href={drill("")} className="text-3xl font-semibold tabular-nums">
+            <Link
+              href={drill("")}
+              data-tour="overview-total"
+              className="text-3xl font-semibold tabular-nums"
+            >
               {money(data.totals.totalCents)}
             </Link>
             {data.drift.invoiceCount > 0 && data.drift.cents !== 0 && (
