@@ -7,6 +7,7 @@ import { Popover } from "radix-ui";
 import { Check, ChevronDown, Loader2, Plus, Tag, TrendingUp, X } from "lucide-react";
 import { DataTable, type Column } from "@/components/data-table";
 import { EmptyState } from "@/components/empty-state";
+import { useCanWrite } from "@/components/shell/demo-context";
 import { send } from "@/components/form-utils";
 import { ATTRIBUTION_LABELS, NewProductForm } from "@/components/product-form";
 import { Button } from "@/components/ui/button";
@@ -62,6 +63,7 @@ function TagFilter({
   onPick: (tag: string | null) => void;
   onAdded: () => void;
 }) {
+  const { show, readOnly } = useCanWrite(isAdmin);
   const [open, setOpen] = useState(false);
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState("");
@@ -127,7 +129,7 @@ function TagFilter({
               <p className="px-2 py-1.5 text-sm text-muted-foreground">No tags yet.</p>
             )}
           </div>
-          {isAdmin && (
+          {show && (
             <div className="border-t pt-1">
               {!adding ? (
                 <button
@@ -144,7 +146,7 @@ function TagFilter({
                       autoFocus
                       className="h-8"
                       placeholder="tag"
-                      disabled={busy}
+                      disabled={busy || readOnly}
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       onKeyDown={(e) => {
@@ -153,7 +155,7 @@ function TagFilter({
                     />
                     <Button
                       size="sm"
-                      disabled={busy || name.trim() === ""}
+                      disabled={busy || readOnly || name.trim() === ""}
                       onClick={async () => {
                         setBusy(true);
                         setError(null);
@@ -204,6 +206,7 @@ export default function RoiClient() {
   const { data: tagData } = useFetch<{ tags: TagSummary[] }>(`/api/tags?v=${version}`);
   const { data: auth } = useFetch<{ user: { role: string } | null }>("/api/auth/state");
   const isAdmin = auth?.user?.role === "admin";
+  const { show } = useCanWrite(isAdmin);
 
   const setParam = (key: string, value: string | null) => {
     const params = new URLSearchParams(searchParams);
@@ -364,8 +367,8 @@ export default function RoiClient() {
             </option>
           ))}
         </select>
-        {isAdmin && (
-          <Button size="sm" onClick={() => setAdding((v) => !v)}>
+        {show && (
+          <Button data-tour="roi-add" size="sm" onClick={() => setAdding((v) => !v)}>
             {adding ? <X /> : <Plus />}
             Add ROI
           </Button>

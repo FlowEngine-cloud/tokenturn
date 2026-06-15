@@ -25,6 +25,7 @@ import {
   OktaConnectionCard,
   ScheduledReportsSection,
 } from "@/components/ee-settings";
+import { useCanWrite, useDemo } from "@/components/shell/demo-context";
 import {
   ConfirmButton,
   ErrorLine,
@@ -101,6 +102,7 @@ function SlackWebhookControl({
   isAdmin: boolean;
   onChanged: () => void;
 }) {
+  const { show, readOnly } = useCanWrite(isAdmin);
   const [url, setUrl] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -120,7 +122,7 @@ function SlackWebhookControl({
     }
   }
 
-  if (!isAdmin) {
+  if (!show) {
     return <span className="text-sm">{configured ? "configured" : "not set"}</span>;
   }
   return (
@@ -130,13 +132,13 @@ function SlackWebhookControl({
         type="url"
         className="h-8 w-80 max-w-full"
         placeholder="https://hooks.slack.com/services/…"
-        disabled={busy}
+        disabled={busy || readOnly}
         value={url}
         onChange={(e) => setUrl(e.target.value)}
       />
       <Button
         size="sm"
-        disabled={busy || url.trim() === ""}
+        disabled={busy || readOnly || url.trim() === ""}
         onClick={() => void patch(url.trim())}
       >
         {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : configured ? "Replace" : "Save"}
@@ -145,7 +147,7 @@ function SlackWebhookControl({
         <ConfirmButton
           label="Clear"
           confirmLabel="Confirm clear"
-          disabled={busy}
+          disabled={busy || readOnly}
           onConfirm={() => void patch(null)}
         />
       )}
@@ -247,6 +249,7 @@ function EmailCard({
   isAdmin: boolean;
   onChanged: () => void;
 }) {
+  const { show, readOnly } = useCanWrite(isAdmin);
   const [open, setOpen] = useState(false);
   const [provider, setProvider] = useState(email?.provider ?? "smtp");
   const [from, setFrom] = useState("");
@@ -316,14 +319,14 @@ function EmailCard({
       open={open}
       onToggle={() => setOpen((v) => !v)}
     >
-      {!isAdmin && <span className="text-sm">{email ? "configured" : "not set"}</span>}
-      {isAdmin && (
+      {!show && <span className="text-sm">{email ? "configured" : "not set"}</span>}
+      {show && (
         <>
           <SettingsRow label="Provider" htmlFor="email-provider">
             <select
               id="email-provider"
               className="h-8 rounded-md border bg-transparent px-2 text-sm"
-              disabled={busy}
+              disabled={busy || readOnly}
               value={provider}
               onChange={(e) => {
                 setProvider(e.target.value);
@@ -344,7 +347,7 @@ function EmailCard({
               type="email"
               className="h-8 w-64 max-w-full"
               placeholder="reports@acme.com"
-              disabled={busy}
+              disabled={busy || readOnly}
               value={from}
               onChange={(e) => setFrom(e.target.value)}
             />
@@ -355,7 +358,7 @@ function EmailCard({
                 <select
                   id={`email-${f.key}`}
                   className="h-8 rounded-md border bg-transparent px-2 text-sm"
-                  disabled={busy}
+                  disabled={busy || readOnly}
                   value={values[f.key] ?? f.options[0].value}
                   onChange={(e) =>
                     setValues((prev) => ({ ...prev, [f.key]: e.target.value }))
@@ -374,7 +377,7 @@ function EmailCard({
                   autoComplete="off"
                   className={cn("h-8 max-w-full", f.width ?? "w-64")}
                   placeholder={f.placeholder}
-                  disabled={busy}
+                  disabled={busy || readOnly}
                   value={values[f.key] ?? ""}
                   onChange={(e) =>
                     setValues((prev) => ({ ...prev, [f.key]: e.target.value }))
@@ -384,14 +387,14 @@ function EmailCard({
             </SettingsRow>
           ))}
           <SettingsRow>
-            <Button size="sm" disabled={busy || !ready} onClick={save}>
+            <Button size="sm" disabled={busy || readOnly || !ready} onClick={save}>
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : email ? "Replace" : "Save"}
             </Button>
             {email && (
               <ConfirmButton
                 label="Clear"
                 confirmLabel="Confirm clear"
-                disabled={busy}
+                disabled={busy || readOnly}
                 onConfirm={() => void patch(null)}
               />
             )}
@@ -404,14 +407,14 @@ function EmailCard({
                 type="email"
                 className="h-8 w-64 max-w-full"
                 placeholder="you@acme.com"
-                disabled={testBusy}
+                disabled={testBusy || readOnly}
                 value={to}
                 onChange={(e) => setTo(e.target.value)}
               />
               <Button
                 variant="outline"
                 size="sm"
-                disabled={testBusy || to.trim() === ""}
+                disabled={testBusy || readOnly || to.trim() === ""}
                 onClick={() => void testSend()}
               >
                 {testBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send"}
@@ -439,6 +442,7 @@ function SdkCard({
   isAdmin: boolean;
   onChanged: () => void;
 }) {
+  const { show, readOnly } = useCanWrite(isAdmin);
   const [open, setOpen] = useState(false);
   const [productId, setProductId] = useState("");
   const [name, setName] = useState("");
@@ -462,12 +466,12 @@ function SdkCard({
       open={open}
       onToggle={() => setOpen((v) => !v)}
     >
-      {isAdmin && (
+      {show && (
         <SettingsRow label="Mint" htmlFor="ingest-product">
           <select
             id="ingest-product"
             className="h-8 rounded-md border bg-transparent px-2 text-sm"
-            disabled={busy}
+            disabled={busy || readOnly}
             value={productId}
             onChange={(e) => setProductId(e.target.value)}
           >
@@ -482,13 +486,13 @@ function SdkCard({
             aria-label="Key name"
             className="h-8 w-40 max-w-full"
             placeholder="name (optional)"
-            disabled={busy}
+            disabled={busy || readOnly}
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
           <Button
             size="sm"
-            disabled={busy || productId === ""}
+            disabled={busy || readOnly || productId === ""}
             onClick={async () => {
               setBusy(true);
               setError(null);
@@ -543,10 +547,11 @@ function SdkCard({
               {key.revokedAt ? (
                 <span className="text-sm text-red-600">revoked</span>
               ) : (
-                isAdmin && (
+                show && (
                   <ConfirmButton
                     label="Revoke"
                     confirmLabel="Confirm revoke"
+                    disabled={readOnly}
                     onConfirm={() => {
                       void send(`/api/ingest-keys/${key.id}`, "PATCH", { revoked: true }).then(
                         ({ error: failure }) => {
@@ -576,6 +581,7 @@ function PersonalApiKeysCard({
   keys: ApiKey[];
   onChanged: () => void;
 }) {
+  const demo = useDemo();
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -590,13 +596,13 @@ function PersonalApiKeysCard({
           className="h-8 w-64 max-w-full"
           placeholder="CI, local scripts, reporting"
           maxLength={80}
-          disabled={busy}
+          disabled={busy || demo}
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
         <Button
           size="sm"
-          disabled={busy || name.trim() === ""}
+          disabled={busy || demo || name.trim() === ""}
           onClick={async () => {
             setBusy(true);
             setError(null);
@@ -660,6 +666,7 @@ function PersonalApiKeysCard({
                 <ConfirmButton
                   label="Revoke"
                   confirmLabel="Confirm revoke"
+                  disabled={demo}
                   onConfirm={() => {
                     void send(`/api/api-keys/${key.id}`, "PATCH", { revoked: true }).then(
                       ({ error: failure }) => {
@@ -750,6 +757,7 @@ function AlertsCard({
     anomaly_min_day: (settings.anomaly_min_day_cents / 100).toFixed(2),
     connector_silent_alert_hours: String(settings.connector_silent_alert_hours),
   });
+  const { show, readOnly } = useCanWrite(isAdmin);
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -798,7 +806,7 @@ function AlertsCard({
       <Input
         id={`alerts-${key}`}
         className={`h-8 ${width}`}
-        disabled={busy || !isAdmin || disabled}
+        disabled={busy || !isAdmin || disabled || readOnly}
         value={form[key]}
         onChange={(e) => set({ [key]: e.target.value } as Partial<typeof form>)}
       />
@@ -820,7 +828,7 @@ function AlertsCard({
           id="alerts-alert_email_recipients"
           className="h-8 w-96 max-w-full"
           placeholder="cfo@acme.com, finance@acme.com"
-          disabled={busy || !isAdmin}
+          disabled={busy || !isAdmin || readOnly}
           value={form.alert_email_recipients}
           onChange={(e) => set({ alert_email_recipients: e.target.value })}
         />
@@ -830,7 +838,7 @@ function AlertsCard({
         <input
           id="alerts-anomaly_enabled"
           type="checkbox"
-          disabled={busy || !isAdmin}
+          disabled={busy || !isAdmin || readOnly}
           checked={form.anomaly_enabled}
           onChange={(e) => set({ anomaly_enabled: e.target.checked })}
         />
@@ -855,9 +863,9 @@ function AlertsCard({
         "hours before an alert",
         "w-16",
       )}
-      {isAdmin && (
+      {show && (
         <SettingsRow>
-          <Button size="sm" disabled={busy} onClick={save}>
+          <Button size="sm" disabled={busy || readOnly} onClick={save}>
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
           </Button>
           {saved && <span className="text-sm text-green-700">saved</span>}
@@ -890,6 +898,7 @@ async function postCsv(
 }
 
 function InvoiceImportControl({ onChanged }: { onChanged: () => void }) {
+  const demo = useDemo();
   const fileInput = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [csv, setCsv] = useState<string | null>(null);
@@ -947,7 +956,7 @@ function InvoiceImportControl({ onChanged }: { onChanged: () => void }) {
             )}
           </span>
           {preview.ok && (
-            <Button size="sm" disabled={busy} onClick={() => void commit()}>
+            <Button size="sm" disabled={busy || demo} onClick={() => void commit()}>
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Import"}
             </Button>
           )}
@@ -983,7 +992,7 @@ function InvoiceImportControl({ onChanged }: { onChanged: () => void }) {
       <Button
         variant="outline"
         size="sm"
-        disabled={busy}
+        disabled={busy || demo}
         onClick={() => fileInput.current?.click()}
       >
         {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
@@ -1016,6 +1025,7 @@ function DataCard({
     revert_window_days: String(settings.revert_window_days),
     update_check_enabled: settings.update_check_enabled,
   });
+  const { show, readOnly } = useCanWrite(isAdmin);
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -1053,7 +1063,7 @@ function DataCard({
           id="data-currency"
           className="h-8 w-20 uppercase"
           maxLength={3}
-          disabled={busy || !isAdmin}
+          disabled={busy || !isAdmin || readOnly}
           value={form.display_currency}
           onChange={(e) => set({ display_currency: e.target.value.toUpperCase() })}
         />
@@ -1061,7 +1071,7 @@ function DataCard({
           <Button
             variant="outline"
             size="sm"
-            disabled={fxBusy}
+            disabled={fxBusy || readOnly}
             onClick={async () => {
               setFxBusy(true);
               setFxNotice(null);
@@ -1084,7 +1094,7 @@ function DataCard({
         )}
         {fxNotice && <span className="text-sm text-muted-foreground">{fxNotice}</span>}
       </SettingsRow>
-      {isAdmin && (
+      {show && (
         <SettingsRow label="Invoice import">
           <InvoiceImportControl onChanged={onChanged} />
         </SettingsRow>
@@ -1093,7 +1103,7 @@ function DataCard({
         <Input
           id="data-retention"
           className="h-8 w-16"
-          disabled={busy || !isAdmin}
+          disabled={busy || !isAdmin || readOnly}
           value={form.raw_facts_retention_months}
           onChange={(e) => set({ raw_facts_retention_months: e.target.value })}
         />
@@ -1103,7 +1113,7 @@ function DataCard({
         <Input
           id="data-revert"
           className="h-8 w-16"
-          disabled={busy || !isAdmin}
+          disabled={busy || !isAdmin || readOnly}
           value={form.revert_window_days}
           onChange={(e) => set({ revert_window_days: e.target.value })}
         />
@@ -1115,15 +1125,15 @@ function DataCard({
         <input
           id="data-update"
           type="checkbox"
-          disabled={busy || !isAdmin}
+          disabled={busy || !isAdmin || readOnly}
           checked={form.update_check_enabled}
           onChange={(e) => set({ update_check_enabled: e.target.checked })}
         />
         <span className="text-sm text-muted-foreground">GitHub releases</span>
       </SettingsRow>
-      {isAdmin && (
+      {show && (
         <SettingsRow>
-          <Button size="sm" disabled={busy} onClick={save}>
+          <Button size="sm" disabled={busy || readOnly} onClick={save}>
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
           </Button>
           {saved && <span className="text-sm text-green-700">saved</span>}
@@ -1218,6 +1228,7 @@ export default function SettingsClient() {
             <button
               key={id}
               type="button"
+              data-tour={`settings-tab-${id}`}
               aria-current={id === tab ? "page" : undefined}
               onClick={() => show(id)}
               className={cn(

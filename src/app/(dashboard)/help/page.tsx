@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { APP_NAME } from "@/lib/brand";
+import { ReplayTourButton } from "./replay-tour";
 import { Code, Section } from "./section";
 
 export const metadata: Metadata = { title: `Help - ${APP_NAME}` };
@@ -10,7 +11,11 @@ export const metadata: Metadata = { title: `Help - ${APP_NAME}` };
 export default function HelpPage() {
   return (
     <div className="max-w-2xl space-y-8">
-      <h1 className="text-lg font-semibold">How it works</h1>
+      <div className="flex flex-wrap items-center gap-3">
+        <h1 className="text-lg font-semibold">How it works</h1>
+        <span className="flex-1" />
+        <ReplayTourButton />
+      </div>
 
       <Section title="Where the numbers come from">
         <p>

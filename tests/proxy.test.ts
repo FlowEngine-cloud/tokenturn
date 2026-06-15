@@ -192,9 +192,12 @@ describe.runIf(TEST_DATABASE_URL)("auth gate", () => {
       delete process.env.DEMO_MODE;
     });
 
-    it("/api/auth/state tells the shell to show the demo banner", async () => {
-      const res = await authState(request("/api/auth/state"));
-      expect((await res.json()).demoMode).toBe(true);
+    it("does not duplicate demo state in /api/auth/state - the server flag is the one source", async () => {
+      // Demo mode has a single source of truth (isDemoMode()): the dashboard
+      // layout feeds it to the UI via DemoProvider and the proxy enforces it.
+      // The auth-state API must not re-expose it as a second, drifting source.
+      const body = await (await authState(request("/api/auth/state"))).json();
+      expect(body).not.toHaveProperty("demoMode");
     });
 
     it("everyone reads, nobody writes - even the admin", async () => {

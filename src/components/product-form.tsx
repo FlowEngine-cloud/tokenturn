@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
+import { useDemo } from "@/components/shell/demo-context";
 import { ErrorLine, send, toCents } from "@/components/form-utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -167,6 +168,7 @@ export function ManualEntryForm({
   product: Pick<Product, "id" | "attribution" | "outcomeKind">;
   onChanged: () => void;
 }) {
+  const demo = useDemo();
   const canCost = product.attribution === "manual";
   const canOutcomes = product.outcomeKind === "manual";
   const [kind, setKind] = useState<"cost" | "outcomes">(canCost ? "cost" : "outcomes");
@@ -232,7 +234,7 @@ export function ManualEntryForm({
           <select
             id={`manual-kind-${product.id}`}
             className="h-8 rounded-md border bg-transparent px-2 text-sm"
-            disabled={busy || !(canCost && canOutcomes)}
+            disabled={busy || demo || !(canCost && canOutcomes)}
             value={activeKind}
             onChange={(e) => setKind(e.target.value as "cost" | "outcomes")}
           >
@@ -246,7 +248,7 @@ export function ManualEntryForm({
             id={`manual-month-${product.id}`}
             type="month"
             className="h-8 w-40"
-            disabled={busy}
+            disabled={busy || demo}
             value={month}
             onChange={(e) => setMonth(e.target.value)}
           />
@@ -260,7 +262,7 @@ export function ManualEntryForm({
                 className="h-8 w-28"
                 inputMode="decimal"
                 placeholder="2000"
-                disabled={busy}
+                disabled={busy || demo}
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
               />
@@ -268,7 +270,7 @@ export function ManualEntryForm({
                 aria-label="Currency"
                 className="h-8 w-16 uppercase"
                 maxLength={3}
-                disabled={busy}
+                disabled={busy || demo}
                 value={currency}
                 onChange={(e) => setCurrency(e.target.value.toUpperCase())}
               />
@@ -282,7 +284,7 @@ export function ManualEntryForm({
                 id={`manual-count-${product.id}`}
                 className="h-8 w-20"
                 inputMode="numeric"
-                disabled={busy}
+                disabled={busy || demo}
                 value={count}
                 onChange={(e) => setCount(e.target.value)}
               />
@@ -295,7 +297,7 @@ export function ManualEntryForm({
                   className="h-8 w-24"
                   inputMode="decimal"
                   placeholder="default"
-                  disabled={busy}
+                  disabled={busy || demo}
                   value={value}
                   onChange={(e) => setValue(e.target.value)}
                 />
@@ -303,7 +305,7 @@ export function ManualEntryForm({
                   aria-label="Value currency"
                   className="h-8 w-16 uppercase"
                   maxLength={3}
-                  disabled={busy}
+                  disabled={busy || demo}
                   value={valueCurrency}
                   onChange={(e) => setValueCurrency(e.target.value.toUpperCase())}
                 />
@@ -316,12 +318,12 @@ export function ManualEntryForm({
           <Input
             id={`manual-note-${product.id}`}
             className="h-8 w-44"
-            disabled={busy}
+            disabled={busy || demo}
             value={note}
             onChange={(e) => setNote(e.target.value)}
           />
         </div>
-        <Button size="sm" disabled={busy || !/^\d{4}-\d{2}$/.test(month)} onClick={save}>
+        <Button size="sm" disabled={busy || demo || !/^\d{4}-\d{2}$/.test(month)} onClick={save}>
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Record"}
         </Button>
         {saved && <span className="pb-1.5 text-sm text-green-700">recorded · rollups updated</span>}
@@ -332,6 +334,7 @@ export function ManualEntryForm({
 }
 
 export function NewProductForm({ onChanged }: { onChanged: () => void }) {
+  const demo = useDemo();
   const [fields, setFields] = useState<ProductFieldsValue>({
     name: "",
     attribution: "sdk",
@@ -344,11 +347,11 @@ export function NewProductForm({ onChanged }: { onChanged: () => void }) {
 
   return (
     <div className="space-y-3">
-      <ProductFields value={fields} onChange={setFields} disabled={busy} idPrefix="new" />
+      <ProductFields value={fields} onChange={setFields} disabled={busy || demo} idPrefix="new" />
       <div className="flex items-center justify-end gap-2">
         <Button
           size="sm"
-          disabled={busy || fields.name.trim() === ""}
+          disabled={busy || demo || fields.name.trim() === ""}
           onClick={async () => {
             const body = productBody(fields);
             if (typeof body === "string") {

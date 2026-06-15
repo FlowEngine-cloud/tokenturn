@@ -5,6 +5,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Loader2, Pencil, X } from "lucide-react";
 import { DataTable, type Column } from "@/components/data-table";
+import { useCanWrite, useDemo } from "@/components/shell/demo-context";
 import { ErrorLine, send, toCents, useLatest } from "@/components/form-utils";
 import { MintOpenAiKey } from "@/components/mint-openai-key";
 import { OffboardDialog } from "@/components/offboard-panel";
@@ -49,6 +50,7 @@ function CanSignIn({
   access: { role: "admin" | "viewer" | null; isSelf: boolean };
   onChanged: () => void;
 }) {
+  const demo = useDemo();
   const current: AccessRole = access.role ?? "none";
   const [role, setRole] = useState<AccessRole>(current);
   const [password, setPassword] = useState("");
@@ -82,7 +84,7 @@ function CanSignIn({
       <select
         id="person-access"
         className="h-8 rounded-md border bg-transparent px-2 text-sm"
-        disabled={busy || access.isSelf}
+        disabled={busy || access.isSelf || demo}
         value={role}
         onChange={(e) => {
           setError(null);
@@ -101,7 +103,7 @@ function CanSignIn({
           autoComplete="new-password"
           className="h-8 w-40"
           placeholder="password (8+)"
-          disabled={busy}
+          disabled={busy || demo}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
@@ -109,7 +111,7 @@ function CanSignIn({
       {dirty && (
         <Button
           size="sm"
-          disabled={busy || (needsPassword && password.length < 8)}
+          disabled={busy || demo || (needsPassword && password.length < 8)}
           onClick={() => void save()}
         >
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
@@ -136,6 +138,7 @@ function LimitRow({
   isAdmin: boolean;
   onChanged: () => void;
 }) {
+  const { show, readOnly } = useCanWrite(isAdmin);
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState("");
   const [busy, setBusy] = useState(false);
@@ -157,17 +160,21 @@ function LimitRow({
   }
 
   if (!editing) {
-    if (limitUsdCents === null && !isAdmin) return null;
+    if (limitUsdCents === null && !show) return null;
     return (
-      <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
+      <p
+        data-tour="person-limit"
+        className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground"
+      >
         {limitUsdCents === null
           ? "no limit"
           : `limit ${formatCents(limitUsdCents, "USD")}/mo`}
-        {isAdmin && (
+        {show && (
           <button
             type="button"
             aria-label="Edit limit"
-            className="rounded p-0.5 hover:text-foreground"
+            disabled={readOnly}
+            className="rounded p-0.5 hover:text-foreground disabled:opacity-50"
             onClick={() => {
               setValue(limitUsdCents === null ? "" : String(limitUsdCents / 100));
               setEditing(true);
@@ -190,20 +197,20 @@ function LimitRow({
           className="h-8 w-24"
           inputMode="decimal"
           autoFocus
-          disabled={busy}
+          disabled={busy || readOnly}
           value={value}
           onChange={(e) => setValue(e.target.value)}
         />
         <span className="text-sm text-muted-foreground">/mo</span>
         <Button
           size="sm"
-          disabled={busy || toCents(value) === null || toCents(value) === 0}
+          disabled={busy || readOnly || toCents(value) === null || toCents(value) === 0}
           onClick={() => void put(toCents(value))}
         >
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
         </Button>
         {limitUsdCents !== null && (
-          <Button variant="ghost" size="sm" disabled={busy} onClick={() => void put(null)}>
+          <Button variant="ghost" size="sm" disabled={busy || readOnly} onClick={() => void put(null)}>
             Clear
           </Button>
         )}
@@ -259,6 +266,7 @@ export default function PersonClient() {
     "/api/auth/state",
   );
   const isAdmin = auth?.user?.role === "admin";
+  const { show } = useCanWrite(isAdmin);
 
   // A merged-away id answers with its survivor - move the URL onto them.
   useEffect(() => {
@@ -375,16 +383,18 @@ export default function PersonClient() {
           </span>
         )}
         <span className="flex-1" />
-        {isAdmin && (
-          <OffboardDialog
-            personId={data.person.id}
-            status={data.person.status}
-            onChanged={reload}
-          />
+        {show && (
+          <span data-tour="person-offboard">
+            <OffboardDialog
+              personId={data.person.id}
+              status={data.person.status}
+              onChanged={reload}
+            />
+          </span>
         )}
       </div>
 
-      {isAdmin && data.access && (
+      {show && data.access && (
         <CanSignIn
           // Remount on a role change so the select tracks the server's state.
           key={data.access.role ?? "none"}
@@ -503,7 +513,7 @@ export default function PersonClient() {
 
       <section className="space-y-2">
         <h2 className="text-sm font-medium text-muted-foreground">Keys and seats</h2>
-        {isAdmin && data.person.status === "active" && (
+        {show && data.person.status === "active" && (
           <MintOpenAiKey
             personId={data.person.id}
             personEmail={data.person.email}

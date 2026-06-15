@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Check, Copy, KeyRound, Loader2 } from "lucide-react";
+import { useDemo } from "@/components/shell/demo-context";
 import { ErrorLine, useLatest } from "@/components/form-utils";
 import { Button } from "@/components/ui/button";
 import type { ConnectorHealth } from "@/lib/connectors/health";
@@ -24,6 +25,7 @@ export function MintOpenAiKey({
   personEmail: string;
   onMinted: () => void;
 }) {
+  const demo = useDemo();
   const connectorData = useLatest(
     useFetch<{ connectors: ConnectorHealth[] }>("/api/connectors").data,
   );
@@ -76,14 +78,14 @@ export function MintOpenAiKey({
         <KeyRound className="h-4 w-4 text-muted-foreground" />
         {openai?.connected && !minted && (
           <>
-            <Button size="sm" disabled={busy} onClick={() => void mint(projectId || null)}>
+            <Button size="sm" disabled={busy || demo} onClick={() => void mint(projectId || null)}>
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Mint OpenAI key"}
             </Button>
             {projects && (
               <select
                 aria-label="OpenAI project"
                 className="h-8 rounded-md border bg-transparent px-2 text-sm"
-                disabled={busy}
+                disabled={busy || demo}
                 value={projectId}
                 onChange={(e) => setProjectId(e.target.value)}
               >

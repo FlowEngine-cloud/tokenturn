@@ -16,6 +16,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { statusOf } from "@/components/connector-health";
+import { useCanWrite, useDemo } from "@/components/shell/demo-context";
 import { ConfirmButton, ErrorLine, send } from "@/components/form-utils";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -125,6 +126,7 @@ interface RoutedProject {
  * counted successes move with it.
  */
 function ProjectRoutes({ vendor }: { vendor: string }) {
+  const demo = useDemo();
   const [version, setVersion] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [busyKey, setBusyKey] = useState<string | null>(null);
@@ -164,7 +166,7 @@ function ProjectRoutes({ vendor }: { vendor: string }) {
             <select
               id={`${vendor}-route-${p.key}`}
               className="h-8 flex-1 rounded-md border bg-transparent px-2 text-sm"
-              disabled={busyKey === p.key}
+              disabled={busyKey === p.key || demo}
               value={p.productId ?? ""}
               onChange={(e) => void route(p.key, e.target.value || null)}
             >
@@ -192,6 +194,7 @@ export function ConnectorCard({
   isAdmin: boolean;
   onChanged: () => void;
 }) {
+  const { show, readOnly } = useCanWrite(isAdmin);
   const [open, setOpen] = useState(false);
   const [config, setConfig] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
@@ -251,7 +254,7 @@ export function ConnectorCard({
               <li key={note}>{note}</li>
             ))}
           </ul>
-          {isAdmin && (
+          {show && (
             <div className="flex flex-wrap items-end gap-2">
               {c.configFields.map((field) => (
                 <div key={field.key} className="space-y-1">
@@ -262,7 +265,7 @@ export function ConnectorCard({
                     autoComplete="off"
                     placeholder={field.placeholder}
                     className="h-8 w-64 max-w-full"
-                    disabled={busy}
+                    disabled={busy || readOnly}
                     value={config[field.key] ?? ""}
                     onChange={(e) =>
                       setConfig((prev) => ({ ...prev, [field.key]: e.target.value }))
@@ -274,6 +277,7 @@ export function ConnectorCard({
                 size="sm"
                 disabled={
                   busy ||
+                  readOnly ||
                   c.configFields.some((f) => !f.optional && !config[f.key]?.trim())
                 }
                 onClick={() =>
@@ -291,12 +295,12 @@ export function ConnectorCard({
 
       {c.connected && (
         <div className="flex flex-wrap items-center gap-2">
-          {isAdmin && (
+          {show && (
             <>
               <Button
                 variant="outline"
                 size="sm"
-                disabled={busy}
+                disabled={busy || readOnly}
                 onClick={() => run(() => send(`/api/connectors/${c.vendor}/sync`, "POST"))}
               >
                 {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Sync now"}
@@ -304,7 +308,7 @@ export function ConnectorCard({
               <ConfirmButton
                 label="Disconnect"
                 confirmLabel="Confirm disconnect"
-                disabled={busy}
+                disabled={busy || readOnly}
                 onConfirm={() =>
                   run(() => send(`/api/connectors/${c.vendor}`, "DELETE"))
                 }
@@ -326,7 +330,7 @@ export function ConnectorCard({
           </Link>
         </div>
       )}
-      {c.connected && c.successOnly && isAdmin && <ProjectRoutes vendor={c.vendor} />}
+      {c.connected && c.successOnly && show && <ProjectRoutes vendor={c.vendor} />}
       <ErrorLine message={error} />
     </PlugCard>
   );

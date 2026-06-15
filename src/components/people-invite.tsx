@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Check, Loader2 } from "lucide-react";
+import { useDemo } from "@/components/shell/demo-context";
 import { ErrorLine, send, useLatest } from "@/components/form-utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +25,7 @@ function toggle(set: Set<string>, value: string): Set<string> {
 }
 
 export function PeopleAdd({ onAdded }: { onAdded: () => void }) {
+  const demo = useDemo();
   const connectorData = useLatest(
     useFetch<{ connectors: ConnectorHealth[] }>("/api/connectors").data,
   );
@@ -79,7 +81,7 @@ export function PeopleAdd({ onAdded }: { onAdded: () => void }) {
           <Input
             id="add-name"
             className="h-8 w-44"
-            disabled={busy}
+            disabled={busy || demo}
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
@@ -90,12 +92,12 @@ export function PeopleAdd({ onAdded }: { onAdded: () => void }) {
             id="add-email"
             className="h-8 w-56"
             type="email"
-            disabled={busy}
+            disabled={busy || demo}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
         </div>
-        <Button size="sm" disabled={busy || email.trim() === ""} onClick={add}>
+        <Button size="sm" disabled={busy || demo || email.trim() === ""} onClick={add}>
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add"}
         </Button>
       </div>
@@ -112,7 +114,7 @@ export function PeopleAdd({ onAdded }: { onAdded: () => void }) {
           >
             <input
               type="checkbox"
-              disabled={!c.connected || busy}
+              disabled={!c.connected || busy || demo}
               checked={tools.has(c.vendor)}
               onChange={() => setTools(toggle(tools, c.vendor))}
             />

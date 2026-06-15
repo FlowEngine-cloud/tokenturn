@@ -1,5 +1,10 @@
 import type { NextConfig } from "next";
 
+// React's development build needs eval() (Fast Refresh, error overlays,
+// owner-stack reconstruction); its production build never evals. So allow
+// 'unsafe-eval' in dev only - production keeps the strict policy.
+const isDev = process.env.NODE_ENV !== "production";
+
 const securityHeaders = [
   {
     key: "Content-Security-Policy",
@@ -12,7 +17,7 @@ const securityHeaders = [
       "frame-ancestors 'none'",
       "img-src 'self' data: blob:",
       "object-src 'none'",
-      "script-src 'self' 'unsafe-inline'",
+      `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
       "style-src 'self' 'unsafe-inline'",
     ].join("; "),
   },

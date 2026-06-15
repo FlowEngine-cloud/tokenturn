@@ -5,6 +5,7 @@ import { useParams, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { DataTable, type Column } from "@/components/data-table";
+import { useCanWrite, useDemo } from "@/components/shell/demo-context";
 import { ConfirmButton, ErrorLine, send, useLatest } from "@/components/form-utils";
 import {
   ATTRIBUTION_LABELS,
@@ -39,6 +40,7 @@ import { useFetch } from "@/lib/use-fetch";
  */
 
 function ManagePanel({ product, onChanged }: { product: Product; onChanged: () => void }) {
+  const demo = useDemo();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fields, setFields] = useState<ProductFieldsValue>({
@@ -68,15 +70,15 @@ function ManagePanel({ product, onChanged }: { product: Product; onChanged: () =
         <ConfirmButton
           label={archived ? "Restore" : "Archive"}
           confirmLabel={archived ? "Confirm restore" : "Confirm archive"}
-          disabled={busy}
+          disabled={busy || demo}
           onConfirm={() => void patch({ archived: !archived })}
         />
       </div>
       <div className="flex flex-wrap items-end gap-2">
-        <ProductFields value={fields} onChange={setFields} disabled={busy} idPrefix="manage" />
+        <ProductFields value={fields} onChange={setFields} disabled={busy || demo} idPrefix="manage" />
         <Button
           size="sm"
-          disabled={busy}
+          disabled={busy || demo}
           onClick={() => {
             const body = productBody(fields);
             if (typeof body === "string") setError(body);
@@ -116,6 +118,7 @@ export default function ProductClient() {
   // (a skeleton swap would eat the form's "saved" state mid-edit).
   const [version, setVersion] = useState(0);
   const { data: auth } = useFetch<{ user: { role: string } | null }>("/api/auth/state");
+  const { show } = useCanWrite(auth?.user?.role === "admin");
   const fetched = useFetch<ProductDetail & { issues: TrackedIssueRow[] }>(
     `/api/products/${id}?from=${range.from}&to=${range.to}&v=${version}`,
   );
@@ -512,7 +515,7 @@ export default function ProductClient() {
         />
       </section>
 
-      {auth?.user?.role === "admin" && (
+      {show && (
         <ManagePanel
           key={`${data.product.id}:${data.product.archivedAt ?? "live"}`}
           product={data.product}

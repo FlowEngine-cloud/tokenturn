@@ -65,6 +65,7 @@ export function Sidebar() {
           <Link
             key={item.href}
             href={`${item.href}${rangeQuery}`}
+            data-tour={item.href === "/help" ? "nav-help" : undefined}
             className={cn(
               "flex items-center gap-3 rounded-md px-3 py-2 text-sm",
               pathname.startsWith(item.href)

@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import { GitMerge, Loader2 } from "lucide-react";
 import { DataTable, type Column } from "@/components/data-table";
 import { EmptyState } from "@/components/empty-state";
+import { useDemo } from "@/components/shell/demo-context";
 import { RESOLVE_CHANGED_EVENT } from "@/components/shell/nav";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -146,6 +147,7 @@ function QueueCard({
   keysHref: string;
   onDone: () => void;
 }) {
+  const demo = useDemo();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [routeOpen, setRouteOpen] = useState(false);
@@ -209,7 +211,7 @@ function QueueCard({
               key={s.personId}
               variant="outline"
               size="sm"
-              disabled={busy}
+              disabled={busy || demo}
               onClick={() => confirm(s.personId)}
             >
               {s.name ?? s.email}
@@ -222,7 +224,7 @@ function QueueCard({
       <div className="flex flex-wrap items-center gap-2">
         <PersonSearch
           placeholder="Confirm someone else…"
-          disabled={busy}
+          disabled={busy || demo}
           onPick={(person) => confirm(person.id)}
         />
         <Button
@@ -240,7 +242,7 @@ function QueueCard({
         <div className="flex flex-wrap items-center gap-2">
           <select
             value={productId}
-            disabled={busy}
+            disabled={busy || demo}
             onChange={(e) => setProductId(e.target.value)}
             className="h-8 rounded-md border bg-transparent px-2 text-sm"
           >
@@ -253,14 +255,14 @@ function QueueCard({
           </select>
           <Input
             value={tag}
-            disabled={busy}
+            disabled={busy || demo}
             onChange={(e) => setTag(e.target.value)}
             placeholder="…and/or tag it"
             className="h-8 w-40"
           />
           <Button
             size="sm"
-            disabled={busy || (productId === "" && tag.trim() === "")}
+            disabled={busy || demo || (productId === "" && tag.trim() === "")}
             onClick={() =>
               run(() =>
                 postAction(`/api/resolve/${entry.id}/not-person`, {
@@ -289,6 +291,7 @@ function ConflictCard({
   keysHref: string;
   onDone: () => void;
 }) {
+  const demo = useDemo();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -314,7 +317,7 @@ function ConflictCard({
               variant="ghost"
               size="sm"
               className="h-6 px-1.5"
-              disabled={busy}
+              disabled={busy || demo}
               onClick={async () => {
                 setBusy(true);
                 setError(null);
@@ -343,6 +346,7 @@ function ConflictCard({
 }
 
 function MergePanel({ onDone }: { onDone: () => void }) {
+  const demo = useDemo();
   const [from, setFrom] = useState<PersonHit | null>(null);
   const [into, setInto] = useState<PersonHit | null>(null);
   const [busy, setBusy] = useState(false);
@@ -369,17 +373,17 @@ function MergePanel({ onDone }: { onDone: () => void }) {
         {from ? (
           chip(from, () => setFrom(null))
         ) : (
-          <PersonSearch placeholder="Merge this person…" onPick={setFrom} disabled={busy} />
+          <PersonSearch placeholder="Merge this person…" onPick={setFrom} disabled={busy || demo} />
         )}
         <GitMerge className="h-4 w-4 text-muted-foreground" />
         {into ? (
           chip(into, () => setInto(null))
         ) : (
-          <PersonSearch placeholder="…into this person" onPick={setInto} disabled={busy} />
+          <PersonSearch placeholder="…into this person" onPick={setInto} disabled={busy || demo} />
         )}
         <Button
           size="sm"
-          disabled={busy || !from || !into || from.id === into.id}
+          disabled={busy || demo || !from || !into || from.id === into.id}
           onClick={async () => {
             if (!from || !into) return;
             setBusy(true);
