@@ -390,9 +390,9 @@ export default function ApiReferencePage() {
             <p>
               Create an ROI row: name, attribution (<Code>connector</Code>,{" "}
               <Code>key</Code>, <Code>sdk</Code>, <Code>manual</Code>), success metric
-              (<Code>none</Code>, <Code>github_pr</Code>, <Code>issue_done</Code>,{" "}
-              <Code>sdk_event</Code>, <Code>manual</Code>), optional default value per
-              success.
+              (<Code>none</Code>, <Code>issue_done</Code>, <Code>sdk_event</Code>,{" "}
+              <Code>manual</Code>), optional default value per success. Coding is
+              built in and uses lines surviving 30 days, not merged PR count.
             </p>
           </Endpoint>
           <Endpoint methods={["PATCH"]} path="/api/products/{id}" auth="admin">
