@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Check, Loader2, Package, Users } from "lucide-react";
 import { ConnectorCard } from "@/components/connector-card";
@@ -13,6 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import type { ConnectorHealth } from "@/lib/connectors/health";
 import { formatCount } from "@/lib/format";
 import type { OnboardingState } from "@/lib/onboarding";
+import { trailingRange } from "@/lib/range";
 import { useFetch } from "@/lib/use-fetch";
 import { cn } from "@/lib/utils";
 import { OverviewSkeleton } from "./overview-client";
@@ -28,6 +30,9 @@ import { OverviewSkeleton } from "./overview-client";
 const POLL_MS = 4000;
 
 function StartPopup({ onChanged }: { onChanged: () => void }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [busy, setBusy] = useState<"people" | "demo" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -40,7 +45,19 @@ function StartPopup({ onChanged }: { onChanged: () => void }) {
         : await send("/api/onboarding", "PATCH", { stage: "setup" });
     setBusy(null);
     if (failure) setError(failure);
-    else onChanged();
+    else {
+      if (kind === "demo") {
+        // A trailing 30-day cohort cannot have reached a 30-day survival
+        // horizon yet. Open seeded demos on a mature, honest cohort so the
+        // built-in coding ROI shows survival instead of unavoidable dashes.
+        const range = trailingRange(90);
+        const params = new URLSearchParams(searchParams.toString());
+        params.set("from", range.from);
+        params.set("to", range.to);
+        router.replace(`${pathname}?${params.toString()}`);
+      }
+      onChanged();
+    }
   }
 
   return (
@@ -148,6 +165,9 @@ function SetupScreen({
       finished.current = false;
       setError(failure);
     } else {
+      // Tells the tour controller (mounted in the layout) it can fire its
+      // one-shot first run now that the dashboard is real.
+      window.dispatchEvent(new Event("ai-pnl:onboarding-done"));
       onDone();
     }
   }

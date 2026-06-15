@@ -77,7 +77,7 @@ export default function ReportClient() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2 print:hidden">
-        <h1 className="text-lg font-semibold">Report</h1>
+        <h1 data-tour="report-header" className="text-lg font-semibold">Report</h1>
         <span className="flex-1" />
         <div className="flex items-center rounded-md border">
           <Button variant="ghost" size="sm" onClick={() => goTo(addMonths(month, -1))}>

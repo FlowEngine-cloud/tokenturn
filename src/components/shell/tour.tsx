@@ -37,118 +37,139 @@ interface TourStep {
   };
 }
 
-/** Built fresh on each run - `{id}` person steps only exist if a person does. */
+/** Built fresh on each run - the profile step only exists if a person does. */
 function buildSteps(personId: string | null): TourStep[] {
-  const steps: TourStep[] = [
-    {
-      path: "/",
-      popover: {
-        title: "Welcome to TurnToken 👋",
-        description:
-          "TurnToken turns your AI bills into who-spent-what - every token, in real dollars, per person and per product.<br><br>30-second tour?",
-      },
+  const welcome: TourStep = {
+    path: "/",
+    popover: {
+      title: "This is Tokenturn",
+      description:
+        "It tracks what your company spends on AI - by person, tool, and project - and what you get back for it.<br><br>Quick tour.",
     },
-    {
-      path: "/",
-      element: '[data-tour="overview-total"]',
-      popover: {
-        title: "Every AI dollar, one number",
-        description:
-          "Your whole org's AI spend, live. Click any number on any page to drill straight to the raw vendor rows behind it.",
-        side: "bottom",
-        align: "start",
-      },
-    },
-    {
-      path: "/people",
-      element: '[data-tour="people-add"]',
-      popover: {
-        title: "Bring your team in",
-        description:
-          "Three ways: add someone by hand, import a CSV, or sync <b>Okta / Google Workspace</b> (Enterprise). Identities auto-match by email across vendors.",
-        side: "bottom",
-        align: "end",
-      },
-    },
-  ];
+  };
 
-  if (personId) {
-    steps.push(
-      {
+  const importPeople: TourStep = {
+    path: "/people",
+    element: '[data-tour="people-add"]',
+    popover: {
+      title: "Add your people",
+      description:
+        "Import a CSV of employees, or sync them straight from Google Workspace or Okta. Spend then maps to each person by email.",
+      side: "bottom",
+      align: "end",
+    },
+  };
+
+  const profile: TourStep | null = personId
+    ? {
         path: `/people/${personId}`,
-        element: '[data-tour="person-limit"]',
+        element: '[data-tour="person-header"]',
         popover: {
-          title: "Set a spend limit",
+          title: "Each person's profile",
           description:
-            "Cap anyone's monthly spend. They (and you) get pinged at 80% and 100% - no surprise invoices.",
+            "Open anyone to see their keys, usage, and spend vs what it returned. Set a monthly limit, or revoke a key when you need to.",
           side: "bottom",
           align: "start",
         },
-      },
-      {
-        path: `/people/${personId}`,
-        element: '[data-tour="person-offboard"]',
-        popover: {
-          title: "Offboard in one click",
-          description:
-            "Someone leaving? This pulls every key and seat across every vendor at once. Their history stays intact.",
-          side: "bottom",
-          align: "end",
-        },
-      },
-    );
-  }
+      }
+    : null;
 
-  steps.push(
-    {
-      path: "/roi",
-      element: '[data-tour="roi-add"]',
-      popover: {
-        title: "Prove it was worth it",
-        description:
-          "An ROI pairs a slice of spend with a result you define. A few ways people use it:<br><br>• $ per merged PR for Copilot<br>• $ per resolved ticket for a support bot<br>• $ per 1k lines of code still alive 30 days later<br><br>Add your own here.",
-        side: "bottom",
-        align: "end",
-      },
+  const roi: TourStep = {
+    path: "/roi",
+    element: '[data-tour="roi-add"]',
+    popover: {
+      title: "Track ROI",
+      description:
+        "Define what a result is worth, then pull it in three ways - from the SDK, the API, or entered by hand. Example: cost per support ticket your bot closes.",
+      side: "bottom",
+      align: "end",
     },
-    {
-      path: "/settings",
-      query: { tab: "connections" },
-      element: '[data-tour="settings-tab-connections"]',
-      popover: {
-        title: "This is where the numbers come from",
-        description:
-          "Plug in Anthropic, OpenAI, Cursor, Copilot and more. No proxy, nothing in your request path - it just reads what they already bill you.",
-        side: "bottom",
-        align: "start",
-      },
-    },
-    {
-      path: "/settings",
-      query: { tab: "alerts" },
-      element: '[data-tour="settings-tab-alerts"]',
-      popover: {
-        title: "Alerts, your way",
-        description:
-          "Pick the thresholds and who hears about them - Slack and email. Plus a burn alarm when someone's daily spend spikes.",
-        side: "bottom",
-        align: "start",
-      },
-    },
-    {
-      path: "/help",
-      element: '[data-tour="nav-help"]',
-      popover: {
-        title: "That's the tour 🎉",
-        description:
-          "Everything in one place. Want a refresher later? Replay this from Help anytime.",
-        side: "right",
-        align: "center",
-      },
-    },
-  );
+  };
 
-  return steps;
+  const tags: TourStep = {
+    path: "/roi",
+    element: '[data-tour="roi-tags"]',
+    popover: {
+      title: "Tag and filter",
+      description:
+        "Tag your keys, then filter by tag. Give an agent you built its own tag and you'll see exactly what it costs - and whether the results beat the tokens spent.",
+      side: "bottom",
+      align: "start",
+    },
+  };
+
+  const resolve: TourStep = {
+    path: "/resolve",
+    element: '[data-tour="resolve-header"]',
+    popover: {
+      title: "Resolve",
+      description:
+        "Keys and logins that don't match a person land here. One click assigns them, and it's remembered next time.",
+      side: "bottom",
+      align: "start",
+    },
+  };
+
+  const report: TourStep = {
+    path: "/report",
+    element: '[data-tour="report-header"]',
+    popover: {
+      title: "Monthly report",
+      description:
+        "A clean month-by-month summary you can export or print - the version you hand to finance.",
+      side: "bottom",
+      align: "start",
+    },
+  };
+
+  const connect: TourStep = {
+    path: "/settings",
+    query: { tab: "connections" },
+    element: '[data-tour="settings-tab-connections"]',
+    popover: {
+      title: "Connect your tools",
+      description:
+        "Link the AI tools you pay for - OpenAI, Anthropic, Cursor and more. Every number you've seen comes from here.",
+      side: "bottom",
+      align: "start",
+    },
+  };
+
+  const alerts: TourStep = {
+    path: "/settings",
+    query: { tab: "alerts" },
+    element: '[data-tour="settings-tab-alerts"]',
+    popover: {
+      title: "Alerts",
+      description:
+        "Get warned before bills run over - pick the limits and who hears about it, by email or Slack.",
+      side: "bottom",
+      align: "start",
+    },
+  };
+
+  // Centered (no anchor): the Help nav link only exists in the desktop sidebar,
+  // so a closing message that points at it would vanish on narrow screens.
+  const done: TourStep = {
+    path: "/help",
+    popover: {
+      title: "That's the tour",
+      description: "Open Help whenever you want to run through it again.",
+    },
+  };
+
+  return [
+    welcome,
+    importPeople,
+    profile,
+    roi,
+    tags,
+    resolve,
+    report,
+    connect,
+    alerts,
+    done,
+  ].filter((s): s is TourStep => s !== null);
 }
 
 /** Resolve the selector, retrying across a few frames while the page settles. */

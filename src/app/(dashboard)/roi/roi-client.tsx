@@ -88,7 +88,7 @@ function TagFilter({
       }}
     >
       <Popover.Trigger asChild>
-        <Button variant="outline" size="sm">
+        <Button data-tour="roi-tags" variant="outline" size="sm">
           <Tag />
           {active ?? "All tags"}
           <ChevronDown />

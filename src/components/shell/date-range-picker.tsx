@@ -10,6 +10,7 @@ import {
   readStoredRange,
   storeRange,
   trailingRange,
+  utcDay,
   type DateRange,
 } from "@/lib/range";
 import { cn } from "@/lib/utils";
@@ -41,15 +42,18 @@ export function DateRangePicker() {
   }
 
   // URL carries a range -> it is the selection, remember it. URL carries
-  // none -> bring the remembered one back into the URL; with nothing
-  // remembered the default window applies and the URL stays clean.
+  // none -> bring back the remembered one ONLY if it is still live (ends
+  // today): a trailing window then follows the date instead of freezing, and
+  // a stale or once-picked wide range never resurrects itself as the landing
+  // default. Anything else falls through to the fresh default window, URL
+  // clean.
   useEffect(() => {
     if (urlRange) {
       storeRange(urlRange);
       return;
     }
     const stored = readStoredRange();
-    if (stored) apply(stored);
+    if (stored && stored.to === utcDay(new Date())) apply(stored);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [urlRange?.from, urlRange?.to, pathname]);
 

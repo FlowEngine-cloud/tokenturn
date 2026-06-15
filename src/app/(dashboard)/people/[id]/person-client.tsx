@@ -162,10 +162,7 @@ function LimitRow({
   if (!editing) {
     if (limitUsdCents === null && !show) return null;
     return (
-      <p
-        data-tour="person-limit"
-        className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground"
-      >
+      <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
         {limitUsdCents === null
           ? "no limit"
           : `limit ${formatCents(limitUsdCents, "USD")}/mo`}
@@ -372,7 +369,10 @@ export default function PersonClient() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+      <div
+        data-tour="person-header"
+        className="flex flex-wrap items-center gap-x-3 gap-y-1"
+      >
         <h1 className="text-lg font-semibold">
           {data.person.name ?? data.person.email}
         </h1>
@@ -384,13 +384,11 @@ export default function PersonClient() {
         )}
         <span className="flex-1" />
         {show && (
-          <span data-tour="person-offboard">
-            <OffboardDialog
-              personId={data.person.id}
-              status={data.person.status}
-              onChanged={reload}
-            />
-          </span>
+          <OffboardDialog
+            personId={data.person.id}
+            status={data.person.status}
+            onChanged={reload}
+          />
         )}
       </div>
 
