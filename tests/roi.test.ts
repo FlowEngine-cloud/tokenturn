@@ -28,7 +28,8 @@ const MIGRATIONS_DIR = path.resolve(__dirname, "..", "migrations");
  *     10k tokens on the Devin row; pr5 live, pr6 reverted
  *   supportbot (sdk, sdk_event, default value 450c): 1,500c / 75k tokens,
  *     3 tickets (one valued 500c), 1 reverted -> value 1,400c, ROI 0.93
- *   Coding (connector, github_pr): owns the PR outcomes, no spend routed
+ *   Coding (connector, github_pr): owns the raw PR outcomes but is routing
+ *     infrastructure, not a second merge-based ROI row
  *   Company Brain (manual, none): 2,000c manual -> plain cost, no fake ROI
  */
 
@@ -176,7 +177,6 @@ describe.runIf(TEST_DATABASE_URL)("the one ROI list (spec 7)", () => {
         ["coding", "Claude Code"],
         ["coding", "Cursor"],
         ["coding", "Devin"],
-        ["custom", "Coding"],
         ["custom", "Company Brain"],
         ["custom", "Devin"],
         ["custom", "supportbot"],
@@ -184,6 +184,7 @@ describe.runIf(TEST_DATABASE_URL)("the one ROI list (spec 7)", () => {
     );
     const spends = view.rows.map((r) => r.spendCents ?? -1);
     expect(spends).toEqual([...spends].sort((a, b) => b - a));
+    expect(view.rows.find((r) => r.name === "Coding")).toBeUndefined();
     // No survival checks recorded: a dash on every row, never a number
     // (the survival job's own coverage lives in survival.test.ts).
     expect(view.rows.every((r) => r.survivalPct === null)).toBe(true);

@@ -132,6 +132,11 @@ export async function roiView(
   }
 
   for (const p of products.products) {
+    // GitHub PR products are connector routing containers. The coding ROI
+    // is represented by the built-in per-tool rows above, where success is
+    // 30-day surviving code. Showing this product as a custom row would
+    // reintroduce the obsolete spend-per-merge metric beside the real one.
+    if (p.outcomeKind === "github_pr") continue;
     rows.push({
       key: `custom:${p.id}`,
       kind: "custom",

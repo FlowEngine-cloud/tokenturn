@@ -17,7 +17,6 @@ import type { Product } from "@/lib/products";
 export const ATTRIBUTION_OPTIONS = ["connector", "key", "sdk", "manual"] as const;
 export const OUTCOME_OPTIONS = [
   "none",
-  "github_pr",
   "issue_done",
   "sdk_event",
   "manual",
@@ -39,7 +38,7 @@ const ATTRIBUTION_HINTS: Record<string, string> = {
 };
 export const OUTCOME_LABELS: Record<string, string> = {
   none: "None - cost only",
-  github_pr: "Merged PRs",
+  github_pr: "Coding (built in: 30-day survival)",
   issue_done: "Issues done (Jira/Linear)",
   sdk_event: "track() events",
   manual: "Manual",
@@ -104,6 +103,11 @@ export function ProductFields({
             value={value.outcomeKind}
             onChange={(e) => set({ outcomeKind: e.target.value })}
           >
+            {value.outcomeKind === "github_pr" && (
+              <option value="github_pr" disabled>
+                {OUTCOME_LABELS.github_pr}
+              </option>
+            )}
             {OUTCOME_OPTIONS.map((k) => (
               <option key={k} value={k}>
                 {OUTCOME_LABELS[k]}

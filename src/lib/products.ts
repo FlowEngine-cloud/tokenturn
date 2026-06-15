@@ -50,10 +50,11 @@ export function isOutcomeKind(v: unknown): v is OutcomeKind {
 }
 
 /**
- * Built-in default products per connector outcome kind (spec 7: merged PRs
- * built in for coding; "Issues done" for the Jira/Linear integrations).
- * Created on first use when no product with that outcome_kind exists, so
- * connector outcomes always have an ROI row to land in.
+ * Built-in default products per connector outcome kind. The GitHub product
+ * is an internal routing container: visible coding ROI comes from 30-day
+ * line survival per tool, not from counting merges. Issue products remain
+ * user-visible ROI rows. Created on first use when no matching live product
+ * exists so connector outcomes always have somewhere to land.
  */
 const DEFAULT_OUTCOME_PRODUCTS: Record<string, string> = {
   github_pr: "Coding",
