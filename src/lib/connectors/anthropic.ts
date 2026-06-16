@@ -463,13 +463,26 @@ function claudeCodeRows(label: string, body: unknown, state: AnthropicCursor): C
         type: literal("user_actor"),
       }) as { email_address: string };
       const userId = emailToUserId.get(email.toLowerCase());
-      if (userId) {
-        identity = { externalId: userId, kind: "user" };
-      } else {
-        identity = { externalId: email.toLowerCase(), kind: "user" };
-        identities.push({ externalId: email.toLowerCase(), kind: "user", email });
-      }
+      const externalId = userId ?? email.toLowerCase();
+      identity = { externalId, kind: "user" };
       actorKey = email.toLowerCase();
+      // A subscription actor is a flat-seat holder - stamp the tier on the
+      // identity so the seat can be detected and its usage scoped as usage
+      // value. customer_type='api' rides its API key, so leave it unmarked.
+      const subscriptionType =
+        record.customer_type === "subscription"
+          ? ((record.subscription_type as string | null) ?? "subscription")
+          : undefined;
+      // Emit the identity when it is new to us (so Resolve can attach it) or
+      // when we learned a subscription tier to stamp on an existing one.
+      if (!userId || subscriptionType !== undefined) {
+        identities.push({
+          externalId,
+          kind: "user",
+          email,
+          ...(subscriptionType !== undefined ? { subscriptionType } : {}),
+        });
+      }
     } else {
       const { api_key_name: keyName } = parseStrict("anthropic claude code actor", actor, {
         api_key_name: nonEmptyStr,

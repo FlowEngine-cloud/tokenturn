@@ -35,6 +35,15 @@ export interface IdentityInput {
   displayName?: string;
   /** Key names become tags (spec 7b). */
   tags?: string[];
+  /**
+   * The vendor's subscription tier for this identity, when it reports one
+   * (Anthropic Claude Code customer_type='subscription' + subscription_type).
+   * Marks the identity as a flat-seat holder so seats can be auto-detected
+   * and a seat holder's usage scoped as usage value. Sticky: once set, a
+   * later page that omits it keeps it (a window with no Claude Code activity
+   * does not un-mark the seat).
+   */
+  subscriptionType?: string;
 }
 
 /** One spend row as the vendor reports it. */

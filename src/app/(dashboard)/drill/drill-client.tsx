@@ -121,6 +121,12 @@ function FactsView({ query, chips }: { query: string; chips: string[] }) {
       csv: (r) => r.costBasis,
     },
     {
+      key: "billing",
+      header: "Billing",
+      render: (r) => (r.billingMode === "subscription" ? "seat" : "metered"),
+      csv: (r) => r.billingMode,
+    },
+    {
       key: "ref",
       header: "Source ref",
       render: (r) => (
@@ -490,7 +496,7 @@ export default function DrillClient() {
       ? (["person", "product", "kind", "tool"] as const)
       : view === "metrics"
         ? (["vendor", "metric", "person", "key"] as const)
-        : (["day", "vendor", "person", "product", "key", "model", "basis"] as const);
+        : (["day", "vendor", "person", "product", "key", "model", "basis", "billingMode"] as const);
   for (const key of keys) {
     const value = searchParams.get(key);
     if (!value) continue;
@@ -499,6 +505,8 @@ export default function DrillClient() {
     else if (key === "product" && value === "none") chips.push("No ROI");
     else if (key === "model" && value === "none") chips.push("No model");
     else if (key === "metric") chips.push(value);
+    else if (key === "billingMode")
+      chips.push(value === "subscription" ? "Subscriptions" : "Metered");
     else {
       // The query param keeps its API name; the chip speaks ROI.
       const label = key === "product" ? "ROI" : key;

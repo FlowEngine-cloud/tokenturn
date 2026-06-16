@@ -62,6 +62,13 @@ export async function GET(req: Request) {
     }
     filters.basis = basis;
   }
+  const billingMode = params.get("billingMode");
+  if (billingMode !== null) {
+    if (billingMode !== "subscription" && billingMode !== "metered") {
+      return badRequest("billingMode must be subscription or metered");
+    }
+    filters.billingMode = billingMode;
+  }
   for (const key of ["limit", "offset"] as const) {
     const value = params.get(key);
     if (value === null) continue;

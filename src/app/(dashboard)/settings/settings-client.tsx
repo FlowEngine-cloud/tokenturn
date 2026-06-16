@@ -41,10 +41,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import type { ConnectorHealth } from "@/lib/connectors/health";
 import { type LicenseStatus } from "@/lib/ee";
 import type { ApiKey } from "@/lib/auth";
-import { formatCount, timeAgo } from "@/lib/format";
+import { formatCents, formatCount, timeAgo } from "@/lib/format";
 import type { IngestKey } from "@/lib/ingest";
 import type { ImportResult, ParsedInvoiceCsv } from "@/lib/invoices";
+import type { PeopleListData } from "@/lib/people";
 import type { ProductListItem } from "@/lib/products";
+import type { Seat, SeatCandidate } from "@/lib/seats";
 import type { SettingValues } from "@/lib/settings";
 import { useFetch } from "@/lib/use-fetch";
 import { cn } from "@/lib/utils";
@@ -1156,6 +1158,228 @@ const TABS = [
 
 type TabId = (typeof TABS)[number]["id"];
 
+const SEAT_VENDORS = ["anthropic", "cursor", "github", "openai"];
+// Claude's real plans, so the fee is picked not guessed.
+const ANTHROPIC_TIERS = [
+  { label: "Pro", cents: 2000 },
+  { label: "Max 5x", cents: 10000 },
+  { label: "Max 20x", cents: 20000 },
+];
+
+function SubscriptionSeatsCard({ isAdmin, onChanged }: { isAdmin: boolean; onChanged: () => void }) {
+  const demo = useDemo();
+  const { readOnly } = useCanWrite(isAdmin);
+  const seatData = useLatest(
+    useFetch<{ seats: Seat[]; candidates: SeatCandidate[] }>("/api/seats").data,
+  );
+  const peopleData = useLatest(useFetch<PeopleListData>("/api/people").data);
+
+  const thisMonth = new Date().toISOString().slice(0, 7);
+  const blank = {
+    personId: "",
+    vendor: "anthropic",
+    tier: "",
+    amount: "",
+    currency: "USD",
+    startedMonth: thisMonth,
+    endedMonth: "",
+  };
+  const [form, setForm] = useState(blank);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const set = (patch: Partial<typeof form>) => setForm((prev) => ({ ...prev, ...patch }));
+
+  if (!seatData || !peopleData) return <Section title="Subscription seats"><Skeleton className="h-24" /></Section>;
+
+  async function save() {
+    const amountCents = toCents(form.amount);
+    if (form.personId === "") return setError("pick a person");
+    if (amountCents === null) return setError("enter the monthly fee");
+    setBusy(true);
+    setError(null);
+    const { error: failure } = await send("/api/seats", "POST", {
+      vendor: form.vendor,
+      personId: form.personId,
+      tier: form.tier.trim() || null,
+      amountCents,
+      currency: form.currency.trim().toUpperCase(),
+      startedMonth: form.startedMonth,
+      endedMonth: form.endedMonth || null,
+    });
+    setBusy(false);
+    if (failure) setError(failure);
+    else {
+      setForm(blank);
+      onChanged();
+    }
+  }
+
+  async function remove(id: string) {
+    const { error: failure } = await send(`/api/seats/${id}`, "DELETE");
+    if (failure) setError(failure);
+    else onChanged();
+  }
+
+  const personName = (id: string) => {
+    const p = peopleData.people.find((x) => x.personId === id);
+    return p ? (p.name ?? p.email ?? id) : id;
+  };
+
+  return (
+    <Section title="Subscription seats">
+      <p className="text-sm text-muted-foreground">
+        Flat plans (Claude Max, a Cursor/Copilot seat) billed at a fixed monthly fee, not
+        per token. Counted as real spend; the seat holder&apos;s usage shows as usage value.
+      </p>
+
+      {seatData.seats.length > 0 && (
+        <div className="divide-y rounded-md border">
+          {seatData.seats.map((seat) => (
+            <div key={seat.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2 text-sm">
+              <span className="font-medium">{personName(seat.personId)}</span>
+              <span className="text-muted-foreground">{seat.vendor}</span>
+              {seat.tier && <span className="rounded-full border px-2 text-xs">{seat.tier}</span>}
+              <span className="tabular-nums">{formatCents(seat.amountCents, seat.currency)}/mo</span>
+              <span className="text-xs text-muted-foreground">
+                {seat.startedMonth}
+                {seat.endedMonth ? ` – ${seat.endedMonth}` : " – ongoing"}
+              </span>
+              {seat.source === "auto" && (
+                <span className="text-xs text-muted-foreground">detected</span>
+              )}
+              <span className="flex-1" />
+              {!readOnly && (
+                <ConfirmButton
+                  label="Remove"
+                  confirmLabel="Confirm"
+                  disabled={demo}
+                  onConfirm={() => void remove(seat.id)}
+                />
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {seatData.candidates.length > 0 && (
+        <div className="space-y-1">
+          <p className="text-xs font-medium text-muted-foreground">
+            Detected on a subscription - set a price to count it:
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {seatData.candidates.map((c) => (
+              <Button
+                key={`${c.vendor}:${c.personId}`}
+                variant="outline"
+                size="sm"
+                disabled={readOnly}
+                onClick={() =>
+                  set({ personId: c.personId, vendor: c.vendor, tier: c.tier ?? "" })
+                }
+              >
+                {(c.personName ?? c.personEmail)} · {c.vendor}
+                {c.tier ? ` · ${c.tier}` : ""}
+              </Button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {!readOnly && (
+        <div className="space-y-2 border-t pt-3">
+          <SettingsRow label="Person">
+            <select
+              className="h-9 rounded-md border bg-transparent px-2 text-sm"
+              value={form.personId}
+              onChange={(e) => set({ personId: e.target.value })}
+            >
+              <option value="">Select a person…</option>
+              {peopleData.people
+                .filter((p) => p.personId !== null)
+                .map((p) => (
+                  <option key={p.personId} value={p.personId!}>
+                    {p.name ?? p.email}
+                  </option>
+                ))}
+            </select>
+            <select
+              className="h-9 rounded-md border bg-transparent px-2 text-sm"
+              value={form.vendor}
+              onChange={(e) => set({ vendor: e.target.value })}
+            >
+              {SEAT_VENDORS.map((v) => (
+                <option key={v} value={v}>
+                  {v}
+                </option>
+              ))}
+            </select>
+          </SettingsRow>
+          <SettingsRow label="Fee / month">
+            {form.vendor === "anthropic" && (
+              <select
+                className="h-9 rounded-md border bg-transparent px-2 text-sm"
+                value=""
+                onChange={(e) => {
+                  const t = ANTHROPIC_TIERS.find((x) => x.label === e.target.value);
+                  if (t) set({ tier: t.label, amount: String(t.cents / 100) });
+                }}
+              >
+                <option value="">Claude plan…</option>
+                {ANTHROPIC_TIERS.map((t) => (
+                  <option key={t.label} value={t.label}>
+                    {t.label} (${t.cents / 100})
+                  </option>
+                ))}
+              </select>
+            )}
+            <Input
+              className="w-28"
+              inputMode="decimal"
+              placeholder="200"
+              value={form.amount}
+              onChange={(e) => set({ amount: e.target.value })}
+            />
+            <Input
+              className="w-20"
+              placeholder="USD"
+              value={form.currency}
+              onChange={(e) => set({ currency: e.target.value })}
+            />
+            <Input
+              className="w-40"
+              placeholder="tier (e.g. Max 20x)"
+              value={form.tier}
+              onChange={(e) => set({ tier: e.target.value })}
+            />
+          </SettingsRow>
+          <SettingsRow label="Months">
+            <Input
+              type="month"
+              className="w-40"
+              value={form.startedMonth}
+              onChange={(e) => set({ startedMonth: e.target.value })}
+            />
+            <span className="text-sm text-muted-foreground">to</span>
+            <Input
+              type="month"
+              className="w-40"
+              placeholder="ongoing"
+              value={form.endedMonth}
+              onChange={(e) => set({ endedMonth: e.target.value })}
+            />
+          </SettingsRow>
+          <SettingsRow>
+            <Button size="sm" disabled={busy || demo} onClick={() => void save()}>
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add seat"}
+            </Button>
+          </SettingsRow>
+        </div>
+      )}
+      <ErrorLine message={error} />
+    </Section>
+  );
+}
+
 export default function SettingsClient() {
   const router = useRouter();
   const pathname = usePathname();
@@ -1286,6 +1510,7 @@ export default function SettingsClient() {
               isAdmin={isAdmin}
               onChanged={reload}
             />
+            <SubscriptionSeatsCard isAdmin={isAdmin} onChanged={reload} />
             <AuditSection licensed={eeFeatures.includes("audit_log")} isAdmin={isAdmin} />
           </>
         )}
