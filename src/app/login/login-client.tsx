@@ -8,6 +8,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { APP_NAME } from "@/lib/brand";
 
+type DemoCredentials = {
+  name: string;
+  password: string;
+};
+
 async function postJson(url: string, body: unknown): Promise<Response> {
   return fetch(url, {
     method: "POST",
@@ -26,10 +31,18 @@ async function errorOf(res: Response): Promise<string> {
   return `request failed (${res.status})`;
 }
 
-export function LoginClient({ claimed, demo }: { claimed: boolean; demo: boolean }) {
-  const [name, setName] = useState("");
-  const [password, setPassword] = useState("");
-  const [usePassword, setUsePassword] = useState(false);
+export function LoginClient({
+  claimed,
+  demo,
+  demoCredentials,
+}: {
+  claimed: boolean;
+  demo: boolean;
+  demoCredentials?: DemoCredentials;
+}) {
+  const [name, setName] = useState(demoCredentials?.name ?? "");
+  const [password, setPassword] = useState(demoCredentials?.password ?? "");
+  const [usePassword, setUsePassword] = useState(demo);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -181,7 +194,7 @@ export function LoginClient({ claimed, demo }: { claimed: boolean; demo: boolean
                 <Label htmlFor="password">Password</Label>
                 <Input
                   id="password"
-                  type="password"
+                  type={demo ? "text" : "password"}
                   autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
