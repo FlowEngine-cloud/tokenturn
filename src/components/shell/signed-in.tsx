@@ -9,6 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useDemo } from "@/components/shell/demo-context";
 import { useFetch } from "@/lib/use-fetch";
 
 /**
@@ -16,6 +17,7 @@ import { useFetch } from "@/lib/use-fetch";
  * sidebar and the mobile drawer.
  */
 export function SignedInRow() {
+  const demo = useDemo();
   const { data } = useFetch<{ user: { name: string } | null }>("/api/auth/state");
   if (!data?.user) return null;
 
@@ -60,7 +62,10 @@ export function SignedInRow() {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem variant="destructive" onSelect={signOut}>
+        {/* Demo mode is read-only down to sign-out: the proxy lets logout
+            through as the owner's escape hatch, so this stays visible but
+            disabled - a visitor sees the full menu, can't end the session. */}
+        <DropdownMenuItem variant="destructive" disabled={demo} onSelect={signOut}>
           <LogOut />
           Sign out
         </DropdownMenuItem>
