@@ -120,9 +120,11 @@ export default function OverviewClient() {
               href={drill("")}
               data-tour="overview-total"
               className="text-3xl font-semibold tabular-nums"
+              title="What you actually pay - metered usage plus flat subscription seats"
             >
               {money(data.totals.totalCents)}
             </Link>
+            <span className="text-xs text-muted-foreground">real spend</span>
             {data.drift.invoiceCount > 0 && data.drift.cents !== 0 && (
               <Link
                 href={drill("?view=invoices")}
@@ -142,16 +144,40 @@ export default function OverviewClient() {
             )}
           </div>
           <div className="mt-3 space-y-1 text-sm">
+            {data.totals.subscriptionCents > 0 && (
+              <RowLink
+                href={drill("?billingMode=subscription")}
+                label="Subscriptions"
+                sub="flat seats"
+                value={money(data.totals.subscriptionCents)}
+              />
+            )}
             <RowLink
-              href={drill("?basis=estimated")}
-              label="Estimated"
-              value={money(data.totals.estimatedCents)}
+              href={drill("?billingMode=metered")}
+              label="Metered"
+              sub="pay-as-you-go"
+              value={money(data.totals.meteredCents)}
             />
-            <RowLink
-              href={drill("?basis=invoiced")}
-              label="Invoiced"
-              value={money(data.totals.invoicedCents)}
-            />
+          </div>
+          <div className="mt-3 border-t pt-3">
+            <div className="flex items-baseline justify-between">
+              <span
+                className="text-sm text-muted-foreground"
+                title="What all this usage would cost at API rates - on a flat seat it runs well above the fee"
+              >
+                Usage value
+              </span>
+              <span className="text-lg font-semibold tabular-nums">
+                {money(data.totals.usageValueCents)}
+              </span>
+            </div>
+            {data.totals.subscriptionCents > 0 &&
+              data.totals.usageValueCents > data.totals.subscriptionCents && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {money(data.totals.usageValueCents - data.totals.subscriptionCents)} more
+                  than the seat fees - the leverage your flat plans buy.
+                </p>
+              )}
           </div>
         </Tile>
 

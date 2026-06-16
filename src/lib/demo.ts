@@ -1,4 +1,5 @@
 import type { Pool } from "pg";
+import { estimateAnthropicUsdCents } from "./connectors/anthropic-prices";
 import { getPool, type Db } from "./db";
 import { logger } from "./logger";
 import { ResolveError } from "./resolve";
@@ -127,17 +128,20 @@ interface DemoPerson {
   handle: string;
   name: string;
   role: Role;
+  /** A flat Claude subscription instead of metered API: no per-token anthropic
+   * facts, a seat fee + heavy usage value instead (shows the leverage). */
+  seat?: { tier: string; cents: number };
 }
 
 const DEMO_PEOPLE: DemoPerson[] = [
-  { handle: "dana", name: "Dana Roth", role: "eng-claude" },
+  { handle: "dana", name: "Dana Roth", role: "eng-claude", seat: { tier: "Max 20x", cents: 20000 } },
   { handle: "omer", name: "Omer Lev", role: "support" },
   { handle: "noa", name: "Noa Bar", role: "eng-cursor" },
-  { handle: "adam", name: "Adam Klein", role: "eng-claude" },
+  { handle: "adam", name: "Adam Klein", role: "eng-claude", seat: { tier: "Pro", cents: 2000 } },
   { handle: "maya", name: "Maya Peretz", role: "eng-mixed" },
   { handle: "eli", name: "Eli Cohen", role: "eng-cursor" },
   { handle: "tamar", name: "Tamar Levi", role: "support" },
-  { handle: "yossi", name: "Yossi Mizrahi", role: "eng-claude" },
+  { handle: "yossi", name: "Yossi Mizrahi", role: "eng-claude", seat: { tier: "Max 5x", cents: 10000 } },
   { handle: "shira", name: "Shira Gold", role: "eng-mixed" },
   { handle: "david", name: "David Stern", role: "ops" },
   { handle: "rina", name: "Rina Azulay", role: "eng-cursor" },
@@ -155,6 +159,7 @@ interface FactRow {
   tokens: number;
   amountCents: number;
   costBasis: "estimated" | "invoiced";
+  billingMode?: "metered" | "subscription";
   sourceRef: string;
   identityId: string | null;
 }
@@ -452,36 +457,47 @@ export async function seedDemoData(
         const cursorUser = person.role === "eng-cursor" || person.role === "eng-mixed";
 
         if (eng && workday) {
-          // Anthropic API spend through the personal key.
+          // Anthropic spend. Seated people are on a flat Claude subscription:
+          // no per-token API facts (their seat fee is the only anthropic spend),
+          // but the same usage shows as usage value. The random draws still run
+          // either way, so the rest of the dataset is byte-for-byte unchanged.
+          const onSeat = person.seat !== undefined;
           const anthropicCents = claudeUser
             ? between(rand, 500, 1500)
             : between(rand, 100, 450);
-          facts.push({
-            day,
-            personId,
-            productId: productIds.get("coding")!,
-            vendor: "anthropic",
-            model: "claude-sonnet-4-5",
-            tokens: anthropicCents * between(rand, 320, 420),
-            amountCents: anthropicCents,
-            costBasis: "estimated",
-            sourceRef: `demo:anthropic:${person.handle}:${day}`,
-            identityId: identityIdByExternal.get(`demo-key-${person.handle}`) ?? null,
-          });
-          if (claudeUser && rand() < 0.3) {
-            const opusCents = between(rand, 200, 800);
+          if (!onSeat) {
             facts.push({
               day,
               personId,
               productId: productIds.get("coding")!,
               vendor: "anthropic",
-              model: "claude-opus-4-6",
-              tokens: opusCents * between(rand, 60, 90),
-              amountCents: opusCents,
+              model: "claude-sonnet-4-5",
+              tokens: anthropicCents * between(rand, 320, 420),
+              amountCents: anthropicCents,
               costBasis: "estimated",
-              sourceRef: `demo:anthropic-opus:${person.handle}:${day}`,
+              sourceRef: `demo:anthropic:${person.handle}:${day}`,
               identityId: identityIdByExternal.get(`demo-key-${person.handle}`) ?? null,
             });
+          } else {
+            between(rand, 320, 420); // keep the token draw aligned
+          }
+          if (claudeUser && rand() < 0.3) {
+            const opusCents = between(rand, 200, 800);
+            const opusTokens = opusCents * between(rand, 60, 90);
+            if (!onSeat) {
+              facts.push({
+                day,
+                personId,
+                productId: productIds.get("coding")!,
+                vendor: "anthropic",
+                model: "claude-opus-4-6",
+                tokens: opusTokens,
+                amountCents: opusCents,
+                costBasis: "estimated",
+                sourceRef: `demo:anthropic-opus:${person.handle}:${day}`,
+                identityId: identityIdByExternal.get(`demo-key-${person.handle}`) ?? null,
+              });
+            }
           }
           // Cursor spend per member.
           const cursorCents = cursorUser ? between(rand, 250, 700) : between(rand, 50, 200);
@@ -499,9 +515,26 @@ export async function seedDemoData(
           });
 
           // Usage counters behind the Tools page accept rates.
+          let usageCents = anthropicCents;
+          if (claudeUser && onSeat) {
+            // Usage value = what the day's tokens would cost on the API. In
+            // production Anthropic reports this per model; here we price a
+            // realistic token mix through the SAME per-model table the
+            // connectors use - no magic multiplier, genuinely model x tokens.
+            // Token volume scales with the plan (Pro light .. Max 20x heavy),
+            // so each seat lands at a believable ~10x leverage over its fee.
+            const f = person.seat!.cents / 20000;
+            usageCents = estimateAnthropicUsdCents("claude-sonnet-4-5", {
+              uncachedInput: Math.round(anthropicCents * 6000 * f),
+              output: Math.round(anthropicCents * 1200 * f),
+              cacheRead: Math.round(anthropicCents * 15000 * f),
+              cacheWrite5m: Math.round(anthropicCents * 800 * f),
+              cacheWrite1h: 0,
+            });
+          }
           if (claudeUser) {
             metrics.push(
-              { day, vendor: "anthropic", metric: "estimated_cost_cents", value: anthropicCents, personId, sourceRef: `demo:ccm:${person.handle}:${day}` },
+              { day, vendor: "anthropic", metric: "estimated_cost_cents", value: usageCents, personId, sourceRef: `demo:ccm:${person.handle}:${day}` },
               { day, vendor: "anthropic", metric: "tool_actions_accepted", value: between(rand, 40, 160), personId, sourceRef: `demo:ccm:${person.handle}:${day}` },
               { day, vendor: "anthropic", metric: "tool_actions_rejected", value: between(rand, 8, 40), personId, sourceRef: `demo:ccm:${person.handle}:${day}` },
             );
@@ -773,18 +806,48 @@ export async function seedDemoData(
       }
     }
 
+    // Subscription seats: a flat Claude plan per seated person. One registry
+    // row (the Settings card lists it) plus one subscription fact per month -
+    // the only anthropic money those people show, far under their usage value.
+    for (const person of DEMO_PEOPLE) {
+      if (!person.seat) continue;
+      const personId = peopleIds.get(person.handle)!;
+      await client.query(
+        `INSERT INTO subscription_seats
+           (vendor, person_id, tier, amount_cents, currency, started_month, source)
+         VALUES ('anthropic', $1, $2, $3, 'USD', date_trunc('month', $4::date), 'auto')`,
+        [personId, person.seat.tier, person.seat.cents, from],
+      );
+      for (const month of [...months].sort()) {
+        const m01 = `${month}-01`;
+        facts.push({
+          day: m01 < from ? from : m01, // clamp the first partial month into range
+          personId,
+          productId: productIds.get("coding")!,
+          vendor: "anthropic",
+          model: null,
+          tokens: 0,
+          amountCents: person.seat.cents,
+          costBasis: "estimated",
+          billingMode: "subscription",
+          sourceRef: `demo:seat:${person.handle}:${month}`,
+          identityId: null,
+        });
+      }
+    }
+
     // Bulk inserts via UNNEST - thousands of rows, few statements.
     await client.query(
       `INSERT INTO spend_facts
          (day, person_id, product_id, vendor, model, tokens, amount_cents,
-          currency, cost_basis, source_ref, identity_id)
+          currency, cost_basis, billing_mode, source_ref, identity_id)
        SELECT day, person_id, product_id, vendor, model, tokens, amount_cents,
-              'USD', cost_basis, source_ref, identity_id
+              'USD', cost_basis, billing_mode, source_ref, identity_id
        FROM UNNEST(
          $1::date[], $2::uuid[], $3::uuid[], $4::text[], $5::text[],
-         $6::bigint[], $7::bigint[], $8::text[], $9::text[], $10::uuid[]
+         $6::bigint[], $7::bigint[], $8::text[], $9::text[], $10::text[], $11::uuid[]
        ) AS t(day, person_id, product_id, vendor, model, tokens, amount_cents,
-              cost_basis, source_ref, identity_id)`,
+              cost_basis, billing_mode, source_ref, identity_id)`,
       [
         facts.map((f) => f.day),
         facts.map((f) => f.personId),
@@ -794,6 +857,7 @@ export async function seedDemoData(
         facts.map((f) => f.tokens),
         facts.map((f) => f.amountCents),
         facts.map((f) => f.costBasis),
+        facts.map((f) => f.billingMode ?? "metered"),
         facts.map((f) => f.sourceRef),
         facts.map((f) => f.identityId),
       ],
@@ -973,6 +1037,12 @@ export async function wipeDemoData(pool: Pool = getPool()): Promise<WipeResult> 
     const facts = await client.query(
       "DELETE FROM spend_facts WHERE source_ref LIKE $1",
       [like],
+    );
+    // Seat fees are demo: facts (gone above); their registry rows have no
+    // source_ref, so clear them by the demo people that hold them.
+    await client.query(
+      "DELETE FROM subscription_seats WHERE person_id = ANY($1::uuid[])",
+      [marker.peopleIds],
     );
     await client.query("DELETE FROM issue_tracking WHERE source_ref LIKE $1", [like]);
     await client.query("DELETE FROM survival_checks WHERE source_ref LIKE $1", [like]);

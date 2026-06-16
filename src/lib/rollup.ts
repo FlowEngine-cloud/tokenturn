@@ -150,10 +150,10 @@ export async function recomputeRollups(
     // identity's effective tags is toggled off. Attribution is untouched.
     const spend = await client.query(
       `INSERT INTO rollup_daily
-         (day, person_id, product_id, vendor, cost_basis, counts_personal,
-          tokens, amount_usd_cents, fact_count)
+         (day, person_id, product_id, vendor, cost_basis, billing_mode,
+          counts_personal, tokens, amount_usd_cents, fact_count)
        SELECT f.day, f.person_id, f.product_id, f.vendor, f.cost_basis,
-              cp.counts_personal,
+              f.billing_mode, cp.counts_personal,
               SUM(f.tokens)::bigint,
               ROUND(SUM(f.amount_cents * fx.usd_rate))::bigint,
               COUNT(*)::int
@@ -166,7 +166,7 @@ export async function recomputeRollups(
        ) cp
        WHERE f.day BETWEEN $1::date AND $2::date
        GROUP BY f.day, f.person_id, f.product_id, f.vendor, f.cost_basis,
-                cp.counts_personal`,
+                f.billing_mode, cp.counts_personal`,
       [from, to],
     );
 
