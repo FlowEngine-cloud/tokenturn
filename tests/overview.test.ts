@@ -132,6 +132,9 @@ describe.runIf(TEST_DATABASE_URL)("overview + drill-down", () => {
       totalCents: 26_000,
       estimatedCents: 26_000,
       invoicedCents: 0,
+      subscriptionCents: 0, // no seats in this fixture - all pay-as-you-go
+      meteredCents: 26_000,
+      usageValueCents: 26_000, // = metered estimated; no subscription usage
       assignedCents: 24_500,
       unassignedCents: 1_500,
       coveragePct: 94.2,

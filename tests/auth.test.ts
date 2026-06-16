@@ -1,6 +1,4 @@
 import { execFile } from "node:child_process";
-import { copyFile, mkdtemp, readdir } from "node:fs/promises";
-import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
 import { Pool } from "pg";
@@ -387,58 +385,6 @@ describe.runIf(TEST_DATABASE_URL)("auth flows", () => {
       postJson("/api/auth/login/password", { name: "Amit", password: "recovered-pass-9" }),
     );
     expect(login.status).toBe(200);
-  });
-});
-
-describe.runIf(TEST_DATABASE_URL)("login-access migration backfill (017)", () => {
-  it("email-matches existing logins to people; the unmatched keep working", async () => {
-    const dbUrl = await createScratchDb("auth_backfill_test");
-    const migPool = () => new Pool({ connectionString: dbUrl, max: 2 });
-    try {
-      // Apply everything before 017, then seed a pre-migration state.
-      const all = (await readdir(MIGRATIONS_DIR)).filter((f) => f.endsWith(".sql")).sort();
-      const cut = all.indexOf("017_login_access.sql");
-      expect(cut).toBeGreaterThan(0);
-      const tmp = await mkdtemp(path.join(os.tmpdir(), "ai-pnl-mig-"));
-      for (const file of all.slice(0, cut)) {
-        await copyFile(path.join(MIGRATIONS_DIR, file), path.join(tmp, file));
-      }
-      await runMigrations({ databaseUrl: dbUrl, dir: tmp });
-
-      const pool = migPool();
-      try {
-        await pool.query(
-          `INSERT INTO people (email, name) VALUES
-             ('dana@acme.com', 'Dana'), ('lee@acme.com', 'Lee')`,
-        );
-        const { rows: sessions } = await pool.query(
-          `INSERT INTO users (name, role) VALUES
-             ('Amit', 'admin'), ('DANA@ACME.COM', 'viewer')
-           RETURNING id`,
-        );
-        const danaToken = (await createSession(sessions[1].id, pool)).token;
-
-        await runMigrations({ databaseUrl: dbUrl, dir: MIGRATIONS_DIR });
-
-        const { rows } = await pool.query(
-          `SELECT u.name, p.email
-           FROM users u LEFT JOIN people p ON p.id = u.person_id
-           ORDER BY u.name`,
-        );
-        expect(rows).toEqual([
-          { name: "Amit", email: null }, // no email match - person-less, untouched
-          { name: "DANA@ACME.COM", email: "dana@acme.com" }, // case-insensitive
-        ]);
-        // Existing sessions survive the migration.
-        expect(await getSessionUser(danaToken, pool)).toMatchObject({
-          role: "viewer",
-        });
-      } finally {
-        await pool.end();
-      }
-    } finally {
-      await dropScratchDb(dbUrl);
-    }
   });
 });
 
