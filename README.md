@@ -2,14 +2,18 @@
 
 Self-hosted AI spend and ROI ledger. No proxy, no stored keys.
 
+**[Live demo](https://tokenturn-demo.flowengine.cloud/)** - the whole product, read-only, on six months of seeded data. The login is pre-filled, so just click sign in.
+
 Tokenturn has two main goals:
 
 1. **Calculate the actual benefit you get for your AI spend.** What an agent that costs $200/month actually delivers, and whether it meets your success criteria. How much of the code written by AI survives production.
 2. **Manage all AI spend across employees and tools.** Set per-person limits, catch burn spikes, invite and offboard people across vendors in one click, and true your estimates up against real invoices.
 
+Spend is shown two honest ways, never mixed. **Real spend** is what you actually pay: pay-as-you-go API usage plus flat subscription seats (a Claude Max $20/$100/$200 seat, a Cursor/Copilot seat) recorded at their fixed monthly fee, not as a per-token guess. **Usage value** is what that usage would cost at API rates - on a flat seat it runs well above the fee, and that gap is the leverage the plan buys. Filter any view by metered vs subscription. ROI still uses the dollar figure; total spend reflects the real fee.
+
 For ROI we calculate three different ways:
 
-1. **Coding (built in).** Connect Cursor, Copilot, or Anthropic and you get merged PRs, accept rate, revert rate, and line survival (% of AI-written lines still alive after 30 and 90 days) with zero setup. Agents like Devin route their whole spend to one ROI row.
+1. **Coding (built in).** Connect Cursor, Copilot, or Anthropic and you get accept rate, revert rate, and line survival (% of AI-written lines still alive after 30 and 90 days) with zero setup - coding ROI is survival, not merge count. Agents like Devin route their whole spend to one ROI row.
 2. **SDK wrap.** Wrap your OpenAI/Anthropic client with the TypeScript or Python SDK. Every call is counted from the response usage, and `track()` records a success and its value when your tool delivers.
 3. **API track.** Send events straight to `POST /api/ingest` from anything that can make an HTTP call. No SDK needed.
 
@@ -17,7 +21,7 @@ For ROI we calculate three different ways:
 
 - **No proxy.** Proxying your LLM keys adds a bottleneck, latency, maintenance, a point of failure, and a real security risk. Tokenturn reads the vendors' admin APIs instead - nothing sits between your apps and the models.
 - **No stored keys.** Your employees' API keys never pass through Tokenturn. Vendor admin tokens are stored encrypted; keys minted for people are shown exactly once and never saved or logged.
-- **Flexible.** You define ROI your way: any spend slice (a tagged key, the SDK, a whole vendor, manual) against any success definition (`track()` events, merged PRs, manual), with your own value per outcome. The whole reports exports as [FOCUS] so any FinOps tool can ingest it.
+- **Flexible.** You define ROI your way: any spend slice (a tagged key, the SDK, a whole vendor, manual) against any success definition (`track()` events, issues done, manual), with your own value per outcome. The whole reports exports as [FOCUS] so any FinOps tool can ingest it.
 
 ## Integrations
 
@@ -66,7 +70,7 @@ Seven pages behind one global date-range picker (the range lives in the URL, so 
 
 - **Overview** - total spend with its estimated/invoiced split, attribution coverage, daily trend, spend by vendor, top people, top ROI rows, connector health.
 - **People** - everyone (plus the visible Unassigned bucket) with spend by vendor, outcomes, and $/outcome. A person's page shows their keys, seats, daily breakdown, and the ROI rows they touch.
-- **ROI** - every ROI calculation in one list with the same columns: spend, tokens, successes, $ per success, value, ROI multiple. The built-in coding rows carry merged PRs, accept rate, revert rate, and line survival. A row with no success metric shows plain cost - never a fake ROI.
+- **ROI** - every ROI calculation in one list with the same columns: spend, tokens, successes, $ per success, value, ROI multiple. The built-in coding rows carry accept rate, revert rate, and line survival - success is surviving code, not merge count. A row with no success metric shows plain cost - never a fake ROI.
 - **Resolve** - the identity queue: confirm matches, route service accounts, merge two emails into one human. The nav badge drains live.
 - **Report** - one printable CFO page per month that always sums to the whole ledger. Exports as CSV or [FOCUS 1.4](https://focus.finops.org).
 - **Settings** - five tabs: Personal API keys, Connections (vendors, Jira/Linear, SDK keys, email, Slack), Alerts, Data, License.
@@ -78,7 +82,7 @@ Connectors sync hourly with a stored cursor: full backfill on first connect, res
 - **OpenAI** - org users, projects, and keys; daily usage and costs; invites, key minting, and removals. Needs an `sk-admin-...` key.
 - **Anthropic** - org users and keys (self-minted keys auto-map to their creator), per-key daily usage priced from a pinned price table (marked `estimated` - Anthropic never reports dollars per user), and per-user Claude Code analytics. Needs an `sk-ant-admin...` key.
 - **Cursor** - team roster, per-user spend and usage via the team Admin API. Limit pushes and member removal need the Enterprise plan.
-- **GitHub** - Copilot seats, per-user AI-credit dollars (monthly grain), usage counters, and merged PRs as outcomes: AI authorship detected from bot authors and co-author trailers (Claude, Copilot, Cursor, Devin, Codex), and a revert within the window (default 30 days) flips the outcome. The same token feeds line survival: AI-added lines checked against the repo at the 30/90-day horizon. Survival comes from git - vendors report line counts, never which lines.
+- **GitHub** - Copilot seats, per-user AI-credit dollars (monthly grain), usage counters, and line survival as the coding outcome: AI authorship detected from bot authors and co-author trailers (Claude, Copilot, Cursor, Devin, Codex), AI-added lines checked against the repo at the 30/90-day horizon, and a revert within the window (default 30 days) drops those lines. GitHub is a routing container here - the visible ROI is per-tool surviving code, not spend-per-merge. Survival comes from git - vendors report line counts, never which lines.
 - **Jira / Linear** - success only, never spend. Each issue runs a state machine over its real status-transition history: hits the submitted status, goes pending; survives the window (default 30 days) or reaches Done, success; regresses inside the window, fail. Agent actors (app users) get the credit when they're the issue's delegate, assignee, or creator, and route to an ROI row by tag or by project mapping.
 
 Every endpoint is verified against current vendor docs and covered by fixture tests, but most need real credentials to exercise live (admin keys for OpenAI/Anthropic/Cursor, an org PAT for GitHub, provider credentials for email). Everything publicly callable was called live.
@@ -99,7 +103,7 @@ Key names become tags on the next sync - the name says what a key is for, by con
 
 ## ROI rows
 
-An ROI row is anything that spends AI money: a name, a spend source (`connector`, `key`, `sdk`, or `manual`), and a success metric or none (`github_pr`, `sdk_event`, `manual`). The ROI page reads `GET /api/roi`; row CRUD keeps the old `products` path (`GET`/`POST /api/products`) - the table name stayed, only the language changed. A row can set a default value per outcome, applied at read time (changing it re-values history retroactively); per-event values override it. Tools with no API take manual monthly entries (`PUT /api/products/{id}/manual`) that drill down to the entry itself, not fake vendor rows. Archive is the only exit - history stays readable, nothing hard-deletes.
+An ROI row is anything that spends AI money: a name, a spend source (`connector`, `key`, `sdk`, or `manual`), and a success metric or none (`issue_done`, `sdk_event`, `manual`); coding survival is built in. The ROI page reads `GET /api/roi`; row CRUD keeps the old `products` path (`GET`/`POST /api/products`) - the table name stayed, only the language changed. A row can set a default value per outcome, applied at read time (changing it re-values history retroactively); per-event values override it. Tools with no API take manual monthly entries (`PUT /api/products/{id}/manual`) that drill down to the entry itself, not fake vendor rows. Archive is the only exit - history stays readable, nothing hard-deletes.
 
 ## SDKs + ingest API
 

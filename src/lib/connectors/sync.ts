@@ -266,12 +266,14 @@ export async function upsertIdentity(
   identity: IdentityInput,
 ): Promise<ResolvedIdentity> {
   const { rows } = await db.query(
-    `INSERT INTO identities (vendor, external_id, kind, email, display_name, tags, person_id)
-     VALUES ($1, $2, $3, $4, $5, $6, ${personByEmailSql("$4")})
+    `INSERT INTO identities
+       (vendor, external_id, kind, email, display_name, tags, subscription_type, person_id)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, ${personByEmailSql("$4")})
      ON CONFLICT (vendor, external_id, kind) DO UPDATE SET
        email = COALESCE(EXCLUDED.email, identities.email),
        display_name = COALESCE(EXCLUDED.display_name, identities.display_name),
        tags = EXCLUDED.tags,
+       subscription_type = COALESCE(EXCLUDED.subscription_type, identities.subscription_type),
        person_id = CASE
          WHEN identities.not_person THEN NULL
          ELSE COALESCE(
@@ -288,6 +290,7 @@ export async function upsertIdentity(
       identity.email ?? null,
       identity.displayName ?? null,
       identity.tags ?? [],
+      identity.subscriptionType ?? null,
     ],
   );
   return { id: rows[0].id, personId: rows[0].person_id, productId: rows[0].product_id };

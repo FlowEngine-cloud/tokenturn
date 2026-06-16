@@ -30,9 +30,22 @@ export { assertDay, displayLateral } from "./display";
 export type { TrendPoint } from "./display";
 
 export interface OverviewTotals {
+  /** Real spend = what you actually pay (every fact: metered + seats). */
   totalCents: number;
   estimatedCents: number;
   invoicedCents: number;
+  /** Flat recurring seat fees (billing_mode 'subscription'). */
+  subscriptionCents: number;
+  /** Pay-as-you-go spend (billing_mode 'metered') - the rest of real spend. */
+  meteredCents: number;
+  /**
+   * Usage value = the API-equivalent cost of all usage, a different lens than
+   * real spend: metered token estimates (what API users pay) plus each
+   * subscription seat holder's metered-equivalent usage (what their flat seat
+   * would have cost on the API). For a seat this runs far above the fee - the
+   * gap is the leverage the flat plan buys.
+   */
+  usageValueCents: number;
   /** Spend with a person or a product. */
   assignedCents: number;
   /** No person AND no product - the visible Unassigned bucket. */
@@ -102,6 +115,10 @@ export async function overviewData(
        COALESCE(ROUND(SUM(d.cents)), 0)::bigint AS total,
        COALESCE(ROUND(SUM(d.cents) FILTER (WHERE r.cost_basis = 'estimated')), 0)::bigint AS estimated,
        COALESCE(ROUND(SUM(d.cents) FILTER (WHERE r.cost_basis = 'invoiced')), 0)::bigint AS invoiced,
+       COALESCE(ROUND(SUM(d.cents) FILTER (WHERE r.billing_mode = 'subscription')), 0)::bigint AS subscription,
+       COALESCE(ROUND(SUM(d.cents) FILTER (WHERE r.billing_mode = 'metered')), 0)::bigint AS metered,
+       COALESCE(ROUND(SUM(d.cents) FILTER (
+         WHERE r.billing_mode = 'metered' AND r.cost_basis = 'estimated')), 0)::bigint AS metered_estimated,
        COALESCE(ROUND(SUM(d.cents) FILTER (
          WHERE r.person_id IS NOT NULL OR r.product_id IS NOT NULL)), 0)::bigint AS assigned,
        COALESCE(SUM(r.fact_count), 0)::int AS facts,
@@ -118,12 +135,48 @@ export async function overviewData(
       409,
     );
   }
+
+  // Usage value = what all usage would cost at API rates, from two
+  // non-overlapping sources:
+  //   - metered usage: its estimated facts ARE the API-rate cost already
+  //     (summed in metered_estimated above).
+  //   - subscription usage: the vendor's OWN per-model estimated cost, which
+  //     it reports in its analytics API (Claude Code model_breakdown ->
+  //     estimated_cost) and we store verbatim in usage_metrics - never our
+  //     price table, never a multiplier. It lives out of spend_facts because a
+  //     flat seat is not metered; counting it as spend would be fiction.
+  // The two never double count: a subscription customer is not API-billed, so
+  // a seat holder has no metered facts for the same tokens. Scoped to the
+  // seat's active months so usage before/after the plan is not credited to it.
+  const { rows: usageRows } = await db.query(
+    `SELECT COALESCE(ROUND(SUM(m.value::numeric / fx.rate)), 0)::bigint AS usage_value,
+            COALESCE(BOOL_OR(fx.rate IS NULL), false) AS fx_missing
+     FROM usage_metrics m
+     JOIN subscription_seats s
+       ON s.person_id = m.person_id AND s.vendor = m.vendor
+      AND m.day >= s.started_month
+      AND (s.ended_month IS NULL OR m.day < (s.ended_month + interval '1 month')::date)
+     CROSS JOIN LATERAL (SELECT ${fxExpr("$1::text", "m.day")} AS rate) fx
+     WHERE m.metric = 'estimated_cost_cents'
+       AND m.day BETWEEN $2::date AND $3::date`,
+    params,
+  );
+  if (usageRows[0].fx_missing) {
+    throw new ResolveError(
+      `no FX rate for the display currency ${displayCurrency} - sync FX rates first`,
+      409,
+    );
+  }
+
   const totalCents = Number(t.total);
   const assignedCents = Number(t.assigned);
   const totals: OverviewTotals = {
     totalCents,
     estimatedCents: Number(t.estimated),
     invoicedCents: Number(t.invoiced),
+    subscriptionCents: Number(t.subscription),
+    meteredCents: Number(t.metered),
+    usageValueCents: Number(t.metered_estimated) + Number(usageRows[0].usage_value),
     assignedCents,
     unassignedCents: totalCents - assignedCents,
     coveragePct:
@@ -260,6 +313,8 @@ export interface FactFilters {
   /** Exact model name, or "none" for model IS NULL. */
   model?: string;
   basis?: "estimated" | "invoiced";
+  /** Flat seat fees vs pay-as-you-go. */
+  billingMode?: "subscription" | "metered";
   limit?: number;
   offset?: number;
 }
@@ -274,6 +329,7 @@ export interface FactRow {
   amountCents: number;
   currency: string;
   costBasis: "estimated" | "invoiced";
+  billingMode: "subscription" | "metered";
   /** The vendor record behind the row - what makes it drillable. */
   sourceRef: string;
   personId: string | null;
@@ -343,6 +399,7 @@ export async function listFacts(
     add("f.model = ?", filters.model);
   }
   if (filters.basis !== undefined) add("f.cost_basis = ?", filters.basis);
+  if (filters.billingMode !== undefined) add("f.billing_mode = ?", filters.billingMode);
 
   const whereSql = where.length > 0 ? `WHERE ${where.join(" AND ")}` : "";
   const displayExprSql = `f.amount_cents::numeric * ${fxExpr("f.currency", "f.day")}
@@ -368,7 +425,8 @@ export async function listFacts(
   const { rows } = await db.query(
     `SELECT f.id::text AS id, f.day::text AS day, f.vendor, f.model,
             f.tokens::bigint AS tokens, f.amount_cents::bigint AS "amountCents",
-            f.currency, f.cost_basis AS "costBasis", f.source_ref AS "sourceRef",
+            f.currency, f.cost_basis AS "costBasis", f.billing_mode AS "billingMode",
+            f.source_ref AS "sourceRef",
             f.person_id AS "personId", p.name AS "personName", p.email AS "personEmail",
             f.product_id AS "productId", pr.name AS "productName",
             i.external_id AS "identityExternalId",
