@@ -9,8 +9,6 @@ Tokenturn has two main goals:
 1. **Calculate the actual benefit you get for your AI spend.** What an agent that costs $200/month actually delivers, and whether it meets your success criteria. How much of the code written by AI survives production.
 2. **Manage all AI spend across employees and tools.** Set per-person limits, catch burn spikes, invite and offboard people across vendors in one click, and true your estimates up against real invoices.
 
-Spend is shown two honest ways, never mixed. **Real spend** is what you actually pay: pay-as-you-go API usage plus flat subscription seats (a Claude Max $20/$100/$200 seat, a Cursor/Copilot seat) recorded at their fixed monthly fee, not as a per-token guess. **Usage value** is what that usage would cost at API rates - on a flat seat it runs well above the fee, and that gap is the leverage the plan buys. Filter any view by metered vs subscription. ROI still uses the dollar figure; total spend reflects the real fee.
-
 For ROI we calculate three different ways:
 
 1. **Coding (built in).** Connect Cursor, Copilot, or Anthropic and you get accept rate, revert rate, and line survival (% of AI-written lines still alive after 30 and 90 days) with zero setup - coding ROI is survival, not merge count. Agents like Devin route their whole spend to one ROI row.
