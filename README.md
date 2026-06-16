@@ -2,7 +2,7 @@
 
 Self-hosted AI spend and ROI ledger. No proxy, no stored keys.
 
-**[Live demo](https://tokenturn-demo.flowengine.cloud/)** - the whole product, read-only, on six months of seeded data. The login is pre-filled, so just click sign in.
+**[Live demo](https://tokenturn-demo.flowengine.cloud/)** 
 
 Tokenturn has two main goals:
 
