@@ -15,7 +15,7 @@ import { recomputeRollups } from "./rollup";
  * so a visitor can't lock the owner out of the shared account.
  */
 export function isDemoMode(): boolean {
-  const v = process.env.DEMO_MODE?.trim().toLowerCase();
+  const v = (process.env.DEMO_MODE ?? process.env.demo_mode)?.trim().toLowerCase();
   return v === "1" || v === "true";
 }
 
@@ -49,6 +49,8 @@ export const DEMO_MARKER_KEY = "demo_dataset";
 /** Every demo fact/outcome/metric source_ref starts with this. */
 export const DEMO_REF_PREFIX = "demo:";
 export const DEMO_DAYS = 180;
+export const DEMO_LOGIN_NAME = "demo";
+export const DEMO_LOGIN_PASSWORD = "demo-mode-no-need password";
 
 export interface DemoMarker {
   seededAt: string;
