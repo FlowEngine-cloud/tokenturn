@@ -57,19 +57,42 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # The `secrets` context is NOT readable in a job-level `if:` - it silently
+      # evaluates to false there, which would skip the Hub push with no
+      # explanation. So the gate is a step output. Do not "simplify" it back.
+      - id: creds
+        run: echo "enabled=${{ secrets.DOCKERHUB_TOKEN != '' }}" >> "$GITHUB_OUTPUT"
+
+      # ghcr.io/flowengine-cloud/tokenturn can never be short, and a GHCR package
+      # is private until someone flips it by hand. Docker Hub is the ref a reader
+      # can actually type and actually pull.
+      - uses: docker/login-action@v3
+        if: steps.creds.outputs.enabled == 'true'
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME || 'flowenginecloud' }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
       - id: meta
         run: |
           echo "image=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
           echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          echo "hub=${{ vars.DOCKERHUB_REPO || 'flowenginecloud/tokenturn' }}" >> "$GITHUB_OUTPUT"
 
       - id: build
         uses: docker/build-push-action@v6
         with:
           context: .
           push: true
+          # Without this the build is amd64 only and every Apple Silicon Mac gets
+          # "no matching manifest for linux/arm64/v8" - a dead end, not a warning.
+          platforms: linux/amd64,linux/arm64
+          # The Hub tags are only listed once the login above actually ran;
+          # naming a registry we never authenticated to fails the push.
           tags: |
             ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.tag }}
             ${{ steps.meta.outputs.image }}:latest
+            ${{ steps.creds.outputs.enabled == 'true' && format('{0}:{1}', steps.meta.outputs.hub, steps.meta.outputs.tag) || '' }}
+            ${{ steps.creds.outputs.enabled == 'true' && format('{0}:latest', steps.meta.outputs.hub) || '' }}
 
       # Provenance: who built this image, from what commit, with what workflow.
       - uses: actions/attest-build-provenance@v2

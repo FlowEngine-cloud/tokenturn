@@ -2,7 +2,19 @@
 
 Self-hosted AI spend and ROI ledger. No proxy, no stored keys.
 
-**[Live demo](https://tokenturn-demo.flowengine.cloud/)** 
+**[Live demo](https://tokenturn-demo.flowengine.cloud/)**
+
+## Quick start
+
+```bash
+docker compose up
+```
+
+Open [http://localhost:3000](http://localhost:3000).
+
+Compose pulls the published image, starts PostgreSQL, waits for it, creates the application database and applies all migrations. Backup = the Postgres volume. `GET /healthz` reports app and database health.
+
+---
 
 Tokenturn has two main goals:
 
@@ -25,13 +37,7 @@ For ROI we calculate three different ways:
 
 OpenAI, Anthropic (including Claude Code analytics), Cursor, GitHub Copilot. Jira and Linear for success tracking (outcomes only, never spend). Slack and email for alerts. Okta and Google Workspace sync on the enterprise plan.
 
-## Quick start
-
-```bash
-docker compose up
-```
-
-Open [http://localhost:3000](http://localhost:3000). The Compose setup creates PostgreSQL, waits for it, creates the application database, and applies all migrations automatically. Backup = the Postgres volume. `GET /healthz` reports app and database health.
+## Deployment
 
 ### Coolify deployment
 

@@ -1,6 +1,10 @@
 services:
   app:
+    # Pull the published multi-arch image so `docker compose up` starts in
+    # seconds. `docker compose build` still builds from source when you want it.
+    image: flowenginecloud/tokenturn:latest
     build: .
+    pull_policy: missing
     ports:
       - "3000:3000"
     environment:
