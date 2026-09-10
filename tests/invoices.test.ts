@@ -40,6 +40,22 @@ const CONNECT_OK = path.resolve(
 const NOW = new Date("2026-06-11T12:00:00Z");
 const VENDOR = "acme_v";
 
+/**
+ * A month that is always still open, computed fresh on every run.
+ *
+ * NOW above only reaches code we hand it to (runSync). The import ROUTE
+ * validates against the real clock, so a hardcoded future month here silently
+ * becomes a PAST month once that date passes, the "not over yet" row starts
+ * validating clean, and this test fails for a reason that has nothing to do
+ * with the code under test. It already did: the row was pinned to 2026-06.
+ */
+const OPEN_MONTH = (() => {
+  const d = new Date();
+  d.setUTCDate(1); // before touching the month: Jan 31 + 1 month lands in March
+  d.setUTCMonth(d.getUTCMonth() + 1);
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+})();
+
 function postCsv(path: string, csv: string, cookie?: string): Request {
   return new Request(`http://localhost:3000${path}`, {
     method: "POST",
@@ -145,7 +161,7 @@ describe.runIf(TEST_DATABASE_URL)("invoice import + true-up (spec 4)", () => {
       `${VENDOR},2026-13,1.00,USD,,`,
       `${VENDOR},2026-04,12x.00,USD,,`,
       "beta,2026-04,5.00,XXX,,",
-      `${VENDOR},2026-06,1.00,USD,,`,
+      `${VENDOR},${OPEN_MONTH},1.00,USD,,`,
       `${VENDOR},2026-05,2.00,USD,,`,
       "manual,2026-04,1.00,USD,,",
     ].join("\n");
@@ -158,7 +174,7 @@ describe.runIf(TEST_DATABASE_URL)("invoice import + true-up (spec 4)", () => {
       [3, 'bad month "2026-13" - want YYYY-MM'],
       [4, 'bad amount "12x.00" - want a plain decimal like 1234.56'],
       [5, "no FX rate for XXX yet - sync FX rates first"],
-      [6, "2026-06 is not over yet - import after the month closes"],
+      [6, `${OPEN_MONTH} is not over yet - import after the month closes`],
       [7, `duplicate row for ${VENDOR} 2026-05`],
       [8, 'vendor "manual" is reserved for manual product entries'],
     ]);
