@@ -7,12 +7,12 @@ Self-hosted AI spend and ROI ledger. No proxy, no stored keys.
 ## Quick start
 
 ```bash
-docker compose up
+curl -fsSL https://raw.githubusercontent.com/FlowEngine-cloud/tokenturn/main/docker-compose.yml -o docker-compose.yml && docker compose up -d
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
 
-Compose pulls the published image, starts PostgreSQL, waits for it, creates the application database and applies all migrations. Backup = the Postgres volume. `GET /healthz` reports app and database health.
+Tokenturn needs PostgreSQL, so this pulls a two-service Compose file instead of a single container. It starts the database, waits for it, and applies every migration on boot. Backup = the Postgres volume. `GET /healthz` reports app and database health.
 
 ---
 
